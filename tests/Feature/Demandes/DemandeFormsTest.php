@@ -1,0 +1,173 @@
+<?php
+
+namespace Tests\Feature\Demandes;
+
+use App\Enums\DemandeStatus;
+use App\Enums\DemandeType;
+use App\Enums\NeedType;
+use App\Mail\DemandeAccuse;
+use App\Mail\NouvelleDemande;
+use App\Models\ActivityLog;
+use App\Models\Demande;
+use App\Support\SiteSettings;
+use App\Support\SpamGuard;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+/**
+ * Formulaires du site (cahier §6, REC-06, REC-07, REC-09, §10 anti-spam) : enregistrement, validation, anti-spam,
+ * pièce jointe, notification e-mail (un échec ne perd pas la demande).
+ */
+class DemandeFormsTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Mail::fake();
+        Storage::fake('local');
+        RateLimiter::clear('demandes-min|127.0.0.1');
+        config(['site.notification_email' => 'equipe@ettc.test']);
+    }
+
+    /** @return array<string, mixed> */
+    private function human(array $data = []): array
+    {
+        return $data + [SpamGuard::TOKEN => Crypt::encryptString((string) now()->subSeconds(20)->getTimestamp()), 'consent' => '1'];
+    }
+
+    public function test_a_contact_message_is_saved_and_notified(): void
+    {
+        $this->get('/contact')->assertOk()->assertSee('data-ajax-form', false)->assertSee(SpamGuard::HONEYPOT);
+
+        $this->from('/contact')->post('/contact', $this->human([
+            'name' => 'Awa Traoré', 'organization' => 'Lycée de Kati', 'phone' => '70 11 22 33', 'subject' => 'Maintenance', 'message' => 'Nos imprimantes sont en panne.',
+        ]))->assertRedirect('/contact')->assertSessionHas('demande_sent');
+
+        $demande = Demande::firstOrFail();
+        $this->assertSame(DemandeType::Contact, $demande->type);
+        $this->assertSame(DemandeStatus::Nouvelle, $demande->status);
+        $this->assertNotNull($demande->consent_at);
+        $this->assertNotNull($demande->notified_at);
+        Mail::assertSent(NouvelleDemande::class, fn ($mail) => $mail->hasTo('equipe@ettc.test') && $mail->demande->is($demande));
+        Mail::assertNotSent(DemandeAccuse::class); // pas d'e-mail laissé : pas d'accusé de réception
+        $this->assertTrue(ActivityLog::where('action', 'demandes.received')->exists());
+
+        $this->get('/contact')->assertSee('Message envoyé');
+    }
+
+    public function test_the_visitor_who_left_an_email_receives_an_acknowledgment(): void
+    {
+        $this->postJson('/contact', $this->human([
+            'name' => 'Awa Traoré', 'email' => 'awa@exemple.ml', 'subject' => 'Maintenance du parc', 'message' => 'Nos imprimantes sont en panne.',
+        ]))->assertOk();
+
+        $demande = Demande::firstOrFail();
+        Mail::assertSent(DemandeAccuse::class, function (DemandeAccuse $mail) use ($demande) {
+            $html = $mail->render();
+
+            return $mail->hasTo('awa@exemple.ml') && $mail->hasReplyTo('equipe@ettc.test') && $mail->demande->is($demande)
+                && str_contains($mail->envelope()->subject, $demande->reference())
+                && str_contains($html, 'Bonjour Awa Traoré') && str_contains($html, 'votre message') && str_contains($html, 'Maintenance du parc');
+        });
+        Mail::assertSent(NouvelleDemande::class, 1);
+    }
+
+    public function test_the_ajax_submission_returns_json_and_validation_errors(): void
+    {
+        $this->postJson('/contact', $this->human(['name' => 'Moussa', 'email' => 'moussa@exemple.ml', 'subject' => 'Info', 'message' => 'Bonjour, je souhaite un renseignement.']))
+            ->assertOk()->assertJsonStructure(['title', 'message']);
+
+        $this->postJson('/contact', [SpamGuard::TOKEN => Crypt::encryptString((string) now()->subMinute()->getTimestamp()), 'name' => '', 'message' => 'court'])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name', 'email', 'phone', 'subject', 'message', 'consent']);
+
+        $this->assertSame(1, Demande::count());
+    }
+
+    public function test_robots_get_a_success_but_nothing_is_saved(): void
+    {
+        $valid = ['name' => 'Bot', 'email' => 'bot@spam.test', 'subject' => 'Promo', 'message' => 'Achetez nos produits miracles.'];
+
+        $this->postJson('/contact', $this->human($valid + [SpamGuard::HONEYPOT => 'http://spam.test']))->assertOk();
+        $this->postJson('/contact', $valid + ['consent' => '1', SpamGuard::TOKEN => SpamGuard::token()])->assertOk(); // envoyé aussitôt affiché
+        $this->postJson('/contact', $valid + ['consent' => '1', SpamGuard::TOKEN => 'falsifié'])->assertOk();
+
+        $this->assertSame(0, Demande::count());
+        Mail::assertNothingSent();
+    }
+
+    public function test_lookalike_domains_and_blocked_words_get_a_success_but_nothing_is_saved(): void
+    {
+        config(['app.url' => 'https://computerservicebarry.com']);
+        $spam = ['name' => 'Swen', 'phone' => '3868123422', 'subject' => 'Results for computerservicebarry.com', 'message' => 'Your domain listing is about to expire.'];
+
+        // Arnaque au référencement : adresse qui imite le domaine du site.
+        $this->postJson('/contact', $this->human($spam + ['email' => 'domains@search-computerservicebarry.com']))->assertOk()->assertJsonPath('title', 'Message envoyé');
+        $this->postJson('/contact', $this->human($spam + ['email' => 'info@computerservicebarry-seo.net']))->assertOk();
+        $this->assertSame(0, Demande::count());
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2']); // 5 envois par minute et par adresse : une adresse par étape
+        // Liste « Anti-spam » réglée dans l'administration : domaine ou expression, sans tenir compte des majuscules.
+        app(SiteSettings::class)->save(['antispam.blocked' => "spam-seo.com\nyour domain listing"]);
+        $this->postJson('/contact', $this->human(['name' => 'Bob', 'email' => 'bob@spam-seo.com', 'subject' => 'Hello', 'message' => 'Bonjour, une offre pour vous.']))->assertOk();
+        $this->postJson('/contact', $this->human(['name' => 'Bob', 'email' => 'bob@mail.test', 'subject' => 'Hello', 'message' => 'YOUR DOMAIN LISTING expires soon.']))->assertOk();
+        $this->assertSame(0, Demande::count());
+        Mail::assertNothingSent();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.3']);
+        // Les vrais clients passent : adresse Gmail, et l'adresse du site elle-même.
+        $this->postJson('/contact', $this->human(['name' => 'Awa Traoré', 'email' => 'awa.traore@gmail.com', 'subject' => 'Devis', 'message' => 'Il nous faut 10 ordinateurs pour l\'école.']))->assertOk();
+        $this->postJson('/contact', $this->human(['name' => 'Équipe', 'email' => 'contact@computerservicebarry.com', 'subject' => 'Test', 'message' => 'Message de test du site.']))->assertOk();
+        $this->assertSame(2, Demande::count());
+    }
+
+    public function test_submissions_are_rate_limited(): void
+    {
+        $data = $this->human(['name' => 'Pressé', 'email' => 'a@b.ml', 'subject' => 'X', 'message' => 'Message de test numéro un.']);
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/contact', $data)->assertOk();
+        }
+        $this->postJson('/contact', $data)->assertStatus(429);
+    }
+
+    public function test_a_request_with_attachment_keeps_it_private(): void
+    {
+        $this->get('/devis?type=traduction')->assertOk()->assertSee('Faire une demande')->assertSee('value="traduction" selected', false);
+        $this->postJson('/devis', $this->human([
+            'name' => 'Directeur', 'email' => 'dir@ecole.ml', 'need_type' => 'formation_personnalisee', 'message' => 'Préparer 12 enseignants à un séminaire en anglais.',
+            'deadline' => 'Avant mars', 'attachment' => UploadedFile::fake()->create('programme.pdf', 200, 'application/pdf'),
+        ]))->assertOk();
+
+        $demande = Demande::firstOrFail();
+        $this->assertSame(NeedType::FormationPersonnalisee, $demande->need_type);
+        $this->assertNull($demande->subject_label);
+        $this->assertSame('programme.pdf', $demande->attachment_name);
+        Storage::disk('local')->assertExists($demande->attachment_path);
+        $this->assertStringStartsWith('demandes/', $demande->attachment_path);
+
+        $this->postJson('/devis', $this->human(['name' => 'X', 'email' => 'x@y.ml', 'need_type' => 'autre', 'message' => 'Description suffisante.', 'attachment' => UploadedFile::fake()->create('virus.exe', 10)]))
+            ->assertUnprocessable()->assertJsonValidationErrors('attachment');
+        $this->postJson('/devis', $this->human(['name' => 'X', 'email' => 'x@y.ml', 'need_type' => 'autre', 'message' => 'Description suffisante.', 'attachment' => UploadedFile::fake()->create('gros.pdf', 6000, 'application/pdf')]))
+            ->assertUnprocessable()->assertJsonValidationErrors('attachment');
+        $this->assertSame(1, Demande::count());
+    }
+
+    public function test_a_mail_failure_never_loses_the_request(): void
+    {
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP injoignable'));
+
+        $this->postJson('/contact', $this->human(['name' => 'Fatou', 'email' => 'f@ettc.ml', 'subject' => 'Test', 'message' => 'Message important à conserver.']))->assertOk();
+
+        $demande = Demande::firstOrFail();
+        $this->assertNull($demande->notified_at);
+        $this->assertStringContainsString('SMTP injoignable', $demande->notification_error);
+        $this->assertTrue(ActivityLog::where('action', 'demandes.notification_failed')->exists());
+        $this->assertTrue(ActivityLog::where('action', 'demandes.acknowledgment_failed')->exists());
+    }
+}

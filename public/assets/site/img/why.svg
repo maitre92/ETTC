@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Illustration provisoire « Pourquoi choisir le centre ? » aux couleurs du logo : à remplacer par une photo d'une séance. -->
+  <rect width="800" height="600" fill="#e7f4fc"/>
+  <rect x="120" y="120" width="560" height="320" rx="18" fill="#0c68b2"/>
+  <rect x="150" y="150" width="500" height="260" rx="10" fill="#4b90cd"/>
+  <text x="400" y="270" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="64" fill="#fff">A · B · C</text>
+  <text x="400" y="340" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="32" fill="#f4ef9b">Speak · Read · Write</text>
+  <circle cx="230" cy="510" r="42" fill="#f29677"/><circle cx="400" cy="510" r="42" fill="#a6cf91"/><circle cx="570" cy="510" r="42" fill="#f4ef9b"/>
+</svg>

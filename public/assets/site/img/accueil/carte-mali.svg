@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="Carte du Mali aux couleurs du drapeau">
+  <!-- Silhouette simplifiée du Mali, remplie des trois bandes du drapeau (vert, jaune, rouge). -->
+  <defs>
+    <clipPath id="mali">
+      <path d="M118 6 L134 6 L150 40 L178 64 L186 70 L180 92 L170 96 L150 98 L140 112 L120 116 L104 132 L90 134 L84 150 L70 164 L58 166 L52 152 L40 150 L30 138 L18 136 L14 122 L4 112 L10 98 L34 96 L58 98 L80 92 L92 86 L96 60 L104 54 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#mali)">
+    <rect x="0" y="0" width="70" height="180" fill="#14b53a"/>
+    <rect x="70" y="0" width="62" height="180" fill="#fcd116"/>
+    <rect x="132" y="0" width="68" height="180" fill="#ce1126"/>
+  </g>
+  <path d="M118 6 L134 6 L150 40 L178 64 L186 70 L180 92 L170 96 L150 98 L140 112 L120 116 L104 132 L90 134 L84 150 L70 164 L58 166 L52 152 L40 150 L30 138 L18 136 L14 122 L4 112 L10 98 L34 96 L58 98 L80 92 L92 86 L96 60 L104 54 Z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+</svg>

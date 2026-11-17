@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 647">
+  <!-- Visuel provisoire de l'accueil (bulles de dialogue) aux couleurs du logo : à remplacer par une photo du centre. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".28"/><stop offset="1" stop-color="#afdef6" stop-opacity=".12"/></linearGradient>
+  </defs>
+  <rect x="140" y="110" width="560" height="300" rx="40" fill="#0c68b2"/>
+  <path d="M260 410 L230 500 L340 410 Z" fill="#0c68b2"/>
+  <text x="420" y="285" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="120" fill="#fff">Hello!</text>
+  <rect x="560" y="300" width="500" height="230" rx="36" fill="#f29677"/>
+  <path d="M960 530 L1000 610 L900 530 Z" fill="#f29677"/>
+  <text x="810" y="445" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="96" fill="#1b1203">Bonjour !</text>
+  <circle cx="1090" cy="170" r="34" fill="#f4ef9b"/><circle cx="1150" cy="240" r="20" fill="#a6cf91"/>
+</svg>

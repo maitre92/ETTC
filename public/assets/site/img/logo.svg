@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 64" role="img" aria-label="ETTC">
+  <!-- Logo provisoire d'ETTC, à remplacer par le logo officiel du centre (cahier §9.1). -->
+  <rect x="2" y="4" width="80" height="56" rx="12" fill="#103B8E"/>
+  <text x="42" y="40" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="22" fill="#fff" letter-spacing="1">ETTC</text>
+  <rect x="16" y="46" width="52" height="4" rx="2" fill="#F58220"/>
+</svg>

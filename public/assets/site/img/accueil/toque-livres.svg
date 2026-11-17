@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 170" role="img" aria-label="Toque de diplômé sur une pile de livres">
+  <ellipse cx="120" cy="160" rx="100" ry="8" fill="#0d497e" opacity=".12"/>
+  <!-- livres -->
+  <rect x="34" y="126" width="168" height="26" rx="4" fill="#1d5fa8"/>
+  <rect x="40" y="130" width="156" height="6" rx="2" fill="#f4f1e6"/>
+  <rect x="46" y="100" width="150" height="26" rx="4" fill="#f6ae15"/>
+  <rect x="52" y="104" width="138" height="6" rx="2" fill="#fbf6e6"/>
+  <rect x="38" y="76" width="160" height="24" rx="4" fill="#e9612f"/>
+  <rect x="44" y="80" width="148" height="5" rx="2" fill="#fbf1ea"/>
+  <!-- toque -->
+  <path d="M84 62 v16 c0 8 16 14 36 14 s36-6 36-14 V62 z" fill="#1b2433"/>
+  <path d="M120 22 L200 50 L120 78 L40 50 Z" fill="#26313f"/>
+  <path d="M120 22 L200 50 L120 60 L40 50 Z" fill="#323e4e"/>
+  <circle cx="120" cy="50" r="4" fill="#f6ae15"/>
+  <path d="M120 50 L176 64 L176 98" fill="none" stroke="#f6ae15" stroke-width="3"/>
+  <path d="M170 96 h12 l-2 22 h-8 z" fill="#f6ae15"/>
+</svg>

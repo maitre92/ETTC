@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 170" role="img" aria-label="Ordinateur portable en visioconférence">
+  <ellipse cx="120" cy="160" rx="110" ry="7" fill="#123" opacity=".12"/>
+  <rect x="42" y="18" width="156" height="106" rx="8" fill="#2b2f36"/>
+  <rect x="50" y="26" width="140" height="90" rx="3" fill="#ffffff"/>
+  <!-- icône de visioconférence (caméra) -->
+  <rect x="96" y="48" width="36" height="30" rx="5" fill="#4ab248"/>
+  <rect x="96" y="48" width="18" height="15" rx="3" fill="#1f88e5"/>
+  <rect x="114" y="63" width="18" height="15" rx="3" fill="#f6ae15"/>
+  <rect x="96" y="63" width="10" height="15" rx="3" fill="#e9452f"/>
+  <path d="M132 56 L148 46 V80 L132 70 Z" fill="#4ab248"/>
+  <text x="120" y="102" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#3c4048">Cours en direct</text>
+  <path d="M22 126 H218 L206 142 H34 Z" fill="#c5cbd3"/>
+  <rect x="100" y="126" width="40" height="5" rx="2" fill="#a7afba"/>
+</svg>
