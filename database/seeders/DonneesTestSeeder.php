@@ -4,20 +4,23 @@ namespace Database\Seeders;
 
 use App\Enums\DemandeStatus;
 use App\Enums\DemandeType;
+use App\Enums\FormationMode;
+use App\Enums\InscriptionStatus;
 use App\Enums\NeedType;
-use App\Enums\PaymentMethod;
 use App\Enums\TestMode;
 use App\Enums\TestStatus;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\Demande;
+use App\Models\Formule;
+use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
+use App\Services\Inscriptions\InscriptionService;
 use App\Services\Numbering\SequenceService;
-use App\Support\SiteSettings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -49,11 +52,12 @@ class DonneesTestSeeder extends Seeder
         $password = $this->clients();
         $this->demandes();
         $this->tests();
+        $this->inscriptions();
 
         $this->command?->info('Données de test créées. Apprenants : *@'.self::EMAIL_DOMAIN.($password ? ", mot de passe : {$password}" : ' (mot de passe inchangé)'));
     }
 
-    /** Candidats fictifs au test de niveau : un à planifier, un planifié payé, un passé avec résultat. */
+    /** Candidats fictifs au test de niveau (gratuit) : un à planifier, un planifié, un passé avec résultat. */
     private function tests(): void
     {
         if (TestNiveau::where('email', 'like', '%@'.self::EMAIL_DOMAIN)->exists()) {
@@ -62,17 +66,39 @@ class DonneesTestSeeder extends Seeder
         $agent = User::orderBy('id')->value('id');
         $niveau = Niveau::ordered()->first();
         $sequences = app(SequenceService::class);
-        $fee = (int) app(SiteSettings::class)->get('tarifs.test_niveau');
         $items = [
             ['name' => 'Awa Diakité', 'email' => 'awa@'.self::EMAIL_DOMAIN, 'phone' => '+22370000001', 'test_mode' => TestMode::Distance, 'preferred_slot' => 'Samedi matin (test)'],
-            ['name' => 'Moussa Keïta', 'email' => 'moussa@'.self::EMAIL_DOMAIN, 'phone' => '+22370000002', 'status' => TestStatus::Planifie, 'scheduled_at' => now()->addDay()->setTime(9, 0), 'location' => 'Salle 1 (test)',
-                'paid_at' => now()->subDay(), 'payment_method' => PaymentMethod::Especes, 'payment_recorded_by' => $agent],
+            ['name' => 'Moussa Keïta', 'email' => 'moussa@'.self::EMAIL_DOMAIN, 'phone' => '+22370000002', 'status' => TestStatus::Planifie, 'scheduled_at' => now()->addDay()->setTime(9, 0), 'location' => 'Salle 1 (test)'],
             ['name' => 'Fatoumata Sangaré', 'email' => 'fatoumata@'.self::EMAIL_DOMAIN, 'phone' => '+22370000003', 'status' => TestStatus::Passe, 'scheduled_at' => now()->subDays(3)->setTime(10, 0),
-                'paid_at' => now()->subDays(4), 'payment_method' => PaymentMethod::OrangeMoney, 'payment_reference' => 'OM-TEST-0001', 'payment_recorded_by' => $agent,
                 'niveau_id' => $niveau?->id, 'score' => '28 / 50', 'result_notes' => 'Bonne base à l\'oral (test).', 'result_at' => now()->subDays(3), 'result_by' => $agent],
         ];
         foreach ($items as $item) {
-            TestNiveau::create($item + ['number' => $sequences->next('TST'), 'status' => TestStatus::Demande, 'source' => 'site', 'fee' => $fee, 'consent_at' => now(), 'test_mode' => TestMode::Centre]);
+            TestNiveau::create($item + ['number' => $sequences->next('TST'), 'status' => TestStatus::Demande, 'source' => 'site', 'consent_at' => now(), 'test_mode' => TestMode::Centre]);
+        }
+    }
+
+    /** Inscriptions fictives : une à valider (site), une validée, une en cours ; prix figés d'après les formules. */
+    private function inscriptions(): void
+    {
+        $formule = Formule::published()->ordered()->first();
+        if (! $formule || Inscription::where('email', 'like', '%@'.self::EMAIL_DOMAIN)->exists()) {
+            return;
+        }
+        $service = app(InscriptionService::class);
+        $agent = User::orderBy('id')->first();
+        $niveau = Niveau::ordered()->first();
+        $mode = $formule->price_onsite !== null ? 'presentiel' : 'en_ligne';
+        $people = [
+            ['name' => 'Kadiatou Traoré', 'email' => 'kadiatou@'.self::EMAIL_DOMAIN, 'phone' => '+22370000011', 'source' => 'site', 'status' => InscriptionStatus::AValider],
+            ['name' => 'Boubacar Cissé', 'email' => 'boubacar@'.self::EMAIL_DOMAIN, 'phone' => '+22370000012', 'source' => 'centre', 'status' => InscriptionStatus::Validee, 'validated_at' => now()->subDay(), 'validated_by' => $agent?->id],
+            ['name' => 'Mariam Coulibaly', 'email' => 'mariam@'.self::EMAIL_DOMAIN, 'phone' => '+22370000013', 'source' => 'centre', 'status' => InscriptionStatus::EnCours, 'session' => 'Session test', 'validated_at' => now()->subDays(10), 'validated_by' => $agent?->id, 'started_at' => now()->subDays(7)],
+        ];
+        $sequences = app(SequenceService::class);
+        foreach ($people as $person) {
+            Inscription::create($person + $service->quote($formule, FormationMode::from($mode)) + [
+                'number' => $sequences->next(InscriptionService::PREFIX), 'formule_id' => $formule->id, 'niveau_id' => $niveau?->id,
+                'mode' => $mode, 'payment_choice' => 'au_centre', 'city' => 'Bamako', 'consent_at' => now(),
+            ]);
         }
     }
 

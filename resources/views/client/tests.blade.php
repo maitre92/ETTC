@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-{{-- Tests de niveau de l'apprenant (cahier §4) : statut, date et lieu ou lien, frais réglés ou non, niveau attribué
+{{-- Tests de niveau de l'apprenant (cahier §4) : statut, date et lieu ou lien (test gratuit), niveau attribué
      avec la fiche du niveau (formules et tarifs) pour choisir sa formation. --}}
 @section('content')
     @component('client._layout', ['title' => 'Mes tests de niveau'])
@@ -14,7 +14,7 @@
             @else
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
-                        <thead><tr><th scope="col">Référence</th><th scope="col">Test</th><th scope="col">Frais</th><th scope="col">Résultat</th></tr></thead>
+                        <thead><tr><th scope="col">Référence</th><th scope="col">Test</th><th scope="col">Résultat</th></tr></thead>
                         <tbody>
                             @foreach ($tests as $test)
                                 <tr>
@@ -26,7 +26,6 @@
                                             <span class="text-muted">{{ $test->status === \App\Enums\TestStatus::Annule ? 'Annulé' : 'Date à fixer avec le centre' }}</span>
                                         @endif
                                     </td>
-                                    <td>{{ \App\Models\Formule::money($test->fee) }}<br><small class="{{ $test->isPaid() ? 'text-success' : 'text-muted' }}">{{ $test->isPaid() ? 'Réglés' : 'À régler' }}</small></td>
                                     <td>
                                         @if ($test->niveau)
                                             <strong>{{ $test->niveau->name }}</strong>

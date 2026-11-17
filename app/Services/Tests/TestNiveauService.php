@@ -2,13 +2,11 @@
 
 namespace App\Services\Tests;
 
-use App\Enums\PaymentMethod;
 use App\Enums\TestMode;
 use App\Enums\TestStatus;
 use App\Mail\TestNiveauAccuse;
 use App\Mail\TestNiveauConvocation;
 use App\Mail\TestNiveauDemande;
-use App\Models\Formule;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
 use App\Models\User;
@@ -28,8 +26,8 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Cycle d'un test de niveau (cahier §3.4, §5) : demande (site ou centre), planification, encaissement des frais,
- * résultat et niveau attribué, annulation. Chaque étape est enregistrée en transaction puis journalisée ; les e-mails
+ * Cycle d'un test de niveau (cahier §3.4, §5) : demande (site ou centre), planification, résultat et niveau attribué,
+ * annulation. Le test est GRATUIT (décision du centre, 2026-11-17) : aucun frais ni encaissement ici. Chaque étape est enregistrée en transaction puis journalisée ; les e-mails
  * partent APRÈS l'enregistrement et un échec d'envoi ne perd jamais rien (D-4). Une seule ligne d'audit par geste :
  * la ligne métier (anciennes et nouvelles valeurs) ; la journalisation automatique est coupée pour ces mises à jour.
  */
@@ -43,12 +41,6 @@ class TestNiveauService
         private readonly SiteSettings $settings,
     ) {}
 
-    /** Frais en vigueur (Formations → Formules et tarifs), figés sur chaque nouvelle demande. */
-    public function currentFee(): int
-    {
-        return (int) $this->settings->get('tarifs.test_niveau');
-    }
-
     /**
      * Demande envoyée depuis le site.
      *
@@ -61,7 +53,6 @@ class TestNiveauService
                 'number' => $this->sequences->next(self::PREFIX),
                 'status' => TestStatus::Demande,
                 'source' => 'site',
-                'fee' => $this->currentFee(),
                 'consent_at' => now(),
                 'ip_address' => $request->ip(),
                 'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
@@ -90,7 +81,6 @@ class TestNiveauService
                 'number' => $this->sequences->next(self::PREFIX),
                 'status' => TestStatus::Demande,
                 'source' => 'centre',
-                'fee' => $this->currentFee(),
             ]);
             $this->logger->log('tests.created', 'tests', "Test de niveau enregistré au centre — {$test->number} ({$test->name})", $test, actor: $actor);
 
@@ -115,23 +105,6 @@ class TestNiveauService
         $this->convoke($test);
 
         return $test;
-    }
-
-    /** Encaissement des frais du test (montant figé à la demande), une seule fois. */
-    public function recordPayment(TestNiveau $test, PaymentMethod $method, ?string $reference, User $actor): TestNiveau
-    {
-        if ($test->paid_at !== null) {
-            throw ValidationException::withMessages(['payment_method' => 'Les frais de ce test sont déjà enregistrés comme payés.']);
-        }
-        $this->ensureNot($test, [TestStatus::Annule], 'Ce test est annulé : ses frais ne peuvent pas être encaissés.');
-
-        return DB::transaction(function () use ($test, $method, $reference, $actor) {
-            TestNiveau::withoutActivityLog(fn () => $test->update(['paid_at' => now(), 'payment_method' => $method, 'payment_reference' => $reference ?: null, 'payment_recorded_by' => $actor->id]));
-            $this->logger->log('tests.payment_recorded', 'tests', 'Frais du test encaissés — '.$test->number.' : '.Formule::money($test->fee).' ('.$method->label().')',
-                $test, [], ['fee' => $test->fee, 'payment_method' => $method->value, 'payment_reference' => $reference], $actor);
-
-            return $test;
-        });
     }
 
     /** Résultat et niveau attribué (le test passe à « Passé ») ; corrigeable ensuite, chaque version auditée. */

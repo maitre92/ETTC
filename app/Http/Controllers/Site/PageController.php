@@ -33,7 +33,6 @@ class PageController extends Controller
         return view('site.pages.home', [
             // Formules et tarifs : module Formations (modifiables à tout moment dans l'administration).
             'formules' => Formule::published()->ordered()->get(),
-            'testFee' => (int) $this->settings->get('tarifs.test_niveau'),
             'niveauxLabel' => $niveauxLabel,
             'temoignages' => Temoignage::with('photo')->published()->whereNotNull('content')->where('content', '!=', '')
                 ->orderByDesc('is_featured')->ordered()->limit(8)->get(),

@@ -22,6 +22,7 @@ Route::prefix('espace-client')->name('client.')->group(function () {
 
     Route::middleware(['auth:client', 'client.active'])->group(function () {
         Route::get('/', [AccountController::class, 'home'])->name('home');
+        Route::get('/inscriptions', [AccountController::class, 'inscriptions'])->name('inscriptions');
         Route::get('/tests-de-niveau', [AccountController::class, 'tests'])->name('tests');
         Route::get('/demandes', [AccountController::class, 'demandes'])->name('demandes');
         Route::get('/documents', [AccountController::class, 'documents'])->name('documents');

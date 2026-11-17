@@ -2,12 +2,12 @@
 
 @section('title', 'Tests de niveau')
 
-{{-- Suivi des tests de niveau (cahier §3.4, §5) : candidats à planifier, planifiés, passés, annulés, frais à encaisser ;
+{{-- Suivi des tests de niveau (cahier §3.4, §5) : candidats à planifier, planifiés, passés, annulés (test gratuit) ;
      inscription d'un candidat au centre ; présentation du test sur le site. Zone [data-crud] actualisée en AJAX. --}}
 @section('content')
     @php
         $open = $tests->filter(fn ($t) => $t->status === \App\Enums\TestStatus::Demande)->count();
-        $unpaid = $tests->filter(fn ($t) => ! $t->isPaid() && $t->status !== \App\Enums\TestStatus::Annule)->count();
+        $done = $tests->filter(fn ($t) => $t->status === \App\Enums\TestStatus::Passe)->count();
         $today = $tests->filter(fn ($t) => $t->scheduled_at?->isToday() && $t->status === \App\Enums\TestStatus::Planifie)->count();
     @endphp
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -23,10 +23,10 @@
     </div>
     <hr />
 
-    <div data-crud="tests" data-crud-columns="5">
+    <div data-crud="tests" data-crud-columns="4">
         <span data-crud-status hidden>{{ session('status') }}</span>
         <div class="row g-3 mb-3">
-            @foreach ([['À planifier', $open, 'bx-time-five', 'danger'], ['Aujourd\'hui', $today, 'bx-calendar-check', 'primary'], ['Frais à encaisser', $unpaid, 'bx-wallet', 'warning'], ['Frais du test', \App\Models\Formule::money($fee), 'bx-purchase-tag', 'success']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
+            @foreach ([['À planifier', $open, 'bx-time-five', 'danger'], ['Aujourd\'hui', $today, 'bx-calendar-check', 'primary'], ['Tests passés', $done, 'bx-medal', 'success'], ['Le test', 'Gratuit', 'bx-gift', 'warning']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
                 <div class="col-6 col-xl-3">
                     <div class="card radius-10 mb-0 h-100">
                         <div class="card-body d-flex align-items-center gap-3">
@@ -51,7 +51,6 @@
                     @foreach (\App\Enums\TestStatus::cases() as $status)
                         <button type="button" class="nv-chip" data-token="statut-{{ $status->value }}">{{ $status->label() }} <b>{{ $tests->where('status', $status)->count() }}</b></button>
                     @endforeach
-                    <button type="button" class="nv-chip" data-token="impaye">Frais à encaisser <b>{{ $unpaid }}</b></button>
                 </div>
                 <div class="table-responsive">
                     <table class="table" id="tests-table">
@@ -60,7 +59,6 @@
                                 <th>N°</th>
                                 <th>CANDIDAT</th>
                                 <th>TEST</th>
-                                <th>FRAIS</th>
                                 <th>RÉSULTAT</th>
                                 <th>STATUT</th>
                                 <th width="8%">ACTIONS</th>
@@ -79,13 +77,9 @@
                                         @endif
                                         <div class="small text-muted">{{ $test->test_mode->label() }}</div>
                                     </td>
-                                    <td class="fw-normal">
-                                        {{ \App\Models\Formule::money($test->fee) }}
-                                        <div>@if ($test->isPaid())<span class="badge bg-success-subtle">Payés</span>@else<span class="badge bg-warning-subtle">À encaisser</span>@endif</div>
-                                    </td>
                                     <td class="fw-normal">{{ $test->niveau?->name ?? '—' }}@if ($test->score)<div class="small text-muted">{{ $test->score }}</div>@endif</td>
                                     <td>
-                                        <span class="d-none">statut-{{ $test->status->value }}{{ ! $test->isPaid() && $test->status !== \App\Enums\TestStatus::Annule ? ' impaye' : '' }}</span>
+                                        <span class="d-none">statut-{{ $test->status->value }}</span>
                                         <span class="badge {{ $test->status->badge() }}">{{ $test->status->label() }}</span>
                                     </td>
                                     <td><a href="{{ route('tests.show', $test) }}" class="btn btn-primary btn-sm" title="Traiter"><i class='bx bx-show'></i></a></td>
@@ -101,7 +95,7 @@
             <div class="card">
                 <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-detail me-2'></i>PRÉSENTATION DU TEST SUR LE SITE</h6></div>
                 <div class="card-body">
-                    <p class="text-muted small">Format, durée, déroulement et communication des résultats : à définir par le centre (cahier §3.4). Affiché sur la page « Test de niveau ». Les frais ({{ \App\Models\Formule::money($fee) }}) se règlent dans <a href="{{ route('formations.formules.index') }}">Formules et tarifs</a>.</p>
+                    <p class="text-muted small">Format, durée, déroulement et communication des résultats : à définir par le centre (cahier §3.4). Affiché sur la page « Test de niveau ». Le test est gratuit.</p>
                     <form method="POST" action="{{ route('tests.presentation') }}" data-crud-form data-no-guard>
                         @csrf
                         @method('PUT')
@@ -124,7 +118,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                             </div>
                             <div class="modal-body p-4">
-                                <p class="text-muted small">Pour un candidat venu au centre ou qui a appelé. Frais figés à {{ \App\Models\Formule::money($fee) }}.</p>
+                                <p class="text-muted small">Pour un candidat venu au centre ou qui a appelé. Le test est gratuit.</p>
                                 <div class="row g-3">
                                     <div class="col-md-6"><label class="form-label fw-semibold" for="t-name">Nom complet <span class="text-danger">*</span></label><input class="form-control" id="t-name" name="name" maxlength="150" required></div>
                                     <div class="col-md-6"><label class="form-label fw-semibold" for="t-mode">Mode du test <span class="text-danger">*</span></label>

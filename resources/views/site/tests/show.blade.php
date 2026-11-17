@@ -3,7 +3,7 @@
 @section('whatsapp_message', 'Bonjour, je souhaite passer le test de niveau d\'anglais.')
 
 {{-- Test de niveau (cahier §3.4) : présentation et conditions (Tests de niveau → Présentation, dans l'administration),
-     frais en vigueur (Formules et tarifs), déroulement, demande ou réservation envoyée en AJAX. --}}
+     test gratuit (décision du centre), déroulement, demande ou réservation envoyée en AJAX. --}}
 @section('content')
     @include('site.partials.page-hero', ['title' => 'Test de niveau', 'intro' => 'Avant votre formation, un test évalue vos connaissances et vous oriente vers le niveau qui vous correspond.'])
 
@@ -13,8 +13,8 @@
                 <div>
                     <div class="ettc-side-card ettc-tone-yellow ettc-test-card mb-4">
                         <i class='bx bx-clipboard' aria-hidden="true"></i>
-                        <span><strong>Frais du test</strong><small>Distincts des frais de formation. À régler au centre ou par paiement mobile, avant ou le jour du test.</small></span>
-                        <span class="ettc-test-price">{{ \App\Models\Formule::money($fee) }}</span>
+                        <span><strong>Un test gratuit</strong><small>Le test de niveau ne coûte rien : seule l'inscription à une formation est payante.</small></span>
+                        <span class="ettc-test-price">Gratuit</span>
                     </div>
                     <div class="prose ettc-test-presentation">{!! \App\Support\Markdown::toHtml($site->get('test.presentation')) !!}</div>
                     <h2 class="h5 text-ink mt-4">Comment ça se passe&nbsp;?</h2>

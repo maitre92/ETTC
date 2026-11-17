@@ -32,7 +32,7 @@
                 <tr><td style="color:#66748a;width:160px">Mode souhaité</td><td>{{ $test->test_mode->label() }}</td></tr>
                 @if ($test->preferred_slot && $kind !== 'convocation')<tr><td style="color:#66748a">Disponibilités</td><td>{{ $test->preferred_slot }}</td></tr>@endif
                 @if ($kind === 'convocation' && $test->location)<tr><td style="color:#66748a">{{ $test->test_mode === \App\Enums\TestMode::Distance ? 'Connexion' : 'Lieu' }}</td><td>{{ $test->location }}</td></tr>@endif
-                <tr><td style="color:#66748a">Frais du test</td><td><strong>{{ \App\Models\Formule::money($test->fee) }}</strong>{{ $test->isPaid() ? ' (réglés)' : ' — à régler au centre ou par paiement mobile' }}</td></tr>
+                <tr><td style="color:#66748a">Coût</td><td><strong>Gratuit</strong></td></tr>
             </table>
             @if ($kind === 'equipe' && $test->message)
                 <div style="margin-top:12px;padding:14px;background:#f4f8fc;border-radius:8px;font-size:14px;line-height:1.6">{!! nl2br(e($test->message)) !!}</div>

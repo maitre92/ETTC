@@ -13,7 +13,7 @@
     ])
 
     @php
-        $inscription = Route::has('client.register') ? route('client.register') : route('site.contact');
+        $inscription = route('site.inscription.create', ['niveau' => $niveau->slug]);
         $blocks = [
             ['objectives', 'Objectifs pédagogiques', 'bx-target-lock', 'blue'],
             ['skills', 'Compétences visées', 'bx-medal', 'green'],
@@ -62,8 +62,8 @@
             <div class="ettc-steps-wrap">
                 <div class="ettc-side-card ettc-tone-yellow ettc-test-card">
                     <i class='bx bx-clipboard' aria-hidden="true"></i>
-                    <span><strong>Modalités d'inscription</strong><small>Test de niveau préalable, puis choix de la formule et du mode ; paiement en ligne ou au centre.</small></span>
-                    <span class="ettc-test-price">Test : {{ \App\Models\Formule::money($testFee) }}</span>
+                    <span><strong>Modalités d'inscription</strong><small>Test de niveau gratuit, puis choix de la formule et du mode ; paiement en ligne ou au centre.</small></span>
+                    <span class="ettc-test-price">Test gratuit</span>
                 </div>
                 <div class="ettc-hero-actions align-self-center">
                     <a href="{{ $inscription }}" class="ettc-btn ettc-btn-orange"><i class='bx bxs-user-plus' aria-hidden="true"></i> S'inscrire maintenant</a>

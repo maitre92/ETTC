@@ -13,8 +13,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 /**
- * Page publique du test de niveau (cahier §3.4) : présentation et conditions (réglées dans l'administration), frais
- * en vigueur, demande ou réservation du test. Envoi en AJAX (JSON) ou classique ; un robot reçoit la même réponse
+ * Page publique du test de niveau (cahier §3.4) : présentation et conditions (réglées dans l'administration), test
+ * gratuit (décision du centre, 2026-11-17), demande ou réservation du test. Envoi en AJAX (JSON) ou classique ; un robot reçoit la même réponse
  * qu'un visiteur mais rien n'est enregistré (SpamGuard).
  */
 class TestNiveauController extends Controller
@@ -24,7 +24,6 @@ class TestNiveauController extends Controller
     public function show(): View
     {
         return view('site.tests.show', [
-            'fee' => $this->service->currentFee(),
             'seo' => Seo::make('Test de niveau d\'anglais', 'Passez le test de niveau d\'anglais avant votre formation : il vous oriente vers le niveau qui vous correspond. Réservez-le en ligne auprès de '.$this->settings->get('company.short_name').'.'),
         ]);
     }

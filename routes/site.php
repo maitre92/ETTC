@@ -4,6 +4,7 @@ use App\Http\Controllers\Site\ActualiteController;
 use App\Http\Controllers\Site\AppManifestController;
 use App\Http\Controllers\Site\DemandeController;
 use App\Http\Controllers\Site\FormationController;
+use App\Http\Controllers\Site\InscriptionController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\SearchController;
 use App\Http\Controllers\Site\SeoController;
@@ -21,6 +22,9 @@ Route::name('site.')->group(function () {
     // Catalogue des formations par niveau, formules et tarifs (cahier §3.2, §3.3).
     Route::get('/formations', [FormationController::class, 'index'])->name('formations.index');
     Route::get('/formations/{niveau:slug}', [FormationController::class, 'show'])->name('formations.show');
+    // Inscription en ligne à une formation (cahier §3.5) : assistant en étapes, tarif figé à l'inscription.
+    Route::get('/inscription', [InscriptionController::class, 'create'])->name('inscription.create');
+    Route::post('/inscription', [InscriptionController::class, 'store'])->middleware('throttle:demandes')->name('inscription.store');
     // Test de niveau (cahier §3.4) : présentation et demande / réservation (anti-spam, débit limité).
     Route::get('/test-de-niveau', [TestNiveauController::class, 'show'])->name('tests.show');
     Route::post('/test-de-niveau', [TestNiveauController::class, 'store'])->middleware('throttle:demandes')->name('tests.store');

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
-use App\Enums\PaymentMethod;
 use App\Enums\TestMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Site\TestNiveauRequest;
 use App\Models\ActivityLog;
 use App\Models\Formule;
+use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
 use App\Services\Audit\ActivityLogger;
@@ -21,8 +21,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Tests de niveau (cahier §3.4, §5) : suivi des candidats (à planifier, planifiés, passés, annulés, frais à encaisser),
- * fiche de traitement (planification, encaissement, résultat, annulation) et présentation du test sur le site.
+ * Tests de niveau (cahier §3.4, §5) : suivi des candidats (à planifier, planifiés, passés, annulés), fiche de
+ * traitement (planification, résultat, annulation) et présentation du test sur le site. Test gratuit (2026-11-17).
  * Contrôleur mince : les règles vivent dans TestNiveauService. Formulaires envoyés en AJAX (crud-ajax.js).
  */
 class TestNiveauController extends Controller
@@ -35,7 +35,6 @@ class TestNiveauController extends Controller
 
         return view('tests.index', [
             'tests' => TestNiveau::with('niveau')->latest('id')->get(),
-            'fee' => $this->service->currentFee(),
             'presentation' => $settings->get('test.presentation'),
         ]);
     }
@@ -54,9 +53,10 @@ class TestNiveauController extends Controller
         Gate::authorize('view', $test);
 
         return view('tests.show', [
-            'test' => $test->load(['niveau', 'client', 'paymentRecorder', 'evaluator']),
+            'test' => $test->load(['niveau', 'client', 'evaluator']),
             'niveaux' => Niveau::ordered()->get(),
             'formules' => $test->niveau ? Formule::published()->ordered()->get() : collect(),
+            'inscriptionsDuTest' => Inscription::where('test_niveau_id', $test->id)->where('status', '!=', 'annulee')->get(['id', 'number']),
             'history' => ActivityLog::where('subject_type', $test->getMorphClass())->where('subject_id', $test->id)->latest('id')->limit(30)->get(),
         ]);
     }
@@ -73,19 +73,6 @@ class TestNiveauController extends Controller
         $this->service->schedule($test, Carbon::parse($data['scheduled_at']), TestMode::from($data['test_mode']), $data['location'] ?? null, $request->user());
 
         return redirect()->route('tests.show', $test)->with('status', 'Test planifié le '.$test->scheduled_at->format('d/m/Y à H:i').($test->email ? ' : convocation envoyée par e-mail.' : '.'));
-    }
-
-    public function payment(Request $request, TestNiveau $test): RedirectResponse
-    {
-        Gate::authorize('payment', $test);
-        $data = $request->validate([
-            'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
-            'payment_reference' => ['nullable', 'string', 'max:100', Rule::requiredIf(fn () => in_array($request->input('payment_method'), ['orange_money', 'wave', 'carte'], true))],
-        ], ['payment_reference.required' => 'Indiquez la référence de la transaction (Orange Money, Wave ou carte).'], ['payment_method' => 'moyen de paiement', 'payment_reference' => 'référence']);
-
-        $this->service->recordPayment($test, PaymentMethod::from($data['payment_method']), $data['payment_reference'] ?? null, $request->user());
-
-        return redirect()->route('tests.show', $test)->with('status', 'Frais du test encaissés : '.Formule::money($test->fee).'.');
     }
 
     public function result(Request $request, TestNiveau $test): RedirectResponse

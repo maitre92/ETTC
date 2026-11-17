@@ -4,11 +4,13 @@ namespace App\Services\Dashboard;
 
 use App\Enums\DemandeStatus;
 use App\Enums\DemandeType;
+use App\Enums\InscriptionStatus;
 use App\Enums\RoleName;
 use App\Enums\TestStatus;
 use App\Models\ActivityLog;
 use App\Models\Article;
 use App\Models\Demande;
+use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
@@ -41,6 +43,9 @@ class RealDashboardData
         if ($user->can('demandes.view')) {
             $this->demandes($user, $dashboard);
         }
+        if ($user->can('inscriptions.view')) {
+            $this->inscriptions($dashboard);
+        }
         if ($user->can('tests.view')) {
             $this->tests($user, $dashboard);
         }
@@ -71,6 +76,7 @@ class RealDashboardData
         return array_filter([
             'demandes' => $user->can('demandes.view') ? Demande::where('status', DemandeStatus::Nouvelle->value)->count() : 0,
             'temoignages' => $user->can('temoignages.update') ? Temoignage::where('source', 'client')->where('is_published', false)->count() : 0,
+            'inscriptions' => $user->can('inscriptions.view') ? Inscription::where('status', InscriptionStatus::AValider->value)->count() : 0,
             'tests' => $user->can('tests.view') ? TestNiveau::where('status', TestStatus::Demande->value)->count() : 0,
         ]);
     }
@@ -95,6 +101,13 @@ class RealDashboardData
             }
         }
 
+        if ($user->can('inscriptions.view') && Route::has('inscriptions.index')) {
+            $new = Inscription::where('status', InscriptionStatus::AValider->value)->count();
+            if ($new > 0) {
+                $items[] = ['icon' => 'bx-user-check', 'class' => 'text-danger', 'text' => "{$new} inscription(s) à valider.", 'link' => route('inscriptions.index')];
+            }
+        }
+
         if ($user->can('tests.view') && Route::has('tests.index')) {
             $toPlan = TestNiveau::where('status', TestStatus::Demande->value)->count();
             if ($toPlan > 0) {
@@ -113,14 +126,29 @@ class RealDashboardData
     }
 
     /** Demandes commerciales (cahier §7 « résumé des demandes récentes, volumes par statut ») : le commercial. */
-    /** Tests de niveau (cahier §5 « suivi des candidats en attente de test ») : à planifier, du jour, frais à encaisser. */
+    /** Inscriptions (cahier §5 « suivre les inscriptions en attente ») : dossiers à valider, en attente de paiement, par niveau. */
+    private function inscriptions(array &$dashboard): void
+    {
+        $dashboard['tasks'][] = $this->task('Inscriptions à valider', 'Dossiers reçus', Inscription::where('status', InscriptionStatus::AValider->value)->count(), 'bx bx-user-check', 'danger', 'inscriptions.index');
+        $dashboard['tasks'][] = $this->task('En attente de paiement', 'Dossiers validés', Inscription::where('status', InscriptionStatus::Validee->value)->count(), 'bx bx-time-five', 'warning', 'inscriptions.index');
+
+        $byNiveau = Inscription::with('niveau')->whereIn('status', [InscriptionStatus::Validee->value, InscriptionStatus::EnCours->value])->get()
+            ->groupBy(fn (Inscription $i) => $i->niveau?->name ?? 'À déterminer');
+        $dashboard['sections'][] = ['title' => 'Apprenants', 'icon' => 'bx bx-book-reader', 'cards' => [
+            $this->card('En formation', (string) Inscription::where('status', InscriptionStatus::EnCours->value)->count(), 'inscriptions en cours', 'bx bx-book-reader', 'primary'),
+            $this->card('Nouvelles (30 jours)', (string) Inscription::where('created_at', '>=', now()->subDays(30))->count(), 'inscriptions reçues', 'bx bx-user-plus', 'info'),
+        ], 'tables' => [[
+            'title' => 'PAR NIVEAU (VALIDÉES ET EN COURS)', 'icon' => 'bx bx-layer',
+            'columns' => ['Niveau', 'Inscriptions'],
+            'rows' => $byNiveau->map(fn ($items, $name) => [$name, (string) $items->count()])->values()->all(),
+        ]]];
+    }
+
+    /** Tests de niveau (cahier §5 « suivi des candidats en attente de test ») : à planifier et du jour (test gratuit). */
     private function tests(User $user, array &$dashboard): void
     {
         $dashboard['tasks'][] = $this->task('Tests à planifier', 'Candidats en attente d\'une date', TestNiveau::where('status', TestStatus::Demande->value)->count(), 'bx bx-target-lock', 'danger', 'tests.index');
         $dashboard['tasks'][] = $this->task('Tests aujourd\'hui', 'Planifiés pour la journée', TestNiveau::where('status', TestStatus::Planifie->value)->whereDate('scheduled_at', today())->count(), 'bx bx-calendar-check', 'primary', 'tests.index');
-        if ($user->can('tests.payment')) {
-            $dashboard['tasks'][] = $this->task('Frais de test à encaisser', 'Hors commission', TestNiveau::unpaid()->count(), 'bx bx-wallet', 'warning', 'tests.index');
-        }
     }
 
     private function demandes(User $user, array &$dashboard): void
@@ -330,6 +358,7 @@ class RealDashboardData
     private function quick(User $user): array
     {
         $candidates = [
+            ['inscriptions.index', 'inscriptions.view', 'Inscriptions', 'bx bx-user-check'],
             ['tests.index', 'tests.view', 'Tests de niveau', 'bx bx-target-lock'],
             ['demandes.index', 'demandes.view', 'Demandes', 'bx bx-envelope'],
             ['articles.create', 'articles.create', 'Rédiger un article', 'bx bx-pencil'],

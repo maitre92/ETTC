@@ -18,11 +18,6 @@ class TestNiveauPolicy extends ModulePolicy
         return $user->can('tests.schedule');
     }
 
-    public function payment(User $user, TestNiveau $test): bool
-    {
-        return $user->can('tests.payment');
-    }
-
     public function result(User $user, TestNiveau $test): bool
     {
         return $user->can('tests.result');

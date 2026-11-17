@@ -37,16 +37,22 @@
             ['bx bx-purchase-tag', 'Modifier les formations et les tarifs', [
                 'Formations → Formules et tarifs : chaque formule (2 mois, 3 mois…) a un tarif en ligne et un tarif en présentiel, par mois ou en paiement unique. Bouton crayon : changez un montant puis « Enregistrer » ; il est en ligne aussitôt sur l\'accueil et la page Nos formations, sans recharger l\'écran.',
                 'Laissez un tarif vide si le mode n\'est pas proposé (par exemple une formule seulement au centre). Les montants se saisissent librement : « 100 000 », « 100000 » ou « 100 000 FCFA ».',
-                'Sous la liste, « Frais du test de niveau » règle le prix du test (5 000 FCFA au départ), distinct des frais de formation.',
                 'Formations → Niveaux : nom, résumé, objectifs, compétences visées et prérequis (un élément par ligne). Chaque niveau publié a sa fiche sur le site.',
                 'Chaque changement de tarif est enregistré dans le journal avec l\'ancien et le nouveau montant.',
             ]],
             ['bx bx-target-lock', 'Suivre les tests de niveau', [
                 'Les candidats réservent leur test sur la page « Test de niveau » du site ; ils arrivent « À planifier » (pastille du menu, cloche, e-mail). Un candidat venu au centre ou qui a appelé : Tests de niveau → « Inscrire un candidat ».',
                 'Bouton « œil » : la fiche du candidat. « Planifier » fixe la date, le mode (au centre ou à distance) et le lieu ou le lien ; une convocation part par e-mail si le candidat en a laissé un. « Reporter » change la date.',
-                'Les frais du test sont figés au moment de la demande. Quand ils sont reçus, choisissez le moyen de paiement (référence obligatoire pour Orange Money, Wave ou carte) puis « Encaissé ». Ils sont distincts des frais de formation et hors commission.',
+                'Le test de niveau est gratuit : seule l\'inscription à une formation est payante.',
                 'Après le test : niveau attribué, score et appréciation, puis « Enregistrer le résultat ». La fiche propose les formules du niveau et le lien de sa fiche à transmettre au candidat, qui retrouve aussi son résultat dans son espace.',
                 'La présentation du test sur le site (format, durée, déroulement) se modifie en bas de la liste des tests.',
+            ]],
+            ['bx bx-id-card', 'Gérer les inscriptions', [
+                'Un apprenant s\'inscrit sur le site (« S\'inscrire maintenant ») : niveau, formule, en ligne ou en présentiel, coordonnées. L\'inscription arrive « À valider » (pastille du menu, cloche, e-mail) avec son numéro INS-….',
+                'Le prix est figé au moment de l\'inscription : si vous changez un tarif ensuite, les inscriptions déjà faites gardent le prix accepté par l\'apprenant.',
+                'Un apprenant venu au centre : Inscriptions → « Nouvelle inscription ». Après un test de niveau passé, la fiche du candidat propose « Inscrire à une formation » (nom, téléphone et niveau repris).',
+                'Sur la fiche : « Valider le dossier » (en attente de paiement), puis « Démarrer la formation » et « Terminer la formation ». La session (ex. Janvier 2027) et les notes internes se règlent dans la fiche.',
+                'Annuler demande un motif. Chaque étape est inscrite dans l\'historique de la fiche ; l\'apprenant suit son inscription dans son espace (« Mes inscriptions »).',
             ]],
             ['bx bx-file', 'Modifier les pages et les coordonnées', [
                 'Pages et paramètres → onglets Accueil, À propos, Pages légales : textes du site. Les textes longs utilisent le Markdown : ## Titre, **gras**, - liste.',

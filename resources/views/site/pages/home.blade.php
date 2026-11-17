@@ -9,7 +9,7 @@
         $services = Route::has('site.services') ? route('site.services') : null;
         $formations = route('site.formations.index');
         $demande = fn (string $type) => Route::has('site.devis') ? route('site.devis', ['type' => $type]) : route('site.contact');
-        $inscription = Route::has('client.register') ? route('client.register') : route('site.contact');
+        $inscription = route('site.inscription.create');
         $serviceCards = [
             ['blue', 'bxs-graduation', 'Formations par niveau', $niveauxLabel ?: 'Débutant, Intermédiaire et Avancé', 'toque-livres.svg', 'Toque de diplômé sur une pile de livres', $formations],
             ['green', 'bx-desktop', 'Cours en ligne interactifs', 'Séances en direct via Google Meet', 'ordinateur-visio.svg', 'Ordinateur portable en visioconférence', $services ? $services.'#cours-en-ligne-interactifs' : route('site.home').'#formules'],
@@ -86,7 +86,7 @@
                     <a href="{{ route('site.tests.show') }}" class="ettc-side-card ettc-tone-yellow">
                         <i class='bx bx-clipboard' aria-hidden="true"></i>
                         <span><strong>Test de niveau</strong><small>Évaluez votre niveau avant de choisir votre formule.</small></span>
-                        <span class="ettc-test-price">{{ \App\Models\Formule::money($testFee) }}</span>
+                        <span class="ettc-test-price">Gratuit</span>
                     </a>
                 </div>
             </div>

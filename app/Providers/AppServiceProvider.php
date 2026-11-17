@@ -11,6 +11,7 @@ use App\Models\ClientDocument;
 use App\Models\Demande;
 use App\Models\DemandeNote;
 use App\Models\Formule;
+use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Niveau;
 use App\Models\Permission;
@@ -98,6 +99,13 @@ class AppServiceProvider extends ServiceProvider
         // Paramètres du site (coordonnées, slogan…) disponibles dans toutes les vues du site public et dans les e-mails.
         View::composer(['layouts.site', 'site.*', 'mail.*', 'client.*'], fn ($view) => $view->with('site', app(SiteSettings::class)));
 
+        // Tableau de bord de l'espace apprenant : bloc « Inscriptions » (en attente / total).
+        $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
+            $inscriptions = Inscription::forClient($client);
+
+            return ['title' => 'Inscriptions', 'icon' => 'bx-book-reader', 'route' => 'client.inscriptions', 'count' => (clone $inscriptions)->count(), 'open' => (clone $inscriptions)->pending()->count(), 'label' => 'en attente'];
+        });
+
         // Tableau de bord de l'espace apprenant : bloc « Tests de niveau » (en cours / total).
         $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
             $tests = TestNiveau::forClient($client);
@@ -120,6 +128,7 @@ class AppServiceProvider extends ServiceProvider
             'niveau' => Niveau::class,
             'formule' => Formule::class,
             'test_niveau' => TestNiveau::class,
+            'inscription' => Inscription::class,
             'prestation' => Prestation::class,
             'redirection' => Redirection::class,
             'temoignage' => Temoignage::class,

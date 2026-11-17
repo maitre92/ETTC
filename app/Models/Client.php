@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use App\Models\Concerns\LogsActivity;
 use App\Notifications\ClientResetPassword;
 use Database\Factories\ClientFactory;
@@ -18,7 +19,7 @@ use Illuminate\Notifications\Notifiable;
  * Compte d'un apprenant ou client du centre (espace personnel, garde `client`) : suivi de ses demandes, documents
  * mis à sa disposition. Jamais de rôle ni de permission : il ne voit que ce qui lui appartient.
  */
-#[Fillable(['name', 'organization', 'email', 'email_verified_at', 'phone', 'password', 'is_active', 'address', 'city', 'last_login_at'])]
+#[Fillable(['name', 'organization', 'email', 'email_verified_at', 'phone', 'birth_date', 'gender', 'password', 'is_active', 'address', 'city', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
 class Client extends Authenticatable
 {
@@ -30,7 +31,7 @@ class Client extends Authenticatable
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'is_active' => 'boolean', 'last_login_at' => 'datetime', 'email_verified_at' => 'datetime'];
+        return ['password' => 'hashed', 'is_active' => 'boolean', 'last_login_at' => 'datetime', 'email_verified_at' => 'datetime', 'birth_date' => 'date', 'gender' => Gender::class];
     }
 
     protected static function booted(): void

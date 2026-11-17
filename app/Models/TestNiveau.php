@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\PaymentMethod;
 use App\Enums\TestMode;
 use App\Enums\TestStatus;
 use App\Models\Concerns\LogsActivity;
@@ -15,14 +14,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Test de niveau d'un candidat (cahier §3.4) : demande, planification, frais (figés à la demande, encaissement noté à
- * part, hors commission), résultat et niveau attribué qui oriente vers la formule appropriée.
+ * Test de niveau d'un candidat (cahier §3.4) : demande, planification, résultat et niveau attribué qui oriente vers la
+ * formule appropriée. Le test est GRATUIT (décision du centre, 2026-11-17) : seule l'inscription à une formation est
+ * payante.
  */
 #[Fillable([
     'number', 'status', 'source', 'name', 'email', 'phone', 'test_mode', 'preferred_slot', 'message', 'client_id',
-    'scheduled_at', 'location', 'fee', 'paid_at', 'payment_method', 'payment_reference', 'payment_recorded_by',
-    'score', 'niveau_id', 'result_notes', 'result_at', 'result_by', 'cancel_reason', 'consent_at', 'ip_address',
-    'user_agent', 'notified_at', 'notification_error',
+    'scheduled_at', 'location', 'score', 'niveau_id', 'result_notes', 'result_at', 'result_by', 'cancel_reason',
+    'consent_at', 'ip_address', 'user_agent', 'notified_at', 'notification_error',
 ])]
 class TestNiveau extends Model
 {
@@ -34,9 +33,8 @@ class TestNiveau extends Model
     protected function casts(): array
     {
         return [
-            'status' => TestStatus::class, 'test_mode' => TestMode::class, 'payment_method' => PaymentMethod::class,
-            'fee' => 'integer', 'scheduled_at' => 'datetime', 'paid_at' => 'datetime', 'result_at' => 'datetime',
-            'consent_at' => 'datetime', 'notified_at' => 'datetime',
+            'status' => TestStatus::class, 'test_mode' => TestMode::class, 'scheduled_at' => 'datetime',
+            'result_at' => 'datetime', 'consent_at' => 'datetime', 'notified_at' => 'datetime',
         ];
     }
 
@@ -48,11 +46,6 @@ class TestNiveau extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class)->withTrashed();
-    }
-
-    public function paymentRecorder(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'payment_recorded_by')->withTrashed();
     }
 
     public function evaluator(): BelongsTo
@@ -74,16 +67,6 @@ class TestNiveau extends Model
                 $q->orWhere('email', $client->email);
             }
         });
-    }
-
-    public function scopeUnpaid(Builder $query): Builder
-    {
-        return $query->whereNull('paid_at')->where('fee', '>', 0)->where('status', '!=', TestStatus::Annule->value);
-    }
-
-    public function isPaid(): bool
-    {
-        return $this->paid_at !== null || $this->fee === 0;
     }
 
     /** « 70 00 00 00 · awa@exemple.ml » */

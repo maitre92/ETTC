@@ -16,7 +16,9 @@
                         <div class="form-text">Pour changer d'adresse, contactez le centre.</div>
                     </div>
                     <div class="col-md-6">@include('site.demandes._field', ['name' => 'phone', 'label' => 'Téléphone', 'type' => 'tel', 'value' => $client->phone])</div>
-                    <div class="col-md-8">@include('site.demandes._field', ['name' => 'address', 'label' => 'Adresse (livraison)', 'max' => 300, 'value' => $client->address])</div>
+                    <div class="col-md-6">@include('site.demandes._field', ['name' => 'birth_date', 'label' => 'Date de naissance', 'type' => 'date', 'value' => $client->birth_date?->format('Y-m-d')])</div>
+                    <div class="col-md-6">@include('site.demandes._field', ['name' => 'gender', 'label' => 'Sexe', 'type' => 'select', 'options' => \App\Enums\Gender::options(), 'value' => $client->gender?->value])</div>
+                    <div class="col-md-8">@include('site.demandes._field', ['name' => 'address', 'label' => 'Adresse de résidence', 'max' => 300, 'value' => $client->address])</div>
                     <div class="col-md-4">@include('site.demandes._field', ['name' => 'city', 'label' => 'Ville', 'max' => 100, 'value' => $client->city])</div>
                     <div class="col-12"><button type="submit" class="btn btn-primary">Enregistrer</button></div>
                 </div>

@@ -23,7 +23,7 @@ return [
     ],
     'tests' => [
         'label' => 'Tests de niveau', 'icon' => 'bx bx-target-lock', 'order' => 110, 'roles' => ['gestionnaire', 'commercial'],
-        'summary' => 'Présentation du test, demande ou réservation, paiement des frais (5 000 FCFA, hors commission), résultat et niveau attribué, orientation vers la formule adaptée.',
+        'summary' => 'Présentation du test, demande ou réservation, gratuit, résultat et niveau attribué, orientation vers la formule adaptée.',
         'cahier' => '§3.4, §5 « Gestion des tests de niveau »',
         'open' => ['Contenu, format, durée et mode d\'administration du test.', 'Modalités de communication des résultats.'],
     ],
@@ -35,7 +35,7 @@ return [
     ],
     'paiements' => [
         'label' => 'Paiements et reçus', 'icon' => 'bx bx-wallet', 'order' => 130, 'roles' => ['commercial'],
-        'summary' => 'Paiement en ligne (Orange Money, Wave, carte) confirmé par notification serveur, paiement au centre enregistré par un utilisateur autorisé, reçu numérique numéroté, frais de test et de formation séparés.',
+        'summary' => 'Paiement en ligne (Orange Money, Wave, carte) confirmé par notification serveur, paiement au centre enregistré par un utilisateur autorisé, reçu numérique numéroté pour les frais de formation (le test de niveau est gratuit).',
         'cahier' => '§3.8',
         'open' => ['Moyens de paiement réellement disponibles et comptes marchands.', 'Règles d\'annulation et de remboursement.'],
     ],

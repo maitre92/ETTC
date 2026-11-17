@@ -12,7 +12,6 @@ use App\Models\Formule;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
 use App\Models\User;
-use App\Support\SiteSettings;
 use App\Support\SpamGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
@@ -21,9 +20,8 @@ use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
 
 /**
- * Tests de niveau (cahier ETTC §3.4, §5) : demande sur le site, frais figés, planification avec convocation,
- * encaissement des frais (hors commission), résultat et niveau attribué, orientation, annulation, droits par rôle,
- * espace apprenant.
+ * Tests de niveau (cahier ETTC §3.4, §5) : demande sur le site, test GRATUIT (décision du centre, 2026-11-17),
+ * planification avec convocation, résultat et niveau attribué, orientation, annulation, droits par rôle, espace apprenant.
  */
 class TestsNiveauTest extends TestCase
 {
@@ -42,12 +40,10 @@ class TestsNiveauTest extends TestCase
         return $data + ['consent' => '1', SpamGuard::TOKEN => Crypt::encryptString((string) now()->subSeconds(20)->getTimestamp())];
     }
 
-    public function test_a_visitor_books_a_test_with_the_current_fee_frozen(): void
+    public function test_a_visitor_books_a_free_test(): void
     {
         Mail::fake();
-        app(SiteSettings::class)->save(['tarifs.test_niveau' => '5000']);
-
-        $this->get('/test-de-niveau')->assertOk()->assertSee('Réserver mon test')->assertSee("5\u{202F}000 FCFA")->assertSee('Pourquoi un test de niveau');
+        $this->get('/test-de-niveau')->assertOk()->assertSee('Réserver mon test')->assertSee('Un test gratuit')->assertSee('Pourquoi un test de niveau');
 
         $this->postJson('/test-de-niveau', $this->human(['name' => 'Awa Diallo', 'phone' => '75 22 91 25', 'email' => 'awa@exemple.ml', 'test_mode' => 'distance', 'preferred_slot' => 'Samedi matin']))
             ->assertOk()->assertJsonPath('title', 'Demande de test envoyée');
@@ -56,15 +52,9 @@ class TestsNiveauTest extends TestCase
         $this->assertMatchesRegularExpression('/^TST-\d{4}-\d{4}$/', $test->number);
         $this->assertSame(TestStatus::Demande, $test->status);
         $this->assertSame('+22375229125', $test->phone);
-        $this->assertSame(5000, $test->fee);
-        $this->assertFalse($test->isPaid());
         Mail::assertSent(TestNiveauDemande::class, fn ($m) => $m->hasTo('equipe@ettc.test') && str_contains($m->render(), 'Awa Diallo'));
         Mail::assertSent(TestNiveauAccuse::class, fn ($m) => $m->hasTo('awa@exemple.ml') && str_contains($m->render(), $test->number));
         $this->assertTrue(ActivityLog::where('action', 'tests.requested')->exists());
-
-        // Le prix change ensuite : le candidat garde le montant annoncé.
-        app(SiteSettings::class)->save(['tarifs.test_niveau' => '7500']);
-        $this->assertSame(5000, $test->fresh()->fee);
 
         $this->postJson('/test-de-niveau', $this->human(['name' => 'Sans contact', 'test_mode' => 'centre']))->assertUnprocessable()->assertJsonValidationErrors(['email', 'phone']);
     }
@@ -93,20 +83,13 @@ class TestsNiveauTest extends TestCase
         Mail::assertSent(TestNiveauConvocation::class, fn ($m) => $m->hasTo('moussa@exemple.ml') && str_contains($m->render(), 'Salle 2'));
         $this->put("/admin/tests/{$test->id}/planification", ['scheduled_at' => now()->subDay()->format('Y-m-d\TH:i'), 'test_mode' => 'centre'])->assertSessionHasErrors('scheduled_at');
 
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'orange_money'])->assertSessionHasErrors('payment_reference');
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'orange_money', 'payment_reference' => 'OM-123'])->assertRedirect();
-        $test->refresh();
-        $this->assertTrue($test->isPaid());
-        $this->assertSame($agent->id, $test->payment_recorded_by);
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'especes'])->assertSessionHasErrors('payment_method');
-
         $this->put("/admin/tests/{$test->id}/resultat", ['niveau_id' => $niveau->id, 'score' => '34 / 50', 'result_notes' => 'Bonne compréhension orale.'])->assertRedirect();
         $test->refresh();
         $this->assertSame(TestStatus::Passe, $test->status);
         $this->assertSame('Intermédiaire', $test->niveau->name);
 
         $this->get("/admin/tests/{$test->id}")->assertOk()->assertSee('Niveau attribué')->assertSee('Formule 3 mois')->assertSee('/formations/'.$niveau->slug, false);
-        foreach (['tests.scheduled', 'tests.payment_recorded', 'tests.result_recorded'] as $action) {
+        foreach (['tests.scheduled', 'tests.result_recorded'] as $action) {
             $this->assertTrue(ActivityLog::where('action', $action)->exists(), $action);
         }
         // Une seule ligne par geste : pas de « Modification — Test de niveau » générique en doublon.
@@ -116,7 +99,7 @@ class TestsNiveauTest extends TestCase
         $this->put("/admin/tests/{$test->id}/annulation", ['cancel_reason' => 'Erreur'])->assertSessionHasErrors('status');
     }
 
-    public function test_a_cancelled_test_accepts_neither_payment_nor_result(): void
+    public function test_a_cancelled_test_accepts_no_result(): void
     {
         $test = TestNiveau::factory()->create();
         $this->actingAs(User::factory()->administrateur()->create());
@@ -125,7 +108,6 @@ class TestsNiveauTest extends TestCase
         $this->put("/admin/tests/{$test->id}/annulation", ['cancel_reason' => 'Candidat indisponible'])->assertRedirect();
         $this->assertSame(TestStatus::Annule, $test->fresh()->status);
 
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'especes'])->assertSessionHasErrors('status');
         $this->put("/admin/tests/{$test->id}/resultat", ['niveau_id' => Niveau::factory()->create()->id])->assertSessionHasErrors('status');
     }
 
@@ -137,7 +119,6 @@ class TestsNiveauTest extends TestCase
         $test = TestNiveau::firstOrFail();
         $this->assertSame('centre', $test->source);
 
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'especes'])->assertRedirect();
         $this->put("/admin/tests/{$test->id}/resultat", ['niveau_id' => Niveau::factory()->create()->id])->assertForbidden();
         $this->delete("/admin/tests/{$test->id}")->assertForbidden();
         $this->put('/admin/tests/presentation', ['presentation' => 'X'])->assertForbidden();
@@ -145,7 +126,6 @@ class TestsNiveauTest extends TestCase
         $gestionnaire = User::factory()->gestionnaire()->create();
         $this->actingAs($gestionnaire)->put('/admin/tests/presentation', ['presentation' => "## Déroulement\n\nUn QCM de 45 minutes."])->assertRedirect('/admin/tests');
         $this->get('/test-de-niveau')->assertSee('Un QCM de 45 minutes.');
-        $this->put("/admin/tests/{$test->id}/paiement", ['payment_method' => 'especes'])->assertForbidden();
     }
 
     public function test_the_learner_sees_tests_made_with_the_confirmed_email(): void

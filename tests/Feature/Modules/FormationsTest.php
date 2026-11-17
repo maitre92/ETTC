@@ -7,15 +7,14 @@ use App\Models\ActivityLog;
 use App\Models\Formule;
 use App\Models\Niveau;
 use App\Models\User;
-use App\Support\SiteSettings;
 use Database\Seeders\ContenuInitialSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
 
 /**
- * Formations et tarifs (cahier ETTC §3.2, §3.3, §3.4, §5) : niveaux, formules, tarifs par mode et frais du test de
- * niveau, modifiables à tout moment depuis l'administration, audités, et lus par l'accueil et le catalogue public.
+ * Formations et tarifs (cahier ETTC §3.2, §3.3, §3.4, §5) : niveaux, formules et tarifs par mode, modifiables à tout moment depuis l'administration, audités, et lus par l'accueil et le catalogue public.
  */
 class FormationsTest extends TestCase
 {
@@ -86,18 +85,24 @@ class FormationsTest extends TestCase
             ->assertOk()->assertSee('data-crud-status', false)->assertSee('Formule « Formule 1 mois » créée.');
     }
 
-    public function test_the_test_fee_is_configurable_and_audited(): void
+    public function test_the_level_test_is_free_everywhere(): void
     {
-        $this->actingAs(User::factory()->administrateur()->create());
+        Formule::factory()->create();
 
-        $this->put('/admin/formations/frais-test', ['test_fee' => '7 500'])->assertRedirect('/admin/formations/formules');
+        $this->get('/')->assertOk()->assertSee('Gratuit');
+        $this->get('/formations')->assertOk()->assertSee('Gratuit');
+        $this->get('/test-de-niveau')->assertOk()->assertSee('Un test gratuit')->assertDontSee('FCFA</span>', false);
+        $this->actingAs(User::factory()->administrateur()->create())->get('/admin/formations/formules')->assertOk()->assertDontSee('FRAIS DU TEST');
+        $this->assertFalse(Route::has('formations.test-fee.update'), 'Plus de réglage des frais du test.');
+        $this->assertFalse(Route::has('tests.payment'), 'Plus d\'encaissement du test.');
+    }
 
-        $this->assertSame('7500', app(SiteSettings::class)->get('tarifs.test_niveau'));
-        $this->assertTrue(ActivityLog::where('action', 'formations.test_fee_changed')->exists());
-        $this->get('/')->assertSee("7\u{202F}500 FCFA");
-        $this->get('/formations')->assertSee("7\u{202F}500 FCFA");
-
-        $this->put('/admin/formations/frais-test', ['test_fee' => 'gratuit'])->assertSessionHasErrors('test_fee');
+    public function test_no_public_page_shows_a_placeholder_to_complete(): void
+    {
+        foreach (['/', '/a-propos', '/formations', '/test-de-niveau', '/services', '/contact', '/mentions-legales', '/confidentialite'] as $uri) {
+            $html = mb_strtolower($this->get($uri)->assertOk()->getContent());
+            $this->assertStringNotContainsString('à compléter', $html, "$uri affiche un texte « à compléter ».");
+        }
     }
 
     public function test_permissions_by_role(): void
@@ -107,7 +112,6 @@ class FormationsTest extends TestCase
         $commercial = User::factory()->commercial()->create();
         $this->actingAs($commercial)->get('/admin/formations/formules')->assertOk()->assertDontSee('data-bs-target="#create-formations-formules"', false);
         $this->put("/admin/formations/formules/{$formule->id}", ['name' => 'X'])->assertForbidden();
-        $this->put('/admin/formations/frais-test', ['test_fee' => '1'])->assertForbidden();
 
         $this->actingAs(User::factory()->gestionnaire()->create())->delete("/admin/formations/formules/{$formule->id}")->assertForbidden();
         $this->actingAs(User::factory()->administrateur()->create())->delete("/admin/formations/formules/{$formule->id}")->assertRedirect();

@@ -25,7 +25,6 @@ class TestNiveauFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'phone' => '+2237'.fake()->numerify('#######'),
             'test_mode' => TestMode::Centre,
-            'fee' => 5000,
             'consent_at' => now(),
         ];
     }

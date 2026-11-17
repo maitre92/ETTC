@@ -170,10 +170,24 @@
         }
         chips.forEach(function (chip) { chip.addEventListener('click', function () { applyChip(chip); }); });
 
+        // Listes déroulantes de filtre : <select data-crud-filter-column="N"> filtre la colonne N (texte contenu).
+        var selects = Array.prototype.slice.call(root.querySelectorAll('select[data-crud-filter-column]'));
+        selects.forEach(function (select) {
+            select.addEventListener('change', function () {
+                if (table) { table.column(parseInt(select.dataset.crudFilterColumn, 10)).search(select.value, false, true).draw(); }
+            });
+        });
+
         if (state && table) {
             if (state.search) { table.search(state.search).draw(); }
             var chip = Array.prototype.find.call(chips, function (c) { return (c.dataset.token || '') === state.chip; });
             if (chip && state.chip) { applyChip(chip); }
+            selects.forEach(function (select, k) {
+                if (state.selects && state.selects[k]) {
+                    select.value = state.selects[k];
+                    table.column(parseInt(select.dataset.crudFilterColumn, 10)).search(select.value, false, true).draw();
+                }
+            });
         }
 
         $(root).find('.icon-select').each(function () {
@@ -195,7 +209,7 @@
 
         root._crudState = function () {
             var active = root.querySelector('#' + id + '-filter .nv-chip.active');
-            return { search: table ? table.search() : '', chip: active ? (active.dataset.token || '') : '' };
+            return { search: table ? table.search() : '', chip: active ? (active.dataset.token || '') : '', selects: selects.map(function (s) { return s.value; }) };
         };
         root._crudDestroy = function () {
             if (table) { table.destroy(); }

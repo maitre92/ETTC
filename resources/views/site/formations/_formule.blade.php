@@ -1,5 +1,6 @@
 {{-- Carte d'une formule (maquette : en-tête bleu, coches vertes, prix rouge). Tarifs lus dans la base (module
-     Formations) : un seul mode proposé = un grand prix ; deux modes = une ligne par mode. $formule. --}}
+     Formations) : un seul mode proposé = un grand prix ; deux modes = une ligne par mode. $formule ; $niveau facultatif
+     (présélectionné dans l'inscription). --}}
 @php
     $prices = $formule->prices();
 @endphp
@@ -31,4 +32,5 @@
             <p class="ettc-price-note">(paiement unique)</p>
         @endif
     @endif
+    <a href="{{ route('site.inscription.create', array_filter(['formule' => $formule->slug, 'niveau' => isset($niveau) ? $niveau->slug : null])) }}" class="ettc-formula-cta">Choisir cette formule <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
 </article>

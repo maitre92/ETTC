@@ -36,29 +36,4 @@
         'statusLabels' => ['Publiée', 'Masquée'],
     ])
 
-    {{-- Frais du test de niveau (cahier §3.4) : un seul montant, modifiable à tout moment. --}}
-    <div class="card">
-        <div class="card-header card-header-brand">
-            <h6 class="mb-0 text-white"><i class='bx bx-target-lock me-2'></i>FRAIS DU TEST DE NIVEAU</h6>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-3">Distincts des frais de formation et hors commission (cahier §3.4). Affichés sur l'accueil et la page des formations.</p>
-            @can('update', new \App\Models\Formule)
-                <form method="POST" action="{{ route('formations.test-fee.update') }}" class="row g-2 align-items-end" style="max-width: 520px" data-crud-form data-no-guard>
-                    @csrf
-                    @method('PUT')
-                    <div class="col-sm-7">
-                        <label for="test_fee" class="form-label fw-semibold">Montant (FCFA) <span class="text-danger">*</span></label>
-                        <input type="text" inputmode="numeric" class="form-control @error('test_fee') is-invalid @enderror" id="test_fee" name="test_fee" value="{{ old('test_fee', $testFee) }}" required>
-                        @error('test_fee')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-sm-5">
-                        <button type="submit" class="btn btn-primary w-100"><i class='bx bx-save me-1'></i>Enregistrer</button>
-                    </div>
-                </form>
-            @else
-                <p class="mb-0 fs-5 fw-semibold">{{ \App\Models\Formule::money($testFee) }}</p>
-            @endcan
-        </div>
-    </div>
 @endsection

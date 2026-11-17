@@ -22,7 +22,6 @@ class FormationController extends Controller
         return view('site.formations.index', [
             'niveaux' => Niveau::published()->ordered()->get(),
             'formules' => Formule::published()->ordered()->get(),
-            'testFee' => (int) $this->settings->get('tarifs.test_niveau'),
             'seo' => Seo::make('Nos formations d\'anglais', 'Formations d\'anglais par niveau sur 2 ou 3 mois, en ligne ou en présentiel à Ségou : objectifs, tarifs et test de niveau à '.$this->settings->get('company.short_name').'.'),
         ]);
     }
@@ -35,7 +34,6 @@ class FormationController extends Controller
             'niveau' => $niveau,
             'autres' => Niveau::published()->whereKeyNot($niveau->id)->ordered()->get(),
             'formules' => Formule::published()->ordered()->get(),
-            'testFee' => (int) $this->settings->get('tarifs.test_niveau'),
             'seo' => Seo::make('Anglais — niveau '.$niveau->name, $niveau->summary),
         ]);
     }

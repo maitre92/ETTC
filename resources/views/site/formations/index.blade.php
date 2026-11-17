@@ -8,7 +8,7 @@
     @include('site.partials.page-hero', ['title' => 'Nos formations d\'anglais', 'crumb' => 'Formations', 'intro' => 'Des formations organisées par niveau, sur deux ou trois mois, en ligne avec un formateur ou en présentiel au centre.'])
 
     @php
-        $inscription = Route::has('client.register') ? route('client.register') : route('site.contact');
+        $inscription = route('site.inscription.create');
     @endphp
 
     @if ($niveaux->isNotEmpty())
@@ -16,11 +16,11 @@
             <div class="container">
                 <h2 class="ettc-title"><span>Nos niveaux</span></h2>
                 <div class="ettc-levels">
-                    @foreach ($niveaux as $niveau)
-                        <a href="{{ route('site.formations.show', $niveau->slug) }}" class="ettc-level ettc-tone-{{ ['blue', 'green', 'yellow', 'orange'][$loop->index % 4] }}">
+                    @foreach ($niveaux as $level)
+                        <a href="{{ route('site.formations.show', $level->slug) }}" class="ettc-level ettc-tone-{{ ['blue', 'green', 'yellow', 'orange'][$loop->index % 4] }}">
                             <span class="ettc-level-num" aria-hidden="true">{{ $loop->iteration }}</span>
-                            <strong>{{ $niveau->name }}</strong>
-                            <span>{{ $niveau->summary }}</span>
+                            <strong>{{ $level->name }}</strong>
+                            <span>{{ $level->summary }}</span>
                             <span class="ettc-level-more">Voir la fiche <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></span>
                         </a>
                     @endforeach
@@ -51,7 +51,7 @@
                 <a href="{{ route('site.tests.show') }}" class="ettc-side-card ettc-tone-yellow ettc-test-card">
                     <i class='bx bx-clipboard' aria-hidden="true"></i>
                     <span><strong>Test de niveau</strong><small>Avant de commencer, chaque nouvel apprenant passe un test de niveau : il évalue vos connaissances et vous oriente vers le niveau qui vous correspond. Réservez-le en ligne.</small></span>
-                    <span class="ettc-test-price">{{ \App\Models\Formule::money($testFee) }}</span>
+                    <span class="ettc-test-price">Gratuit</span>
                 </a>
                 <div>
                     <h2 class="h4 text-ink mb-3">Comment s'inscrire&nbsp;?</h2>

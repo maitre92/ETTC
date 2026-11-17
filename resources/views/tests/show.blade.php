@@ -2,7 +2,7 @@
 
 @section('title', 'Test '.$test->number)
 
-{{-- Fiche de traitement d'un test de niveau (cahier §3.4) : candidat, planification, frais, résultat et orientation,
+{{-- Fiche de traitement d'un test de niveau (cahier §3.4) : candidat, planification, résultat et orientation (test gratuit),
      annulation, historique. Chaque formulaire part en AJAX et la fiche se met à jour sans rechargement (crud-ajax.js). --}}
 @use('App\Enums\TestStatus')
 
@@ -48,17 +48,6 @@
                             @if ($test->preferred_slot)<dt>Disponibilités</dt><dd>{{ $test->preferred_slot }}</dd>@endif
                             @if ($test->message)<dt>Message</dt><dd class="text-break">{!! nl2br(e($test->message)) !!}</dd>@endif
                             @if ($test->scheduled_at)<dt>Test prévu</dt><dd class="fw-semibold">{{ $test->scheduled_at->translatedFormat('l j F Y \à H\hi') }}@if ($test->location)<div class="small text-muted fw-normal text-break">{{ $test->location }}</div>@endif</dd>@endif
-                            <dt>Frais</dt>
-                            <dd>
-                                {{ \App\Models\Formule::money($test->fee) }}
-                                @if ($test->paid_at)
-                                    <span class="badge bg-success-subtle">Payés le {{ $test->paid_at->format('d/m/Y') }}</span>
-                                    <div class="small text-muted">{{ $test->payment_method?->label() }}@if ($test->payment_reference) · réf. {{ $test->payment_reference }}@endif @if ($test->paymentRecorder) · par {{ $test->paymentRecorder->displayName() }}@endif</div>
-                                @elseif ($test->fee > 0)
-                                    <span class="badge bg-warning-subtle">À encaisser</span>
-                                @endif
-                                <div class="small text-muted">Frais de test : hors commission (cahier §3.4).</div>
-                            </dd>
                             @if ($test->status === TestStatus::Annule)<dt>Annulation</dt><dd>{{ $test->cancel_reason }}</dd>@endif
                         </dl>
                         @if ($test->notification_error)
@@ -85,8 +74,22 @@
                             @if ($test->niveau->is_published && Route::has('site.formations.show'))
                                 <a href="{{ route('site.formations.show', $test->niveau->slug) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class='bx bx-link-external me-1'></i>Fiche du niveau à transmettre</a>
                             @endif
+                            @if ($test->status === TestStatus::Passe && Route::has('inscriptions.from-test'))
+                                @can('create', \App\Models\Inscription::class)
+                                    @if ($inscriptionsDuTest->isNotEmpty())
+                                        <p class="small mt-3 mb-0">Inscrit(e) : @foreach ($inscriptionsDuTest as $ins)<a href="{{ route('inscriptions.show', $ins) }}">{{ $ins->number }}</a>@if (! $loop->last), @endif @endforeach</p>
+                                    @else
+                                        <button type="button" class="btn btn-success btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#inscrire-test"><i class='bx bx-user-plus me-1'></i>Inscrire à une formation</button>
+                                    @endif
+                                @endcan
+                            @endif
                         </div>
                     </div>
+                    @if ($test->status === TestStatus::Passe && Route::has('inscriptions.from-test') && $inscriptionsDuTest->isEmpty())
+                        @can('create', \App\Models\Inscription::class)
+                            @include('inscriptions._form-modal', ['modalId' => 'inscrire-test', 'action' => route('inscriptions.from-test', $test), 'title' => 'Inscrire '.$test->name.' à une formation', 'niveaux' => $niveaux, 'formules' => $formules, 'test' => $test])
+                        @endcan
+                    @endif
                 @endif
             </div>
 
@@ -112,31 +115,11 @@
                     @endunless
                 @endcan
 
-                @can('payment', $test)
-                    @if (! $test->paid_at && $test->fee > 0 && $test->status !== TestStatus::Annule)
-                        <div class="card">
-                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-wallet me-2'></i>ENCAISSER LES FRAIS — {{ \App\Models\Formule::money($test->fee) }}</h6></div>
-                            <div class="card-body">
-                                <form method="POST" action="{{ route('tests.payment', $test) }}" class="row g-2 align-items-end" data-crud-form data-no-guard>
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="col-md-5"><label class="form-label fw-semibold" for="p-method">Moyen de paiement <span class="text-danger">*</span></label><select class="form-select" id="p-method" name="payment_method" required>@foreach (\App\Enums\PaymentMethod::options() as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
-                                    <div class="col-md-4"><label class="form-label fw-semibold" for="p-ref">Référence</label><input class="form-control {{ $field('payment_reference') }}" id="p-ref" name="payment_reference" maxlength="100" placeholder="N° de transaction"></div>
-                                    <div class="col-md-3"><button type="submit" class="btn btn-success w-100"><i class='bx bx-check me-1'></i>Encaissé</button></div>
-                                </form>
-                            </div>
-                        </div>
-                    @endif
-                @endcan
-
                 @can('result', $test)
                     @if ($test->status !== TestStatus::Annule)
                         <div class="card">
                             <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-medal me-2'></i>{{ $test->niveau ? 'CORRIGER LE RÉSULTAT' : 'ENREGISTRER LE RÉSULTAT' }}</h6></div>
                             <div class="card-body">
-                                @if (! $test->isPaid())
-                                    <div class="alert alert-warning small py-2"><i class='bx bx-info-circle me-1'></i>Les frais du test ne sont pas encore encaissés.</div>
-                                @endif
                                 <form method="POST" action="{{ route('tests.result', $test) }}" class="row g-2" data-crud-form data-no-guard>
                                     @csrf
                                     @method('PUT')

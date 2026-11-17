@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientDocument;
+use App\Models\Inscription;
 use App\Models\TestNiveau;
 use App\Support\PhoneNumber;
 use App\Support\Seo;
@@ -60,6 +62,15 @@ class AccountController extends Controller
         ]);
     }
 
+    /** Inscriptions de l'apprenant (cahier §4 « retrouver ses inscriptions et leur statut ») : tarif figé, session. */
+    public function inscriptions(Request $request): View
+    {
+        return view('client.inscriptions', [
+            'inscriptions' => Inscription::with('niveau')->forClient($this->client($request))->latest('id')->paginate(15),
+            'seo' => Seo::make('Mes inscriptions')->noIndex(),
+        ]);
+    }
+
     public function documents(Request $request): View
     {
         return view('client.documents', [
@@ -99,9 +110,11 @@ class AccountController extends Controller
                     $fail('Ce numéro est déjà utilisé par un autre compte.');
                 }
             }],
+            'birth_date' => ['nullable', 'date', 'before:today', 'after:1920-01-01'],
+            'gender' => ['nullable', Rule::enum(Gender::class)],
             'address' => ['nullable', 'string', 'max:300'],
             'city' => ['nullable', 'string', 'max:100'],
-        ], [], ['name' => 'nom complet', 'organization' => 'organisation', 'phone' => 'téléphone', 'address' => 'adresse', 'city' => 'ville']);
+        ], [], ['name' => 'nom complet', 'organization' => 'organisation', 'phone' => 'téléphone', 'birth_date' => 'date de naissance', 'gender' => 'sexe', 'address' => 'adresse', 'city' => 'ville']);
 
         $client->update(['phone' => PhoneNumber::normalize($data['phone'] ?? null)] + $data);
 

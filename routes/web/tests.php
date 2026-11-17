@@ -10,7 +10,6 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/tests/presentation', [TestNiveauController::class, 'presentation'])->middleware('permission:tests.configure')->name('tests.presentation');
     Route::get('/tests/{test}', [TestNiveauController::class, 'show'])->middleware('permission:tests.view')->name('tests.show');
     Route::put('/tests/{test}/planification', [TestNiveauController::class, 'schedule'])->middleware('permission:tests.schedule')->name('tests.schedule');
-    Route::put('/tests/{test}/paiement', [TestNiveauController::class, 'payment'])->middleware('permission:tests.payment')->name('tests.payment');
     Route::put('/tests/{test}/resultat', [TestNiveauController::class, 'result'])->middleware('permission:tests.result')->name('tests.result');
     Route::put('/tests/{test}/annulation', [TestNiveauController::class, 'cancel'])->middleware('permission:tests.schedule')->name('tests.cancel');
     Route::delete('/tests/{test}', [TestNiveauController::class, 'destroy'])->middleware('permission:tests.delete')->name('tests.destroy');
