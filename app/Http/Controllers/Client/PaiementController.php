@@ -5,16 +5,20 @@ namespace App\Http\Controllers\Client;
 use App\Enums\FormationMode;
 use App\Enums\PaymentChoice;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Inscription;
 use App\Models\Paiement;
+use App\Services\Paiements\Gateway\GatewayManager;
 use App\Services\Paiements\PaiementService;
+use App\Services\Paiements\ReceiptService;
 use App\Support\Seo;
 use App\Support\SiteSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -36,6 +40,7 @@ class PaiementController extends Controller
             'inscriptions' => $inscriptions,
             'paiements' => Paiement::forClient($client)->with('inscription')->latest('paid_at')->latest('id')->get(),
             'numbers' => $this->service->merchantNumbers(),
+            'gateway' => app(GatewayManager::class)->active(),
             'instructions' => $settings->get('paiement.instructions'),
             'seo' => Seo::make('Mes paiements')->noIndex(),
         ]);
@@ -65,11 +70,46 @@ class PaiementController extends Controller
             : redirect()->route('client.paiements')->with('status', $message);
     }
 
-    public function receipt(Request $request, Paiement $paiement): View
+    /** Paiement automatique : ouvre la page de paiement du prestataire (Orange Money, Moov, Wave…). */
+    public function online(Request $request, GatewayManager $gateways): RedirectResponse
+    {
+        $gateway = $gateways->active();
+        abort_unless($gateway !== null, 404);
+        $client = $this->client($request);
+        $data = $request->validate([
+            'inscription_id' => ['required', 'integer'],
+            'amount' => ['required', 'integer', 'min:100', 'max:100000000'],
+            'payer_phone' => ['nullable', 'string', 'max:30'],
+        ], [], ['amount' => 'montant', 'payer_phone' => 'numéro de téléphone']);
+
+        $inscription = Inscription::forClient($client)->whereKey($data['inscription_id'])->firstOrFail();
+        abort_unless(self::paysOnline($inscription), 404);
+
+        return redirect()->away($this->service->startOnline($inscription, (int) $data['amount'], $data['payer_phone'] ?? null, $client, $request, $gateway));
+    }
+
+    /** Retour de la page du prestataire : on relit l'état chez lui (jamais d'après l'adresse de retour). */
+    public function return(Request $request, Paiement $paiement): RedirectResponse
+    {
+        abort_unless(Paiement::forClient($this->client($request))->whereKey($paiement->id)->exists(), 404);
+        $paiement = $this->service->synchronize($paiement);
+
+        return redirect()->route('client.paiements')->with('status', match ($paiement->status) {
+            PaymentStatus::Confirme => "Paiement reçu : {$paiement->money()}. Merci ! Votre reçu {$paiement->number} est disponible ci-dessous.",
+            PaymentStatus::Rejete => 'Le paiement n\'a pas abouti : aucun montant n\'a été pris en compte. Vous pouvez réessayer.',
+            PaymentStatus::AVerifier => 'Paiement reçu : le centre le contrôle et vous envoie votre reçu.',
+            default => 'Paiement en cours de confirmation par l\'opérateur : la page se met à jour dans quelques minutes.',
+        });
+    }
+
+    /** Reçu PDF (A5 ou ticket thermique) : seulement pour ses propres paiements confirmés. */
+    public function receipt(Request $request, Paiement $paiement, ReceiptService $receipts): Response
     {
         abort_unless(Paiement::forClient($this->client($request))->whereKey($paiement->id)->exists() && $paiement->status->hasReceipt(), 404);
+        $format = $request->query('format') === 'thermique' ? 'thermique' : 'a5';
+        $pdf = $receipts->pdf($paiement, $format);
 
-        return view('paiements.recu', ['paiement' => $paiement->load('inscription'), 'back' => route('client.paiements')]);
+        return $request->boolean('imprimer') ? $pdf->stream($receipts->filename($paiement, $format)) : $pdf->download($receipts->filename($paiement, $format));
     }
 
     /** En ligne = mobile money (formation en ligne ou paiement en ligne choisi) ; en présentiel, on règle au centre. */

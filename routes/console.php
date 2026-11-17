@@ -16,3 +16,5 @@ Schedule::command('queue:work --queue=videos --stop-when-empty --timeout=1900 --
 Schedule::command('videos:clean')->daily();
 // Statistiques de fréquentation : pages vues de plus de 13 mois supprimées.
 Schedule::command('stats:purge')->daily();
+// Paiements en ligne restés en attente : relus chez le prestataire toutes les 5 minutes (cahier §3.8 A).
+Schedule::command('paiements:sync')->everyFiveMinutes()->withoutOverlapping();

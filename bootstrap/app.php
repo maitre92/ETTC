@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Fréquentation du site public (App\Services\Statistiques\VisitTracker).
         $middleware->web(append: [TrackVisit::class]);
+        // Notification serveur du prestataire de paiement : appel sans jeton CSRF ; elle ne confirme rien par elle-même
+        // (le site relit l'état de la transaction chez le prestataire, PaiementService::synchronize).
+        $middleware->validateCsrfTokens(except: ['paiements/notification/*']);
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'client.active' => EnsureClientIsActive::class,

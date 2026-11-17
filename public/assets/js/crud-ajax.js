@@ -86,6 +86,7 @@
         if (root._crudDestroy) { root._crudDestroy(); }
         root.innerHTML = fresh.innerHTML;
         init(root, state);
+        applyShowWhen(document);
         if (!reduceMotion) {
             root.classList.remove('crud-refreshed');
             void root.offsetWidth;
@@ -255,8 +256,36 @@
         if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-crud-form') || form.classList.contains('js-confirm-delete')) { return; }
         if (!window.fetch || !window.FormData) { return; }
         event.preventDefault();
-        send(form, event.submitter);
+        var submitter = event.submitter;
+        // Question simple avant d'agir : <form data-confirm="Avez-vous bien reçu… ?"> (Oui / Non).
+        var question = form.getAttribute('data-confirm');
+        if (!question) { send(form, submitter); return; }
+        if (window.Swal) {
+            Swal.fire({ title: question, icon: 'question', showCancelButton: true, confirmButtonText: 'Oui', cancelButtonText: 'Non', reverseButtons: true })
+                .then(function (answer) { if (answer.isConfirmed) { send(form, submitter); } });
+        } else if (window.confirm(question)) {
+            send(form, submitter);
+        }
     });
+
+    // Champ affiché selon un autre : <div data-show-when="method:orange_money,wave"> (formulaires simplifiés).
+    function applyShowWhen(scope) {
+        (scope || document).querySelectorAll('[data-show-when]').forEach(function (el) {
+            var rule = el.getAttribute('data-show-when').split(':');
+            var form = el.closest('form');
+            var input = form ? form.querySelector('[name="' + rule[0] + '"]') : null;
+            if (!input) { return; }
+            var show = rule[1].split(',').indexOf(input.value) !== -1;
+            el.hidden = !show;
+            el.querySelectorAll('input, select, textarea').forEach(function (field) { field.disabled = !show; });
+        });
+    }
+    document.addEventListener('change', function (event) {
+        var form = event.target.form;
+        if (form && form.querySelector('[data-show-when]')) { applyShowWhen(form); }
+    });
+    document.addEventListener('shown.bs.modal', function (event) { applyShowWhen(event.target); });
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { applyShowWhen(); }); } else { applyShowWhen(); }
 
     window.CrudAjax = { init: init, send: send, toast: toast };
 })();

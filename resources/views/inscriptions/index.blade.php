@@ -10,6 +10,8 @@
     @php
         $count = fn (InscriptionStatus $s) => $inscriptions->where('status', $s)->count();
         $engaged = $inscriptions->filter(fn ($i) => $i->status !== InscriptionStatus::Annulee)->sum('total_amount');
+        $canRecord = auth()->user()->can('create', \App\Models\Paiement::class);
+        $payable = fn ($i) => $canRecord && $i->balance() > 0 && in_array($i->status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true);
     @endphp
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
         <div class="breadcrumb-title pe-3">Formations</div>
@@ -69,7 +71,7 @@
                                 <th>SESSION</th>
                                 <th>MONTANT</th>
                                 <th>STATUT</th>
-                                <th width="8%">ACTIONS</th>
+                                <th width="12%">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -83,8 +85,14 @@
                                     <td>
                                         <span class="d-none">statut-{{ $inscription->status->value }}</span>
                                         <span class="badge {{ $inscription->status->badge() }}">{{ $inscription->status->label() }}</span>
+                                        @if ($inscription->status !== InscriptionStatus::Annulee)<div class="small text-muted fw-normal mt-1">{{ $inscription->paymentState() }}</div>@endif
                                     </td>
-                                    <td><a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-primary btn-sm" title="Traiter"><i class='bx bx-show'></i></a></td>
+                                    <td class="text-nowrap">
+                                        @if ($payable($inscription))
+                                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}"><i class='bx bx-money'></i><span class="ms-1">Encaisser</span></button>
+                                        @endif
+                                        <a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-primary btn-sm" title="Ouvrir le dossier"><i class='bx bx-show'></i></a>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -92,6 +100,10 @@
                 </div>
             </div>
         </div>
+
+        @foreach ($inscriptions->filter($payable) as $inscription)
+            @include('paiements._record-modal', ['inscription' => $inscription, 'modalId' => 'pay-'.$inscription->id, 'owner' => 'inscriptions', 'back' => 'inscriptions'])
+        @endforeach
 
         @can('create', \App\Models\Inscription::class)
             @include('inscriptions._form-modal', ['modalId' => 'create-inscription', 'action' => route('inscriptions.store'), 'title' => 'Inscrire un apprenant au centre', 'niveaux' => $niveaux, 'formules' => $formules, 'test' => null])

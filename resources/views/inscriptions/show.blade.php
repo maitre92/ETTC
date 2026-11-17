@@ -91,6 +91,31 @@
             </div>
 
             <div class="col-xl-7">
+                @php
+                    $open = in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true);
+                    $canPay = $open && $inscription->balance() > 0 && auth()->user()->can('create', \App\Models\Paiement::class);
+                    $canValidate = auth()->user()->can('validate', $inscription);
+                    $money = fn (int $amount) => \App\Models\Formule::money($amount);
+                @endphp
+
+                {{-- Une seule action principale, expliquée en une phrase (écran pensé pour un non-informaticien). --}}
+                @if ($open)
+                    <div class="card border-primary">
+                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-bulb me-2'></i>QUE FAIRE MAINTENANT ?</h6></div>
+                        <div class="card-body">
+                            @if ($canPay)
+                                <p class="mb-3">{{ $inscription->amount_paid > 0 ? 'Il reste '.$money($inscription->balance()).' à payer.' : 'L\'apprenant n\'a pas encore payé.' }} Quand il paie, cliquez sur « Encaisser » : le reçu est créé et l'inscription est validée toute seule.</p>
+                                <button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#pay-inscription"><i class='bx bx-money me-1'></i>Encaisser un paiement</button>
+                            @elseif ($status === InscriptionStatus::EnCours && $canValidate)
+                                <p class="mb-3">La formation est payée et en cours. À la fin de la formation, cliquez sur « Terminer ».</p>
+                                <form method="POST" action="{{ route('inscriptions.finish', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-success btn-lg"><i class='bx bx-flag me-1'></i>Terminer la formation</button></form>
+                            @else
+                                <p class="mb-0">Rien à faire pour l'instant.</p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 @can('viewAny', \App\Models\Paiement::class)
                     <div class="card">
                         <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
@@ -99,83 +124,69 @@
                         </div>
                         <div class="card-body">
                             @php $percent = $inscription->total_amount > 0 ? min(100, (int) round($inscription->amount_paid * 100 / $inscription->total_amount)) : 0; @endphp
-                            <div class="d-flex flex-wrap justify-content-between gap-2 small mb-1"><span>Payé : <strong>{{ \App\Models\Formule::money($inscription->amount_paid) }}</strong> sur {{ \App\Models\Formule::money($inscription->total_amount) }}</span><span>Reste : <strong class="{{ $inscription->balance() > 0 ? 'text-danger' : 'text-success' }}">{{ \App\Models\Formule::money($inscription->balance()) }}</strong></span></div>
-                            <div class="progress mb-3" style="height:8px" role="progressbar" aria-label="Part payée" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar bg-success" style="width: {{ $percent }}%"></div></div>
-                            @if ($inscription->paiements->isNotEmpty())
-                                <ul class="list-unstyled small mb-3">
-                                    @foreach ($inscription->paiements as $paiement)
-                                        <li class="d-flex flex-wrap justify-content-between gap-2 py-2 border-bottom">
-                                            <span><a href="{{ route('paiements.show', $paiement) }}">{{ $paiement->number }}</a> · {{ $paiement->paid_at->format('d/m/Y') }} · {{ $paiement->method->label() }}@if ($paiement->period) · {{ $paiement->period }}@endif</span>
-                                            <span><strong>{{ $paiement->money() }}</strong> <span class="badge {{ $paiement->status->badge() }}">{{ $paiement->status->label() }}</span></span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                            @can('create', \App\Models\Paiement::class)
-                                @if ($status !== InscriptionStatus::Annulee && $inscription->balance() > 0)
-                                    <details @if ($errors->hasAny(['amount', 'method', 'reference', 'paid_at'])) open @endif>
-                                        <summary class="btn btn-success btn-sm mb-2"><i class='bx bx-plus me-1'></i>Enregistrer un paiement reçu au centre</summary>
-                                        @include('paiements._record-form', ['inscription' => $inscription, 'formId' => 'pay-form'])
-                                    </details>
-                                @endif
-                            @endcan
-                        </div>
-                    </div>
-                @endcan
-
-                @can('validate', $inscription)
-                    @if (in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true))
-                        <div class="card">
-                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-check-double me-2'></i>SUITE DU DOSSIER</h6></div>
-                            <div class="card-body d-flex flex-wrap gap-2">
-                                @if ($status === InscriptionStatus::AValider)
-                                    <form method="POST" action="{{ route('inscriptions.validate', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-success"><i class='bx bx-check me-1'></i>Valider le dossier</button></form>
-                                @endif
-                                @if (in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee], true))
-                                    <form method="POST" action="{{ route('inscriptions.start', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-primary"><i class='bx bx-play me-1'></i>Démarrer la formation</button></form>
-                                @endif
-                                @if ($status === InscriptionStatus::EnCours)
-                                    <form method="POST" action="{{ route('inscriptions.finish', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-success"><i class='bx bx-flag me-1'></i>Terminer la formation</button></form>
-                                @endif
-                                <p class="small text-muted w-100 mb-0 mt-1">« Valider le dossier » : informations vérifiées, l'inscription attend le paiement. Un paiement confirmé fait passer l'inscription « En cours ». « Démarrer » : sans attendre le paiement (accord du centre).</p>
-                            </div>
-                        </div>
-                    @endif
-                @endcan
-
-                @can('organize', $inscription)
-                    <div class="card">
-                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-group me-2'></i>SESSION ET NOTES</h6></div>
-                        <div class="card-body">
-                            <form method="POST" action="{{ route('inscriptions.organize', $inscription) }}" class="row g-2" data-crud-form data-no-guard>
-                                @csrf
-                                @method('PUT')
-                                <div class="col-md-5">
-                                    <label class="form-label fw-semibold" for="o-session">Session</label>
-                                    <input class="form-control {{ $field('session') }}" id="o-session" name="session" maxlength="100" value="{{ $inscription->session }}" list="sessions-list" placeholder="Janvier 2027">
-                                    <datalist id="sessions-list">@foreach ($sessions as $session)<option value="{{ $session }}"></option>@endforeach</datalist>
+                            <div class="d-flex flex-wrap justify-content-between gap-2 small mb-1"><span>Payé : <strong>{{ $money($inscription->amount_paid) }}</strong> sur {{ $money($inscription->total_amount) }}</span><span>Reste : <strong class="{{ $inscription->balance() > 0 ? 'text-danger' : 'text-success' }}">{{ $money($inscription->balance()) }}</strong></span></div>
+                            <div class="progress mb-2" style="height:8px" role="progressbar" aria-label="Part payée" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar bg-success" style="width: {{ $percent }}%"></div></div>
+                            @forelse ($inscription->paiements as $paiement)
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom small">
+                                    <span><a href="{{ route('paiements.show', $paiement) }}">{{ $paiement->number }}</a> · {{ $paiement->paid_at->format('d/m/Y') }} · {{ $paiement->method->label() }}</span>
+                                    <span class="d-flex flex-wrap align-items-center gap-1"><strong>{{ $paiement->money() }}</strong> <span class="badge {{ $paiement->status->badge() }}">{{ $paiement->status->label() }}</span>
+                                        @if ($paiement->status->hasReceipt())@include('paiements._receipt-buttons', ['receiptRoute' => 'paiements.receipt', 'paiement' => $paiement, 'btn' => 'btn btn-outline-primary btn-sm py-0'])@endif
+                                    </span>
                                 </div>
-                                <div class="col-md-7"><label class="form-label fw-semibold" for="o-notes">Notes internes</label><textarea class="form-control" id="o-notes" name="internal_notes" rows="2" maxlength="3000">{{ $inscription->internal_notes }}</textarea></div>
-                                <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-save me-1'></i>Enregistrer</button></div>
-                            </form>
+                            @empty
+                                <p class="small text-muted mb-0 mt-2">Aucun paiement pour l'instant.</p>
+                            @endforelse
                         </div>
                     </div>
                 @endcan
 
-                @can('cancel', $inscription)
-                    @if (in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true))
-                        <div class="card">
-                            <div class="card-body">
-                                <form method="POST" action="{{ route('inscriptions.cancel', $inscription) }}" class="row g-2 align-items-end" data-crud-form data-no-guard>
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="col-md-8"><label class="form-label fw-semibold" for="c-reason">Annuler l'inscription : motif</label><input class="form-control {{ $field('cancel_reason') }}" id="c-reason" name="cancel_reason" maxlength="300" required placeholder="L'apprenant renonce, changement de formule…"></div>
-                                    <div class="col-md-4"><button type="submit" class="btn btn-outline-danger w-100"><i class='bx bx-x me-1'></i>Annuler</button></div>
-                                </form>
+                @if ($open && (auth()->user()->can('organize', $inscription) || auth()->user()->can('cancel', $inscription) || $canValidate))
+                    <div class="card">
+                        <details @if ($errors->hasAny(['session', 'internal_notes', 'cancel_reason'])) open @endif>
+                            <summary class="card-body py-3 fw-semibold text-primary" style="cursor:pointer"><i class='bx bx-dots-horizontal-rounded me-1'></i>Autres actions (session, notes, annulation…)</summary>
+                            <div class="card-body pt-0">
+                                @if ($canValidate)
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        @if ($status === InscriptionStatus::AValider)
+                                            <form method="POST" action="{{ route('inscriptions.validate', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-outline-success btn-sm"><i class='bx bx-check me-1'></i>Valider sans paiement</button></form>
+                                        @endif
+                                        @if (in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee], true))
+                                            <form method="POST" action="{{ route('inscriptions.start', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-outline-primary btn-sm"><i class='bx bx-play me-1'></i>Démarrer sans attendre le paiement</button></form>
+                                        @endif
+                                        @if ($status === InscriptionStatus::EnCours && $canPay)
+                                            <form method="POST" action="{{ route('inscriptions.finish', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-outline-success btn-sm"><i class='bx bx-flag me-1'></i>Terminer la formation</button></form>
+                                        @endif
+                                    </div>
+                                @endif
+                                @can('organize', $inscription)
+                                    <form method="POST" action="{{ route('inscriptions.organize', $inscription) }}" class="row g-2 mb-3" data-crud-form data-no-guard>
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="col-md-5">
+                                            <label class="form-label fw-semibold" for="o-session">Session</label>
+                                            <input class="form-control {{ $field('session') }}" id="o-session" name="session" maxlength="100" value="{{ $inscription->session }}" list="sessions-list" placeholder="Janvier 2027">
+                                            <datalist id="sessions-list">@foreach ($sessions as $session)<option value="{{ $session }}"></option>@endforeach</datalist>
+                                        </div>
+                                        <div class="col-md-7"><label class="form-label fw-semibold" for="o-notes">Notes internes</label><textarea class="form-control" id="o-notes" name="internal_notes" rows="2" maxlength="3000">{{ $inscription->internal_notes }}</textarea></div>
+                                        <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-save me-1'></i>Enregistrer</button></div>
+                                    </form>
+                                @endcan
+                                @can('cancel', $inscription)
+                                    <form method="POST" action="{{ route('inscriptions.cancel', $inscription) }}" class="row g-2 align-items-end" data-crud-form data-no-guard>
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="col-md-8"><label class="form-label fw-semibold" for="c-reason">Annuler l'inscription : motif</label><input class="form-control {{ $field('cancel_reason') }}" id="c-reason" name="cancel_reason" maxlength="300" required placeholder="L'apprenant renonce, changement de formule…"></div>
+                                        <div class="col-md-4"><button type="submit" class="btn btn-outline-danger w-100"><i class='bx bx-x me-1'></i>Annuler l'inscription</button></div>
+                                    </form>
+                                @endcan
                             </div>
-                        </div>
-                    @endif
-                @endcan
+                        </details>
+                    </div>
+                @endif
+
+                @if ($canPay)
+                    @include('paiements._record-modal', ['inscription' => $inscription, 'modalId' => 'pay-inscription', 'owner' => 'inscription-'.$inscription->id])
+                @endif
 
                 <div class="card">
                     <div class="card-header card-header-brand d-flex justify-content-between align-items-center">

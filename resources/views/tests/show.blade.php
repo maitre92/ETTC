@@ -136,7 +136,9 @@
                 @can('schedule', $test)
                     @unless ($closed)
                         <div class="card">
-                            <div class="card-body">
+                            <details @if ($errors->has('cancel_reason')) open @endif>
+                            <summary class="card-body py-3 fw-semibold text-primary" style="cursor:pointer"><i class='bx bx-dots-horizontal-rounded me-1'></i>Autres actions (annuler le test)</summary>
+                            <div class="card-body pt-0">
                                 <form method="POST" action="{{ route('tests.cancel', $test) }}" class="row g-2 align-items-end" data-crud-form data-no-guard>
                                     @csrf
                                     @method('PUT')
@@ -144,6 +146,7 @@
                                     <div class="col-md-4"><button type="submit" class="btn btn-outline-danger w-100"><i class='bx bx-x me-1'></i>Annuler le test</button></div>
                                 </form>
                             </div>
+                            </details>
                         </div>
                     @endunless
                 @endcan

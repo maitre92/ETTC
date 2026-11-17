@@ -49,7 +49,7 @@
                             @if ($paiement->notes)<dt>Remarque</dt><dd>{{ $paiement->notes }}</dd>@endif
                         </dl>
                         @if ($paiement->status->hasReceipt())
-                            <a href="{{ route('paiements.receipt', $paiement) }}" class="btn btn-primary btn-sm mt-3" target="_blank" rel="noopener"><i class='bx bx-receipt me-1'></i>Voir le reçu</a>
+                            <div class="d-flex flex-wrap gap-2 mt-3">@include('paiements._receipt-buttons', ['receiptRoute' => 'paiements.receipt', 'paiement' => $paiement, 'btn' => 'btn btn-primary btn-sm'])</div>
                         @endif
                     </div>
                 </div>

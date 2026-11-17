@@ -6,6 +6,7 @@ use App\Http\Controllers\Site\DemandeController;
 use App\Http\Controllers\Site\FormationController;
 use App\Http\Controllers\Site\InscriptionController;
 use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\PaiementNotificationController;
 use App\Http\Controllers\Site\SearchController;
 use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\TemoignageController;
@@ -56,6 +57,12 @@ Route::name('site.')->group(function () {
     // Applications installables (PWA) : site public et administration de l'équipe.
     Route::get('/manifest.webmanifest', [AppManifestController::class, 'site'])->name('manifest');
     Route::get('/manifest-equipe.webmanifest', [AppManifestController::class, 'team'])->name('manifest.team');
+    // Paiement automatique (cahier §3.8 A) : notification serveur du prestataire (sans CSRF, simple signal) et page
+    // « opérateur simulé » (développement seulement, adresses signées).
+    Route::get('/recu/{number}/{key}', [PaiementNotificationController::class, 'verify'])->middleware('throttle:60,1')->name('recu.verify');
+    Route::match(['get', 'post'], '/paiements/notification/{gateway}', [PaiementNotificationController::class, 'notify'])->middleware('throttle:120,1')->name('paiements.notify');
+    Route::get('/paiements/simulation/{transaction}', [PaiementNotificationController::class, 'simulation'])->middleware('signed')->name('paiement-simule');
+    Route::post('/paiements/simulation/{transaction}', [PaiementNotificationController::class, 'simulate'])->middleware(['signed', 'throttle:20,1'])->name('paiement-simule.decide');
 });
 
 // Adresse inconnue : redirection d'une ancienne adresse de contenu (301), sinon 404 du site.

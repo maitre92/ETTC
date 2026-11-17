@@ -15,6 +15,9 @@ use App\Models\Paiement;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Numbering\SequenceService;
+use App\Services\Paiements\Gateway\GatewayException;
+use App\Services\Paiements\Gateway\GatewayManager;
+use App\Services\Paiements\Gateway\PaymentGateway;
 use App\Support\PhoneNumber;
 use App\Support\SiteSettings;
 use Illuminate\Http\Request;
@@ -41,6 +44,7 @@ class PaiementService
         private readonly ActivityLogger $logger,
         private readonly SequenceService $sequences,
         private readonly SiteSettings $settings,
+        private readonly GatewayManager $gateways,
     ) {}
 
     /** Moyens proposés à l'apprenant : ceux dont le centre a renseigné le numéro marchand. @return array<string, string> */
@@ -105,6 +109,117 @@ class PaiementService
         return $paiement;
     }
 
+    /**
+     * Paiement automatique : crée la transaction « en attente » et renvoie l'adresse de la page de paiement du
+     * prestataire. Rien n'est confirmé ici : voir synchronize().
+     */
+    public function startOnline(Inscription $inscription, int $amount, ?string $phone, Client $client, Request $request, PaymentGateway $gateway): string
+    {
+        $this->ensurePayable($inscription, $amount, pending: true);
+
+        $paiement = DB::transaction(function () use ($inscription, $amount, $phone, $client, $request, $gateway) {
+            $paiement = Paiement::create($this->attributes($inscription, ['amount' => $amount, 'method' => PaymentMethod::OrangeMoney->value, 'payer_phone' => $phone]) + [
+                'status' => PaymentStatus::EnAttente, 'source' => 'en_ligne', 'client_id' => $client->id, 'ip_address' => $request->ip(),
+                'gateway' => $gateway->name(), 'gateway_transaction_id' => 'ETTC'.now()->format('ymdHis').Str::upper(Str::random(8)),
+            ]);
+            $this->logger->log('paiements.online_started', 'paiements', "Paiement en ligne commencé — {$paiement->number} : {$paiement->money()} via {$gateway->label()} ({$inscription->number})", $paiement);
+
+            return $paiement;
+        });
+
+        try {
+            return $gateway->initiate($paiement, route('client.paiements.return', $paiement), route('site.paiements.notify', $gateway->name()));
+        } catch (GatewayException $e) {
+            Paiement::withoutActivityLog(fn () => $paiement->update(['status' => PaymentStatus::Rejete, 'cancel_reason' => 'Service de paiement indisponible', 'cancelled_at' => now()]));
+            Log::warning("Paiement en ligne {$paiement->number} : {$e->getMessage()}");
+            throw ValidationException::withMessages(['amount' => 'Le service de paiement en ligne ne répond pas. Réessayez dans un instant, ou payez au numéro du centre puis déclarez la transaction.']);
+        }
+    }
+
+    /**
+     * Lit l'état de la transaction CHEZ LE PRESTATAIRE et met le paiement à jour (notification serveur, retour de
+     * l'apprenant, tâche planifiée). Seule cette lecture serveur à serveur confirme un paiement (cahier §3.8 A).
+     */
+    public function synchronize(Paiement $paiement): Paiement
+    {
+        $gateway = $paiement->gateway ? $this->gateways->make($paiement->gateway) : null;
+        if (! $gateway || $paiement->status !== PaymentStatus::EnAttente) {
+            return $paiement;
+        }
+        try {
+            $result = $gateway->fetch($paiement->gateway_transaction_id);
+        } catch (GatewayException $e) {
+            Log::warning("Vérification du paiement {$paiement->number} impossible : {$e->getMessage()}");
+
+            return $paiement;
+        }
+
+        $confirmed = DB::transaction(function () use ($paiement, $result) {
+            $paiement = Paiement::whereKey($paiement->id)->lockForUpdate()->firstOrFail();
+            if ($paiement->status !== PaymentStatus::EnAttente) {
+                return false;
+            }
+            $tracking = ['gateway_status' => $result->rawStatus, 'gateway_checked_at' => now()];
+            if ($result->isRefused()) {
+                $this->change($paiement, $tracking + ['status' => PaymentStatus::Rejete, 'cancel_reason' => 'Paiement refusé ou abandonné chez l\'opérateur', 'cancelled_at' => now()], 'paiements.online_refused', 'Paiement en ligne refusé', null);
+
+                return false;
+            }
+            if (! $result->isAccepted()) {
+                Paiement::withoutActivityLog(fn () => $paiement->update($tracking));
+
+                return false;
+            }
+            $inscription = $paiement->inscription;
+            $values = $tracking + ['reference' => $result->operatorReference ? Str::upper($result->operatorReference) : $paiement->gateway_transaction_id, 'method' => $this->methodFrom($result->method) ?? $paiement->method];
+            // Montant reçu différent, ou supérieur au reste (deux paiements en même temps) : l'équipe tranche.
+            if ($result->amount !== $paiement->amount || $paiement->amount > $inscription->balance()) {
+                $this->change($paiement, $values + ['status' => PaymentStatus::AVerifier, 'notes' => 'Paiement accepté par l\'opérateur ('.($result->amount ?? '?').' FCFA) mais à contrôler : montant attendu '.$paiement->amount.' FCFA, reste '.$inscription->balance().' FCFA.'], 'paiements.online_to_check', 'Paiement en ligne à contrôler', null);
+
+                return false;
+            }
+            $this->change($paiement, $values + ['status' => PaymentStatus::Confirme, 'confirmed_at' => now()], 'paiements.online_confirmed', 'Paiement en ligne confirmé par '.$this->gateways->make($paiement->gateway)?->label(), null);
+            $this->afterConfirmation($inscription, null);
+
+            return true;
+        });
+
+        $paiement->refresh();
+        if ($confirmed) {
+            $this->mailReceipt($paiement);
+        }
+
+        return $paiement;
+    }
+
+    /** Paiements en ligne restés « en attente » : relus chez le prestataire ; abandonnés après 24 h. */
+    public function synchronizePending(): int
+    {
+        $count = 0;
+        Paiement::where('status', PaymentStatus::EnAttente->value)->where('created_at', '<=', now()->subMinutes(2))->get()
+            ->each(function (Paiement $paiement) use (&$count) {
+                $this->synchronize($paiement);
+                if ($paiement->fresh()->status === PaymentStatus::EnAttente && $paiement->created_at->lt(now()->subDay())) {
+                    $this->change($paiement->fresh(), ['status' => PaymentStatus::Rejete, 'cancel_reason' => 'Paiement en ligne non finalisé', 'cancelled_at' => now()], 'paiements.online_expired', 'Paiement en ligne expiré', null);
+                }
+                $count++;
+            });
+
+        return $count;
+    }
+
+    private function methodFrom(?string $raw): ?PaymentMethod
+    {
+        $raw = strtoupper((string) $raw);
+
+        return match (true) {
+            str_contains($raw, 'WAVE') => PaymentMethod::Wave,
+            str_contains($raw, 'MOOV'), str_contains($raw, 'FLOOZ') => PaymentMethod::MoovMoney,
+            str_contains($raw, 'OM'), str_contains($raw, 'ORANGE') => PaymentMethod::OrangeMoney,
+            default => null,
+        };
+    }
+
     /** Déclaration retrouvée sur le compte marchand : confirmée, reçu envoyé. */
     public function confirm(Paiement $paiement, User $actor): Paiement
     {
@@ -162,7 +277,7 @@ class PaiementService
     }
 
     /** @param  array<string, mixed>  $values */
-    private function change(Paiement $paiement, array $values, string $action, string $what, User $actor): Paiement
+    private function change(Paiement $paiement, array $values, string $action, string $what, ?User $actor): Paiement
     {
         $old = $paiement->status;
         Paiement::withoutActivityLog(fn () => $paiement->update($values));
@@ -173,14 +288,14 @@ class PaiementService
     }
 
     /** Montant payé recalculé ; un dossier à valider ou en attente de paiement passe « En cours » (cahier §3.8 A, B). */
-    private function afterConfirmation(Inscription $inscription, User $actor): void
+    private function afterConfirmation(Inscription $inscription, ?User $actor): void
     {
         $this->syncAmountPaid($inscription);
         if ($inscription->status->isPending()) {
             $old = $inscription->status;
             Inscription::withoutActivityLog(fn () => $inscription->update([
                 'status' => InscriptionStatus::EnCours,
-                'validated_at' => $inscription->validated_at ?? now(), 'validated_by' => $inscription->validated_by ?? $actor->id,
+                'validated_at' => $inscription->validated_at ?? now(), 'validated_by' => $inscription->validated_by ?? $actor?->id,
                 'started_at' => $inscription->started_at ?? now(),
             ]));
             $this->logger->log('inscriptions.paid', 'inscriptions', "Inscription confirmée par le paiement — {$inscription->number} ({$inscription->name})", $inscription, ['status' => $old->value], ['status' => InscriptionStatus::EnCours->value], $actor);

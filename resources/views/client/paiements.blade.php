@@ -37,30 +37,34 @@
                 @if ($payable > 0)
                     @if (! PaiementController::paysOnline($inscription))
                         <p class="mb-0"><i class='bx bx-store' aria-hidden="true"></i> Formation en présentiel : le paiement se fait <strong>au centre</strong>, à l'accueil. Un reçu vous est remis et apparaît ensuite ici.</p>
+                    @elseif ($gateway)
+                        <h3 class="h6 text-ink"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Payer maintenant par mobile money</h3>
+                        <p class="small text-muted">Orange Money, Moov Money ou Wave : vous validez le paiement sur votre téléphone, puis vous revenez ici avec votre reçu. Le paiement est confirmé automatiquement.</p>
+                        <form method="POST" action="{{ route('client.paiements.online') }}" class="row g-2 align-items-end">
+                            @csrf
+                            <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
+                            <div class="col-sm-5">
+                                <label for="o-amount-{{ $inscription->id }}" class="form-label required">Montant (FCFA)</label>
+                                <input type="number" class="form-control @error('amount') is-invalid @enderror" id="o-amount-{{ $inscription->id }}" name="amount" min="100" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
+                                @error('amount')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="o-phone-{{ $inscription->id }}" class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control" id="o-phone-{{ $inscription->id }}" name="payer_phone" maxlength="30" value="{{ $inscription->phone }}">
+                            </div>
+                            <div class="col-sm-3"><button type="submit" class="btn btn-accent w-100"><i class='bx bx-lock-alt' aria-hidden="true"></i> Payer</button></div>
+                        </form>
+                        @if (! empty($numbers))
+                            <details class="mt-3">
+                                <summary class="small">J'ai déjà envoyé l'argent au numéro du centre</summary>
+                                @include('client._declare-form', ['inscription' => $inscription, 'payable' => $payable])
+                            </details>
+                        @endif
                     @elseif (empty($numbers))
                         <p class="mb-0"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Paiement par mobile money : le centre vous communique son numéro. Une question ? Appelez le {{ $site->get('contact.phone_1') }}.</p>
                     @else
                         <h3 class="h6 text-ink"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Payer par mobile money</h3>
-                        <ul class="list-unstyled d-flex flex-wrap gap-2 mb-2">
-                            @foreach ($numbers as $method => $number)
-                                <li class="tag tag-info"><strong>{{ PaymentMethod::from($method)->label() }}</strong>&nbsp;: {{ $number }}</li>
-                            @endforeach
-                        </ul>
-                        <p class="small text-muted">{{ $instructions }}</p>
-                        <form method="POST" action="{{ route('client.paiements.store') }}" class="row g-3" data-ajax-form novalidate>
-                            @csrf
-                            <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
-                            <div class="col-md-6">@include('site.demandes._field', ['name' => 'payment_method', 'label' => 'Moyen utilisé', 'type' => 'select', 'required' => true, 'options' => collect($numbers)->mapWithKeys(fn ($n, $m) => [$m => PaymentMethod::from($m)->label()])->all(), 'value' => count($numbers) === 1 ? array_key_first($numbers) : null])</div>
-                            <div class="col-md-6">
-                                <label for="f-amount-{{ $inscription->id }}" class="form-label required">Montant envoyé (FCFA)</label>
-                                <input type="number" class="form-control" id="f-amount-{{ $inscription->id }}" name="amount" min="1" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
-                                <div class="form-text">Reste à payer : {{ $money($payable) }}</div>
-                            </div>
-                            <div class="col-md-6">@include('site.demandes._field', ['name' => 'reference', 'label' => 'Référence de la transaction', 'required' => true, 'max' => 100, 'placeholder' => 'Ex. MP241118.1530.A12345', 'help' => 'Elle figure dans le SMS de confirmation de votre opérateur.'])</div>
-                            <div class="col-md-6">@include('site.demandes._field', ['name' => 'payer_phone', 'label' => 'Numéro qui a payé', 'type' => 'tel', 'max' => 30, 'value' => $inscription->phone])</div>
-                            <div class="col-12">@include('site.demandes._field', ['name' => 'period', 'label' => 'Période réglée (facultatif)', 'max' => 100, 'placeholder' => 'Mois 1, janvier 2027…'])</div>
-                            <div class="col-12"><button type="submit" class="btn btn-accent"><i class='bx bx-send' aria-hidden="true"></i> Déclarer mon paiement</button></div>
-                        </form>
+                        @include('client._declare-form', ['inscription' => $inscription, 'payable' => $payable])
                     @endif
                 @endif
             </div>
@@ -87,7 +91,7 @@
                                         <span class="tag {{ $paiement->status === PaymentStatus::Confirme ? 'tag-success' : ($paiement->status === PaymentStatus::AVerifier ? 'tag-info' : 'tag-muted') }}">{{ $paiement->status->label() }}</span>
                                         @if ($paiement->cancel_reason)<br><small class="text-muted">{{ $paiement->cancel_reason }}</small>@endif
                                     </td>
-                                    <td class="text-end">@if ($paiement->status->hasReceipt())<a href="{{ route('client.paiements.receipt', $paiement) }}" class="btn btn-sm btn-outline-primary text-nowrap"><i class='bx bx-receipt' aria-hidden="true"></i> Reçu</a>@endif</td>
+                                    <td class="text-end">@if ($paiement->status->hasReceipt())<span class="d-inline-flex gap-1">@include('paiements._receipt-buttons', ['receiptRoute' => 'client.paiements.receipt', 'paiement' => $paiement, 'btn' => 'btn btn-sm btn-outline-primary text-nowrap'])</span>@endif</td>
                                 </tr>
                             @endforeach
                         </tbody>

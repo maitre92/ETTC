@@ -14,9 +14,13 @@ use App\Models\Client;
 use App\Models\Inscription;
 use App\Models\Paiement;
 use App\Models\User;
+use App\Services\Paiements\ReceiptService;
 use App\Support\SiteSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
 
@@ -51,7 +55,7 @@ class PaiementsTest extends TestCase
         $inscription = $this->inscription(['mode' => FormationMode::Presentiel]);
         $this->actingAs(User::factory()->commercial()->create());
 
-        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Enregistrer un paiement reçu au centre')->assertSee('Non payée');
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Encaisser un paiement')->assertSee('Non payée');
         $this->post("/admin/inscriptions/{$inscription->id}/paiements", ['amount' => 50000, 'method' => 'especes', 'period' => 'Mois 1'])->assertRedirect();
 
         $paiement = Paiement::firstOrFail();
@@ -63,7 +67,11 @@ class PaiementsTest extends TestCase
         $this->assertTrue(ActivityLog::where('action', 'paiements.recorded')->exists());
         $this->assertTrue(ActivityLog::where('action', 'inscriptions.paid')->exists());
 
-        $this->get("/admin/paiements/{$paiement->id}/recu")->assertOk()->assertSee('REÇU')->assertSee($paiement->number)->assertSee('Frais de formation')->assertSee('Espèces');
+        // Reçus PDF : A5 (téléchargé) et ticket thermique 80 mm (affiché pour être imprimé).
+        $this->get("/admin/paiements/{$paiement->id}/recu")->assertOk()->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=Recu_'.$paiement->number.'.pdf');
+        $this->get("/admin/paiements/{$paiement->id}/recu?format=thermique&imprimer=1")->assertOk()->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'inline; filename=Ticket_'.$paiement->number.'.pdf');
 
         // Mobile money au guichet : la référence est obligatoire ; on ne paie pas plus que le reste.
         $this->post("/admin/inscriptions/{$inscription->id}/paiements", ['amount' => 50000, 'method' => 'wave'])->assertSessionHasErrors('reference');
@@ -102,7 +110,7 @@ class PaiementsTest extends TestCase
         $this->assertSame(PaymentStatus::Confirme, $paiement->fresh()->status);
         $this->assertSame([50000, InscriptionStatus::EnCours], [$inscription->fresh()->amount_paid, $inscription->fresh()->status]);
         Mail::assertSent(PaiementConfirme::class);
-        $this->actingAs($client, 'client')->get("/espace-client/paiements/{$paiement->id}/recu")->assertOk()->assertSee($paiement->number);
+        $this->actingAs($client, 'client')->get("/espace-client/paiements/{$paiement->id}/recu?format=thermique")->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_a_rejected_declaration_shows_its_reason_to_the_learner(): void
@@ -150,7 +158,7 @@ class PaiementsTest extends TestCase
         $this->put("/admin/paiements/{$paiement->id}/remboursement", ['reason' => 'L\'apprenant renonce'])->assertRedirect();
         $this->assertSame([PaymentStatus::Rembourse, 0], [$paiement->fresh()->status, $inscription->fresh()->amount_paid]);
         $this->put("/admin/paiements/{$paiement->id}/annulation", ['reason' => 'X'])->assertSessionHasErrors('status');
-        $this->get("/admin/paiements/{$paiement->id}/recu")->assertOk()->assertSee('Remboursé');
+        $this->get("/admin/paiements/{$paiement->id}/recu")->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertTrue(ActivityLog::where('action', 'paiements.refunded')->exists());
 
         // Aucune route ne supprime un paiement.
@@ -170,5 +178,100 @@ class PaiementsTest extends TestCase
 
         $this->actingAs(User::factory()->commercial()->create())->put('/admin/paiements/moyens', ['orange_money' => 'x'])->assertForbidden();
         $this->actingAs(User::factory()->gestionnaire()->create())->get('/admin/paiements')->assertForbidden();
+    }
+
+    public function test_the_qr_code_of_a_receipt_proves_it_is_authentic(): void
+    {
+        Mail::fake();
+        $inscription = $this->inscription();
+        $this->actingAs(User::factory()->administrateur()->create())->post("/admin/inscriptions/{$inscription->id}/paiements", ['amount' => 50000, 'method' => 'especes'])->assertRedirect();
+        $paiement = Paiement::firstOrFail();
+        $url = app(ReceiptService::class)->verificationUrl($paiement);
+
+        auth()->logout();
+        $this->get($url)->assertOk()->assertSee('Reçu authentique')->assertSee($paiement->number);
+        $this->get("/recu/{$paiement->number}/faussecle1234567890")->assertOk()->assertSee('Reçu introuvable');
+    }
+
+    public function test_an_automatic_payment_is_confirmed_only_after_reading_the_operator_status(): void
+    {
+        Mail::fake();
+        config(['services.paiement.gateway' => 'simulation']);
+        $client = Client::factory()->create();
+        $inscription = $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::EnLigne, 'payment_choice' => PaymentChoice::EnLigne]);
+
+        $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()->assertSee('Payer maintenant par mobile money');
+        $checkout = $this->post('/espace-client/paiements/en-ligne', ['inscription_id' => $inscription->id, 'amount' => 50000])->assertRedirect()->headers->get('Location');
+        $paiement = Paiement::firstOrFail();
+        $this->assertSame([PaymentStatus::EnAttente, 'simulation'], [$paiement->status, $paiement->gateway]);
+
+        // Le retour du navigateur, avant que l'opérateur ait accepté, ne confirme rien.
+        $this->get("/espace-client/paiements/{$paiement->id}/retour")->assertRedirect('/espace-client/paiements');
+        $this->assertSame(PaymentStatus::EnAttente, $paiement->fresh()->status);
+
+        $this->get($checkout)->assertOk()->assertSee('Mode test');
+        $decide = URL::signedRoute('site.paiement-simule.decide', ['transaction' => $paiement->gateway_transaction_id, 'accept' => 1]);
+        $this->post($decide)->assertRedirect();
+
+        $fresh = $paiement->fresh();
+        $this->assertSame([PaymentStatus::Confirme, 50000], [$fresh->status, $inscription->fresh()->amount_paid]);
+        $this->assertSame(InscriptionStatus::EnCours, $inscription->fresh()->status);
+        Mail::assertSent(PaiementConfirme::class);
+        $this->assertTrue(ActivityLog::where('action', 'paiements.online_confirmed')->exists());
+
+        // Une notification rejouée ne change plus rien.
+        $this->post('/paiements/notification/simulation', ['transaction_id' => $paiement->gateway_transaction_id])->assertOk();
+        $this->assertSame(1, Paiement::confirmed()->count());
+    }
+
+    public function test_the_cinetpay_notification_is_only_a_signal_and_the_amount_is_checked(): void
+    {
+        Mail::fake();
+        config(['services.paiement.gateway' => 'cinetpay', 'services.cinetpay.api_key' => 'test-key', 'services.cinetpay.site_id' => '123456']);
+        $client = Client::factory()->create();
+        $inscription = $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::EnLigne]);
+
+        Http::fake(['*/v2/payment' => Http::response(['code' => '201', 'data' => ['payment_url' => 'https://checkout.cinetpay.com/payment/abc']])]);
+        $this->actingAs($client, 'client')->post('/espace-client/paiements/en-ligne', ['inscription_id' => $inscription->id, 'amount' => 50000])
+            ->assertRedirect('https://checkout.cinetpay.com/payment/abc');
+        $paiement = Paiement::firstOrFail();
+        Http::assertSent(fn ($request) => $request['transaction_id'] === $paiement->gateway_transaction_id && $request['amount'] === 50000 && $request['currency'] === 'XOF'
+            && str_ends_with($request['notify_url'], '/paiements/notification/cinetpay'));
+
+        // L'état est toujours relu chez CinetPay : « refusé » pour la 1re transaction, « accepté » (mauvais montant) pour la 2de.
+        Http::fake(['*/v2/payment/check' => fn ($request) => Http::response($request['transaction_id'] === 'ETTCTEST2'
+            ? ['code' => '00', 'data' => ['status' => 'ACCEPTED', 'amount' => '100', 'payment_method' => 'OM', 'operator_id' => 'OP123']]
+            : ['code' => '00', 'data' => ['status' => 'REFUSED']])]);
+        // Notification falsifiée (montant annoncé) : l'opérateur dit « refusé », le paiement n'est pas confirmé.
+        $this->post('/paiements/notification/cinetpay', ['cpm_trans_id' => $paiement->gateway_transaction_id, 'cpm_amount' => 50000])->assertOk();
+        $this->assertSame(PaymentStatus::Rejete, $paiement->fresh()->status);
+
+        // Accepté mais pour un autre montant : à contrôler par l'équipe.
+        $second = Paiement::factory()->create(['inscription_id' => $inscription->id, 'status' => PaymentStatus::EnAttente, 'gateway' => 'cinetpay', 'gateway_transaction_id' => 'ETTCTEST2', 'amount' => 50000]);
+        $this->post('/paiements/notification/cinetpay', ['cpm_trans_id' => 'ETTCTEST2'])->assertOk();
+        $this->assertSame([PaymentStatus::AVerifier, 0], [$second->fresh()->status, $inscription->fresh()->amount_paid]);
+    }
+
+    public function test_pending_online_payments_are_rechecked_and_expire(): void
+    {
+        config(['services.paiement.gateway' => 'simulation']);
+        $inscription = $this->inscription();
+        $old = Paiement::factory()->create(['inscription_id' => $inscription->id, 'status' => PaymentStatus::EnAttente, 'gateway' => 'simulation', 'gateway_transaction_id' => 'ETTCOLD']);
+        $old->forceFill(['created_at' => now()->subDays(2)])->saveQuietly();
+        Cache::put('paiement-simule.ETTCOLD', ['state' => 'pending', 'amount' => 20000, 'return' => '/', 'notify' => '/'], now()->addDay());
+
+        $this->artisan('paiements:sync')->assertSuccessful();
+        $this->assertSame(PaymentStatus::Rejete, $old->fresh()->status);
+    }
+
+    public function test_the_simplified_screens_show_one_main_action(): void
+    {
+        $inscription = $this->inscription();
+        $this->actingAs(User::factory()->administrateur()->create());
+
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('QUE FAIRE MAINTENANT')->assertSee('Encaisser un paiement')->assertSee('Autres actions');
+        $this->get('/admin/inscriptions')->assertOk()->assertSee('Encaisser');
+        Paiement::factory()->create(['inscription_id' => $inscription->id]);
+        $this->get('/admin/paiements')->assertOk()->assertSee('Confirmer')->assertSee('data-confirm=', false);
     }
 }

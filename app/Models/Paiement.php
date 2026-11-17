@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 #[Fillable([
     'number', 'inscription_id', 'client_id', 'nature', 'amount', 'method', 'reference', 'payer_phone', 'period', 'status',
-    'source', 'paid_at', 'recorded_by', 'confirmed_at', 'confirmed_by', 'notes', 'cancel_reason', 'cancelled_at',
+    'source', 'gateway', 'gateway_transaction_id', 'gateway_status', 'gateway_checked_at', 'paid_at', 'recorded_by', 'confirmed_at', 'confirmed_by', 'notes', 'cancel_reason', 'cancelled_at',
     'cancelled_by', 'ip_address',
 ])]
 class Paiement extends Model
@@ -32,7 +32,7 @@ class Paiement extends Model
     {
         return [
             'nature' => PaymentNature::class, 'method' => PaymentMethod::class, 'status' => PaymentStatus::class,
-            'amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime',
+            'amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime', 'gateway_checked_at' => 'datetime',
         ];
     }
 

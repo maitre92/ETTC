@@ -27,6 +27,8 @@ Route::prefix('espace-client')->name('client.')->group(function () {
         Route::get('/paiements', [PaiementController::class, 'index'])->name('paiements');
         Route::post('/paiements', [PaiementController::class, 'store'])->middleware('throttle:demandes')->name('paiements.store');
         Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'receipt'])->name('paiements.receipt');
+        Route::post('/paiements/en-ligne', [PaiementController::class, 'online'])->middleware('throttle:demandes')->name('paiements.online');
+        Route::get('/paiements/{paiement}/retour', [PaiementController::class, 'return'])->name('paiements.return');
         Route::get('/tests-de-niveau', [AccountController::class, 'tests'])->name('tests');
         Route::get('/demandes', [AccountController::class, 'demandes'])->name('demandes');
         Route::get('/documents', [AccountController::class, 'documents'])->name('documents');

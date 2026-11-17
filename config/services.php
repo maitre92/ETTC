@@ -35,6 +35,18 @@ return [
         ],
     ],
 
+    // Paiement automatique par mobile money (cahier §3.8 A) : prestataire agréé BCEAO. Vide = désactivé (déclaration
+    // manuelle de la transaction, vérifiée par l'équipe). « simulation » : parcours de test, refusé en production.
+    'paiement' => [
+        'gateway' => env('PAYMENT_GATEWAY'),
+    ],
+    'cinetpay' => [
+        'api_key' => env('CINETPAY_API_KEY'),
+        'site_id' => env('CINETPAY_SITE_ID'),
+        'base_url' => env('CINETPAY_BASE_URL', 'https://api-checkout.cinetpay.com'),
+        'channels' => env('CINETPAY_CHANNELS', 'MOBILE_MONEY'),
+    ],
+
     // Conversion des vidéos de témoignages (MP4 lisible partout, image d'aperçu). Absent : vidéo publiée telle quelle.
     'ffmpeg' => [
         'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),

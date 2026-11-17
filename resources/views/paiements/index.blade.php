@@ -75,8 +75,13 @@
                                     <td class="fw-normal" data-order="{{ $paiement->paid_at->timestamp }}">{{ $paiement->paid_at->format('d/m/Y') }}</td>
                                     <td><span class="d-none">statut-{{ $paiement->status->value }}</span><span class="badge {{ $paiement->status->badge() }}">{{ $paiement->status->label() }}</span></td>
                                     <td class="text-nowrap">
-                                        <a href="{{ route('paiements.show', $paiement) }}" class="btn btn-primary btn-sm" title="{{ $paiement->status === PaymentStatus::AVerifier ? 'Vérifier' : 'Voir' }}"><i class='bx {{ $paiement->status === PaymentStatus::AVerifier ? 'bx-search-alt' : 'bx-show' }}'></i></a>
-                                        @if ($paiement->status->hasReceipt())<a href="{{ route('paiements.receipt', $paiement) }}" class="btn btn-primary btn-sm" title="Reçu" target="_blank" rel="noopener"><i class='bx bx-receipt'></i></a>@endif
+                                        @if ($paiement->status === PaymentStatus::AVerifier)
+                                            @can('verify', $paiement)
+                                                <form method="POST" action="{{ route('paiements.confirm', $paiement) }}" class="d-inline" data-crud-form data-no-guard data-confirm="Avez-vous bien retrouvé {{ $paiement->money() }} (transaction {{ $paiement->reference }}) sur le compte {{ $paiement->method->label() }} ?">@csrf @method('PUT')<button type="submit" class="btn btn-success btn-sm"><i class='bx bx-check'></i><span class="ms-1">Confirmer</span></button></form>
+                                            @endcan
+                                        @endif
+                                        <a href="{{ route('paiements.show', $paiement) }}" class="btn btn-primary btn-sm" title="Ouvrir"><i class='bx bx-show'></i></a>
+                                        @if ($paiement->status->hasReceipt())@include('paiements._receipt-buttons', ['receiptRoute' => 'paiements.receipt', 'paiement' => $paiement, 'btn' => 'btn btn-outline-primary btn-sm'])@endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -105,7 +110,7 @@
                                         <td class="fw-bold text-danger">{{ $money($inscription->balance()) }}</td>
                                         <td class="text-nowrap">
                                             @can('create', \App\Models\Paiement::class)
-                                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}" title="Enregistrer un paiement"><i class='bx bx-plus'></i></button>
+                                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}"><i class='bx bx-money'></i><span class="ms-1">Encaisser</span></button>
                                             @endcan
                                             <a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-primary btn-sm" title="Voir l'inscription"><i class='bx bx-show'></i></a>
                                         </td>
@@ -120,18 +125,37 @@
 
         @can('create', \App\Models\Paiement::class)
             @foreach ($unpaid as $inscription)
-                <div class="modal fade" id="pay-{{ $inscription->id }}" tabindex="-1" aria-hidden="true" data-crud-owner="paiements">
-                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header"><h5 class="modal-title">Paiement au centre — {{ $inscription->name }} ({{ $inscription->number }})</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
-                            <div class="modal-body">@include('paiements._record-form', ['inscription' => $inscription, 'formId' => 'pay-form-'.$inscription->id, 'back' => 'paiements'])</div>
-                        </div>
-                    </div>
-                </div>
+                @include('paiements._record-modal', ['inscription' => $inscription, 'modalId' => 'pay-'.$inscription->id, 'owner' => 'paiements', 'back' => 'paiements'])
             @endforeach
         @endcan
 
         @can('paiements.configure')
+            <div class="card">
+                <div class="card-header card-header-brand d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0 text-white"><i class='bx bx-bolt-circle me-2'></i>PAIEMENT AUTOMATIQUE (SANS VÉRIFICATION À LA MAIN)</h6>
+                    @if ($gateway && $gateway->name() !== 'simulation')
+                        <span class="badge bg-success">Actif — {{ $gateway->label() }}</span>
+                    @elseif ($gateway)
+                        <span class="badge bg-warning text-dark">Mode test (simulation)</span>
+                    @else
+                        <span class="badge bg-light text-dark">Pas encore activé</span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if ($gateway && $gateway->name() !== 'simulation')
+                        <p class="mb-0">Les apprenants en ligne paient avec Orange Money, Moov Money ou Wave sur la page sécurisée de {{ $gateway->label() }}. Le paiement est confirmé tout seul et le reçu part par e-mail : vous n'avez rien à vérifier.</p>
+                    @else
+                        <p>Aujourd'hui, l'apprenant envoie l'argent à votre numéro puis déclare la transaction, et vous la confirmez. Avec un agrégateur de paiement agréé par la <strong>BCEAO</strong>, la confirmation devient automatique. Le site est prêt : il suffit d'ouvrir le compte marchand.</p>
+                        <ol class="mb-2">
+                            <li>Ouvrir un compte marchand chez un agrégateur agréé BCEAO (par exemple CinetPay ; InTouch est agréé au Mali).</li>
+                            <li>Fournir le dossier : statuts, RCCM, NIF, pièce d'identité du responsable, justificatif d'adresse, relevé d'identité bancaire du centre, adresse du site (HTTPS) avec mentions légales et conditions de remboursement.</li>
+                            <li>Une fois le compte validé, transmettre au développeur la clé API et l'identifiant du site : il les place dans la configuration du serveur (jamais dans cet écran).</li>
+                        </ol>
+                        <p class="small text-muted mb-0">En attendant, la déclaration par l'apprenant reste disponible et ne change pas.</p>
+                    @endif
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-mobile-alt me-2'></i>MOYENS DE PAIEMENT EN LIGNE (MOBILE MONEY)</h6></div>
                 <div class="card-body">

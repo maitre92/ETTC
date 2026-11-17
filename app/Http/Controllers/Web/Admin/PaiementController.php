@@ -8,10 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Inscription;
 use App\Models\Paiement;
+use App\Services\Paiements\Gateway\GatewayManager;
 use App\Services\Paiements\PaiementService;
+use App\Services\Paiements\ReceiptService;
 use App\Support\SiteSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -25,7 +28,7 @@ class PaiementController extends Controller
 {
     public function __construct(private readonly PaiementService $service) {}
 
-    public function index(SiteSettings $settings): View
+    public function index(SiteSettings $settings, GatewayManager $gateways): View
     {
         Gate::authorize('viewAny', Paiement::class);
         $month = now()->startOfMonth();
@@ -34,6 +37,7 @@ class PaiementController extends Controller
             'paiements' => Paiement::with('inscription')->latest('paid_at')->latest('id')->get(),
             'unpaid' => Inscription::unpaid()->whereIn('status', ['validee', 'en_cours', 'terminee'])->orderBy('created_at')->get(),
             'monthTotal' => (int) Paiement::confirmed()->where('paid_at', '>=', $month)->sum('amount'),
+            'gateway' => $gateways->active(),
             'refundedMonth' => (int) Paiement::where('status', PaymentStatus::Rembourse->value)->where('cancelled_at', '>=', $month)->sum('amount'),
             'settings' => collect(PaymentMethod::mobileMoney())->mapWithKeys(fn (PaymentMethod $m) => [$m->settingKey() => $settings->get($m->settingKey())])
                 ->put('paiement.instructions', $settings->get('paiement.instructions'))->all(),
@@ -58,7 +62,11 @@ class PaiementController extends Controller
 
         $paiement = $this->service->record($inscription, $data, $request->user());
 
-        $back = $request->input('back') === 'paiements' ? route('paiements.index') : route('inscriptions.show', $inscription);
+        $back = match ($request->input('back')) {
+            'paiements' => route('paiements.index'),
+            'inscriptions' => route('inscriptions.index'),
+            default => route('inscriptions.show', $inscription),
+        };
 
         return redirect()->to($back)->with('status', "Paiement enregistré : reçu {$paiement->number}.");
     }
@@ -73,12 +81,15 @@ class PaiementController extends Controller
         ]);
     }
 
-    public function receipt(Paiement $paiement): View
+    /** Reçu PDF : ?format=a5 (défaut) ou thermique ; ?imprimer=1 l'affiche dans l'onglet pour l'imprimer. */
+    public function receipt(Request $request, Paiement $paiement, ReceiptService $receipts): Response
     {
         Gate::authorize('view', $paiement);
         abort_unless($paiement->status->hasReceipt(), 404);
+        $format = $request->query('format') === 'thermique' ? 'thermique' : 'a5';
+        $pdf = $receipts->pdf($paiement, $format);
 
-        return view('paiements.recu', ['paiement' => $paiement->load('inscription'), 'back' => route('paiements.show', $paiement)]);
+        return $request->boolean('imprimer') ? $pdf->stream($receipts->filename($paiement, $format)) : $pdf->download($receipts->filename($paiement, $format));
     }
 
     public function confirm(Request $request, Paiement $paiement): RedirectResponse
