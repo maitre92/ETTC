@@ -17,6 +17,7 @@ use App\Models\Permission;
 use App\Models\Prestation;
 use App\Models\Redirection;
 use App\Models\Temoignage;
+use App\Models\TestNiveau;
 use App\Models\User;
 use App\Services\Users\SuperadminBootstrapper;
 use App\Support\SiteSettings;
@@ -97,7 +98,12 @@ class AppServiceProvider extends ServiceProvider
         // Paramètres du site (coordonnées, slogan…) disponibles dans toutes les vues du site public et dans les e-mails.
         View::composer(['layouts.site', 'site.*', 'mail.*', 'client.*'], fn ($view) => $view->with('site', app(SiteSettings::class)));
 
-        View::composer('site.partials.footer', fn ($view) => $view->with('footerServices', rescue(fn () => Prestation::published()->ordered()->limit(6)->get(['title', 'slug']), collect(), false)));
+        // Tableau de bord de l'espace apprenant : bloc « Tests de niveau » (en cours / total).
+        $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
+            $tests = TestNiveau::forClient($client);
+
+            return ['title' => 'Tests de niveau', 'icon' => 'bx-target-lock', 'route' => 'client.tests', 'count' => (clone $tests)->count(), 'open' => (clone $tests)->open()->count(), 'label' => 'en cours'];
+        });
 
         // Alias morph stables : ils s'écrivent dans audit_logs et model_has_roles. Chaque module y ajoute ses modèles
         // depuis son propre fournisseur ou ici (CLAUDE.md §6).
@@ -113,6 +119,7 @@ class AppServiceProvider extends ServiceProvider
             'demande_note' => DemandeNote::class,
             'niveau' => Niveau::class,
             'formule' => Formule::class,
+            'test_niveau' => TestNiveau::class,
             'prestation' => Prestation::class,
             'redirection' => Redirection::class,
             'temoignage' => Temoignage::class,

@@ -15,14 +15,14 @@
         'formations',
         ['Traduction', $demande('traduction'), null],
         ['Excursion au Ghana', $demande('excursion'), null],
-        ['Test de niveau', route('site.formations.index').'#test-de-niveau', null],
+        ['Test de niveau', route('site.tests.show'), 'site.tests.*'],
         ['Actualités', Route::has('site.actualites.index') ? route('site.actualites.index') : null, 'site.actualites.*'],
         ['Contact', Route::has('site.contact') ? route('site.contact') : null, 'site.contact*'],
     ], fn ($item) => $item === 'formations' || $item[1] !== null);
     $formations = array_filter([
         ['Nos formations par niveau', route('site.formations.index')],
         ['Formules et tarifs', route('site.formations.index').'#tarifs'],
-        ['Test de niveau', route('site.formations.index').'#test-de-niveau'],
+        ['Réserver mon test de niveau', route('site.tests.show').'#reserver'],
         ['Formation personnalisée', $demande('formation_personnalisee')],
         ['Tous nos services', $services],
     ], fn ($item) => $item[1] !== null);

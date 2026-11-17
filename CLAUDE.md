@@ -102,6 +102,14 @@ Les noms des rôles `gestionnaire` et `commercial` sont hérités ; leur libell�
 - **Écrans `admin/_crud` en AJAX** (`crud-ajax.js`) pour tous les modules qui l'utilisent ; animations du site (`ettc-theme.css`).
 - 300 tests verts, Pint propre ; parcours vérifiés dans Chrome headless (modification d'un tarif en AJAX sans rechargement, erreur sous le champ, menu au survol et au toucher, 1366 px et 390 px).
 
+**Fait — phase 3, Tests de niveau** (2026-11-17) :
+- Manifeste `tests` : une permission par geste (`view`, `create`, `schedule`, `payment`, `result`, `configure`, `delete`) ; administrateur tout ; gestionnaire sans encaissement ni suppression par défaut ; commercial (accueil) inscrit, planifie et encaisse, `result` en option.
+- Table `tests_niveau` (numéro `TST-AAAA-NNNN` par `SequenceService`), `TestNiveauService` : demande du site ou inscription au centre → planification / report (convocation e-mail) → encaissement des frais (montant **figé à la demande**, moyen, référence obligatoire pour Orange Money / Wave / carte, auteur) → résultat (score, niveau attribué, appréciation) ; annulation motivée. Règles : pas d'encaissement ni de résultat sur un test annulé, pas d'annulation d'un test passé, un seul encaissement. Une ligne d'audit métier par geste (`tests.*`), journalisation automatique coupée pour ces mises à jour (`withoutActivityLog`).
+- Site : `/test-de-niveau` (présentation en Markdown réglée dans l'administration, réglage `test.presentation` ; frais en vigueur ; déroulement ; réservation en AJAX, anti-spam). Menu « Test de niveau ». E-mails : `TestNiveauDemande` (équipe), `TestNiveauAccuse`, `TestNiveauConvocation` (candidat) ; le résultat n'est pas envoyé automatiquement (modalités à définir par le centre).
+- Administration : liste (à planifier, aujourd'hui, frais à encaisser, filtres par statut), fiche de traitement en AJAX avec orientation (formules du niveau, lien de sa fiche), historique ; tableau de bord (tâches), pastille du menu, cloche, raccourci.
+- Espace apprenant : « Mes tests de niveau » (tests liés au compte ou faits avec son e-mail confirmé), bloc du tableau de bord.
+- 307 tests verts ; parcours vérifié dans Chrome (réservation, planification, erreur de référence sous le champ, encaissement, résultat : 0 rechargement).
+
 **À faire** : voir le plan (§10).
 
 ## 3. Démarrer
@@ -157,11 +165,12 @@ Noms de tables en français, colonnes en anglais. Tout en `softDeletes` ; clés 
 | `clients` ✔, `client_documents` ✔, `client_password_reset_tokens` ✔ | compte (`name`, `email`, `phone`, `password`, `is_active`, `email_verified_at`, `address`, `city`) ; documents privés | Futur compte **apprenant** (cahier §4) : à enrichir (date de naissance, sexe…) avec le module des inscriptions |
 | `niveaux` ✔ | `name`, `slug`, `summary`, `objectives`, `skills`, `prerequisites`, `sort_order`, `is_published` | Fiches du catalogue (cahier §3.2) ; une ligne = un élément |
 | `formules` ✔ | `name`, `slug`, `duration_months`, `points`, `price_online`, `price_onsite`, `billing` (`mois`, `unique`), `sort_order`, `is_published` | Tarifs par mode (cahier §3.3), modifiables à tout moment et audités ; une inscription devra figer le tarif appliqué |
-| `sequences` ✔ | `prefix`, `year`, `last_number` | Numérotation sous verrou (futurs reçus `REC-AAAA-NNNN`) |
+| `tests_niveau` ✔ | `number`, `status` (`demande`, `planifie`, `passe`, `annule`), `source` (`site`, `centre`), identité, `test_mode` (`centre`, `distance`), `preferred_slot`, `client_id`, `scheduled_at`, `location`, `fee` (figé), `paid_at`, `payment_method`, `payment_reference`, `payment_recorded_by`, `score`, `niveau_id`, `result_notes`, `result_at`, `result_by`, `cancel_reason` | Frais de test : hors commission (cahier §3.4, §8) ; à rattacher au futur module `paiements` (phase 5) |
+| `sequences` ✔ | `prefix`, `year`, `last_number` | Numérotation sous verrou (`TST`, futurs reçus `REC-AAAA-NNNN`) |
 | `page_vues` ✔ | `day`, `visitor`, `path`, `route`, `source`, `device` | Fréquentation (technique, sans modèle) |
 | `redirections` ✔ | `from_path`, `to_path`, `hits` | Anciennes adresses → nouvelles (301) |
 
-Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan : `sessions` ou `groupes`, `tests_niveau`, `inscriptions` (niveau, mode, durée, tarif figé, statut), `paiements` (nature test / formation, montant, moyen, référence prestataire, statut, reçu), `remboursements`, `seances` (date, lien Google Meet, groupe), `supports` (fichiers privés), `traductions`, `formations_personnalisees`, `excursions` / `reservations`, `commissions` (périodes, montants dus et versés).
+Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan : `sessions` ou `groupes`, `inscriptions` (niveau, mode, durée, tarif figé, statut), `paiements` (nature test / formation, montant, moyen, référence prestataire, statut, reçu), `remboursements`, `seances` (date, lien Google Meet, groupe), `supports` (fichiers privés), `traductions`, `formations_personnalisees`, `excursions` / `reservations`, `commissions` (périodes, montants dus et versés).
 
 ### 4.3 Rôles
 
@@ -262,7 +271,7 @@ Phases du cahier §7. Chaque tâche se termine par ses tests et une vérificatio
 | 0 | Reprise du socle CSB, retrait des modules hors cahier, identité provisoire ETTC, environnement | **Fait** |
 | 1 | Analyse : validation des niveaux, tarifs, durées, règles de gestion, profils (§12) ; maquettes ; logo et couleurs | Avec le centre |
 | 2 | **Formations et tarifs** : niveaux, options de durée, tarifs par mode, catalogue public par niveau | **Fait** (2026-11-17) |
-| 3 | **Tests de niveau** : présentation, réservation, paiement des frais, résultat et niveau attribué | À faire |
+| 3 | **Tests de niveau** : présentation, réservation, paiement des frais, résultat et niveau attribué | **Fait** (2026-11-17) |
 | 4 | **Inscriptions et apprenants** : inscription en ligne et au centre, récapitulatif, compte apprenant enrichi, suivi des dossiers, organisation par niveau / formule / session | À faire |
 | 5 | **Paiements et reçus** : paiement au centre (saisie, reçu), puis prestataire en ligne (notification serveur), séparation test / formation, impayés, remboursements | À faire |
 | 6 | **Séances à distance** : programmation, liens Google Meet, supports pédagogiques, calendrier dans l'espace apprenant | À faire |

@@ -3,9 +3,8 @@
     $client = auth('client')->user();
     $nav = collect([
         ['client.home', 'Tableau de bord', 'bx-grid-alt'],
+        ['client.tests', 'Mes tests de niveau', 'bx-target-lock'],
         ['client.demandes', 'Mes demandes', 'bx-envelope'],
-        ['client.commandes', 'Mes commandes', 'bx-cart'],
-        ['client.tickets', 'Mes tickets', 'bx-support'],
         ['client.documents', 'Mes documents', 'bx-folder'],
         ['client.profile', 'Mon profil', 'bx-user'],
     ])->filter(fn ($item) => Route::has($item[0]));

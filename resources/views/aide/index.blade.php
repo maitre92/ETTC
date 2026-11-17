@@ -41,6 +41,13 @@
                 'Formations → Niveaux : nom, résumé, objectifs, compétences visées et prérequis (un élément par ligne). Chaque niveau publié a sa fiche sur le site.',
                 'Chaque changement de tarif est enregistré dans le journal avec l\'ancien et le nouveau montant.',
             ]],
+            ['bx bx-target-lock', 'Suivre les tests de niveau', [
+                'Les candidats réservent leur test sur la page « Test de niveau » du site ; ils arrivent « À planifier » (pastille du menu, cloche, e-mail). Un candidat venu au centre ou qui a appelé : Tests de niveau → « Inscrire un candidat ».',
+                'Bouton « œil » : la fiche du candidat. « Planifier » fixe la date, le mode (au centre ou à distance) et le lieu ou le lien ; une convocation part par e-mail si le candidat en a laissé un. « Reporter » change la date.',
+                'Les frais du test sont figés au moment de la demande. Quand ils sont reçus, choisissez le moyen de paiement (référence obligatoire pour Orange Money, Wave ou carte) puis « Encaissé ». Ils sont distincts des frais de formation et hors commission.',
+                'Après le test : niveau attribué, score et appréciation, puis « Enregistrer le résultat ». La fiche propose les formules du niveau et le lien de sa fiche à transmettre au candidat, qui retrouve aussi son résultat dans son espace.',
+                'La présentation du test sur le site (format, durée, déroulement) se modifie en bas de la liste des tests.',
+            ]],
             ['bx bx-file', 'Modifier les pages et les coordonnées', [
                 'Pages et paramètres → onglets Accueil, À propos, Pages légales : textes du site. Les textes longs utilisent le Markdown : ## Titre, **gras**, - liste.',
                 'Les onglets Entreprise, Coordonnées, Réseaux sociaux et Référencement sont réservés à l\'administrateur : téléphones, WhatsApp, e-mail, adresse, horaires, liens sociaux.',

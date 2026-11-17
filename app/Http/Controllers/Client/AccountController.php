@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientDocument;
+use App\Models\TestNiveau;
 use App\Support\PhoneNumber;
 use App\Support\Seo;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,18 @@ class AccountController extends Controller
         return view('client.demandes', [
             'demandes' => $this->client($request)->demandes()->latest('id')->paginate(15),
             'seo' => Seo::make('Mes demandes')->noIndex(),
+        ]);
+    }
+
+    /**
+     * Tests de niveau de l'apprenant (cahier §4) : ceux demandés connecté, et ceux faits avec son adresse e-mail
+     * confirmée (demande depuis le site avant la création du compte, inscription au centre).
+     */
+    public function tests(Request $request): View
+    {
+        return view('client.tests', [
+            'tests' => TestNiveau::with('niveau')->forClient($this->client($request))->latest('id')->paginate(15),
+            'seo' => Seo::make('Mes tests de niveau')->noIndex(),
         ]);
     }
 

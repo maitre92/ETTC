@@ -48,15 +48,15 @@
     <section class="ettc-section pt-0" id="test-de-niveau">
         <div class="container">
             <div class="ettc-steps-wrap">
-                <div class="ettc-side-card ettc-tone-yellow ettc-test-card">
+                <a href="{{ route('site.tests.show') }}" class="ettc-side-card ettc-tone-yellow ettc-test-card">
                     <i class='bx bx-clipboard' aria-hidden="true"></i>
-                    <span><strong>Test de niveau</strong><small>Avant de commencer, chaque nouvel apprenant passe un test de niveau : il évalue vos connaissances et vous oriente vers le niveau qui vous correspond.</small></span>
+                    <span><strong>Test de niveau</strong><small>Avant de commencer, chaque nouvel apprenant passe un test de niveau : il évalue vos connaissances et vous oriente vers le niveau qui vous correspond. Réservez-le en ligne.</small></span>
                     <span class="ettc-test-price">{{ \App\Models\Formule::money($testFee) }}</span>
-                </div>
+                </a>
                 <div>
                     <h2 class="h4 text-ink mb-3">Comment s'inscrire&nbsp;?</h2>
                     <ol class="ettc-steps">
-                        <li><strong>Passez le test de niveau</strong> au centre ou à distance.</li>
+                        <li><strong><a href="{{ route('site.tests.show') }}#reserver">Passez le test de niveau</a></strong> au centre ou à distance.</li>
                         <li><strong>Choisissez votre formule</strong> : durée et mode (en ligne ou en présentiel).</li>
                         <li><strong>Réglez</strong> en ligne ou directement au centre.</li>
                         <li><strong>Commencez vos séances</strong> avec votre formateur.</li>

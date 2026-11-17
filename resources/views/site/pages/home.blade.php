@@ -83,7 +83,7 @@
                         <i class='bx bxs-group' aria-hidden="true"></i>
                         <span><strong>Formation personnalisée</strong><small>Une formation adaptée à vos besoins avec un entretien préalable.</small></span>
                     </a>
-                    <a href="{{ $formations }}#test-de-niveau" class="ettc-side-card ettc-tone-yellow">
+                    <a href="{{ route('site.tests.show') }}" class="ettc-side-card ettc-tone-yellow">
                         <i class='bx bx-clipboard' aria-hidden="true"></i>
                         <span><strong>Test de niveau</strong><small>Évaluez votre niveau avant de choisir votre formule.</small></span>
                         <span class="ettc-test-price">{{ \App\Models\Formule::money($testFee) }}</span>

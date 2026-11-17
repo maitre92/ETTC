@@ -54,6 +54,9 @@ return [
         'home.hero_text' => 'English Training and Translation Center (ETTC) : formations d\'anglais par niveau en présentiel ou en ligne avec des formateurs, test de niveau, traduction professionnelle et excursion linguistique au Ghana.',
         // Frais du test de niveau en FCFA (cahier §3.4, hors commission) : modifiables dans Formations → Formules et tarifs.
         'tarifs.test_niveau' => '5000',
+        // Présentation du test de niveau (Tests de niveau → Présentation) : format, durée, déroulement et communication
+        // des résultats À DÉFINIR par le centre (cahier §3.4, §12).
+        'test.presentation' => "## Pourquoi un test de niveau ?\n\nChaque nouvel apprenant passe un test avant de commencer : il évalue ses connaissances en anglais et permet de l'orienter vers le niveau qui lui correspond (débutant, intermédiaire ou avancé).\n\n## Déroulement\n\n- Le test se passe **au centre** ou **à distance**.\n- À COMPLÉTER par le centre : format (écrit, oral), durée, matériel à prévoir.\n- Le résultat et le niveau attribué vous sont communiqués par le centre, avec la formule conseillée.",
         'home.why_title' => "Pourquoi nous choisir\u{00A0}?",
         // Une ligne par atout : icône Boxicons | texte
         'home.values' => "bxs-award|Formateurs expérimentés\nbx-laptop|Méthodes modernes et interactives\nbxs-check-shield|Suivi et encadrement personnalisés\nbxs-group|Attestation de formation reconnue",

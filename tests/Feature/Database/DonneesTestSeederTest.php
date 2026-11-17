@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\Client;
 use App\Models\Demande;
 use App\Models\Temoignage;
+use App\Models\TestNiveau;
 use Database\Seeders\ContenuInitialSeeder;
 use Database\Seeders\DonneesTestSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +28,8 @@ class DonneesTestSeederTest extends TestCase
         $this->assertSame(3, Temoignage::count());
         $this->assertSame(3, Client::count());
         $this->assertSame(5, Demande::count());
+        $this->assertSame(3, TestNiveau::count());
+        $this->assertSame(1, TestNiveau::whereNotNull('niveau_id')->count());
 
         $this->get('/')->assertOk()->assertSee('Aminata Coulibaly');
         $this->get('/actualites')->assertOk()->assertSee('Ouverture des inscriptions')->assertSee('Club de conversation du samedi (test)');

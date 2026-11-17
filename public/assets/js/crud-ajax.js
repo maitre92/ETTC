@@ -129,6 +129,12 @@
                     : 'Le serveur n\'a pas pu enregistrer (erreur ' + response.status + '). Réessayez.';
                 throw failure;
             }
+            // Enregistrement qui mène à une autre page (ex. fiche du candidat créé, liste après suppression depuis la
+            // fiche) : on y va, sans actualisation partielle.
+            if (response.redirected && new URL(response.url).pathname !== window.location.pathname) {
+                window.location.assign(response.url);
+                return null;
+            }
             return response.text().then(function (html) {
                 var modal = modalOf(form);
                 var done = function () {

@@ -211,6 +211,12 @@ body { color: #26304a; }
 .ettc-level-block ul { margin: 0; padding-left: 1.1rem; }
 .ettc-level-block li { margin-bottom: .3rem; }
 
+/* ——— Page du test de niveau ——— */
+.ettc-test-layout { display: grid; grid-template-columns: 1fr 1.05fr; gap: 2.4rem; align-items: start; }
+.ettc-test-presentation h2 { font-size: 1.2rem; color: var(--ettc-ink); margin-top: 1.2rem; }
+.ettc-test-presentation ul { padding-left: 1.2rem; }
+@media (max-width: 991.98px) { .ettc-test-layout { grid-template-columns: 1fr; } }
+
 /* ——— Pied de page ——— */
 .ettc-footer { background: linear-gradient(180deg, #0f5089, var(--ettc-blue-foot)); color: #fff; margin-top: 1.5rem; }
 .ettc-footer-grid { display: grid; grid-template-columns: 1.35fr 1fr 1.15fr 1fr; gap: 1.5rem; padding-top: 1.4rem; padding-bottom: 1.4rem; }

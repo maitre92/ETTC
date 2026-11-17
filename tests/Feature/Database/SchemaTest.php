@@ -23,7 +23,7 @@ class SchemaTest extends TestCase
 
         $expected = [
             'app_settings', 'articles', 'audit_logs', 'cache', 'cache_locks', 'categories', 'client_documents', 'client_password_reset_tokens', 'clients', 'demande_notes', 'demandes', 'failed_jobs', 'formules', 'job_batches', 'jobs', 'mediables', 'medias', 'model_has_permissions',
-            'model_has_roles', 'niveaux', 'page_vues', 'permissions', 'prestations', 'redirections', 'role_has_permissions', 'roles', 'sequences', 'sessions', 'temoignages', 'users',
+            'model_has_roles', 'niveaux', 'page_vues', 'permissions', 'prestations', 'redirections', 'role_has_permissions', 'roles', 'sequences', 'sessions', 'temoignages', 'tests_niveau', 'users',
         ];
 
         $this->assertSame($expected, $tables);
