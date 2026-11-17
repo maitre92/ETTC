@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Client\AccountController;
 use App\Http\Controllers\Client\AuthController;
+use App\Http\Controllers\Client\PaiementController;
 use Illuminate\Support\Facades\Route;
 
 // Espace client (cahier §15.3) : routes `client.*` sous /espace-client, garde `client` (test d'architecture).
@@ -23,6 +24,9 @@ Route::prefix('espace-client')->name('client.')->group(function () {
     Route::middleware(['auth:client', 'client.active'])->group(function () {
         Route::get('/', [AccountController::class, 'home'])->name('home');
         Route::get('/inscriptions', [AccountController::class, 'inscriptions'])->name('inscriptions');
+        Route::get('/paiements', [PaiementController::class, 'index'])->name('paiements');
+        Route::post('/paiements', [PaiementController::class, 'store'])->middleware('throttle:demandes')->name('paiements.store');
+        Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'receipt'])->name('paiements.receipt');
         Route::get('/tests-de-niveau', [AccountController::class, 'tests'])->name('tests');
         Route::get('/demandes', [AccountController::class, 'demandes'])->name('demandes');
         Route::get('/documents', [AccountController::class, 'documents'])->name('documents');

@@ -54,6 +54,13 @@
                 'Sur la fiche : « Valider le dossier » (en attente de paiement), puis « Démarrer la formation » et « Terminer la formation ». La session (ex. Janvier 2027) et les notes internes se règlent dans la fiche.',
                 'Annuler demande un motif. Chaque étape est inscrite dans l\'historique de la fiche ; l\'apprenant suit son inscription dans son espace (« Mes inscriptions »).',
             ]],
+            ['bx bx-wallet', 'Encaisser les paiements et délivrer les reçus', [
+                'Formation en présentiel : l\'apprenant paie au centre. Ouvrez son inscription → « Enregistrer un paiement reçu au centre » : montant (une mensualité est proposée), moyen (espèces, ou mobile money au guichet avec la référence de la transaction), période. Le reçu est créé aussitôt et envoyé par e-mail.',
+                'Formation en ligne : l\'apprenant paie par mobile money (Orange Money, Wave, Moov Money) puis déclare la référence de la transaction dans son espace. Le paiement arrive « À vérifier » (pastille du menu, cloche, e-mail). Retrouvez la transaction sur le compte marchand avant de cliquer « Argent reçu : confirmer » ; sinon « Rejeter » avec un motif que l\'apprenant verra.',
+                'Les numéros marchands et les consignes se règlent en bas de l\'écran Paiements. Un numéro vide : ce moyen n\'est pas proposé aux apprenants.',
+                'Un paiement confirmé fait passer l\'inscription « En cours ». Le tableau « Impayés » liste les inscriptions qui ont encore un reste à payer.',
+                'Un paiement ne se supprime jamais : « Annuler » s\'il a été saisi par erreur, « Rembourser » si l\'argent a été rendu (motif obligatoire). Le reçu reste consultable avec son statut. Bouton « Imprimer / PDF » sur chaque reçu.',
+            ]],
             ['bx bx-file', 'Modifier les pages et les coordonnées', [
                 'Pages et paramètres → onglets Accueil, À propos, Pages légales : textes du site. Les textes longs utilisent le Markdown : ## Titre, **gras**, - liste.',
                 'Les onglets Entreprise, Coordonnées, Réseaux sociaux et Référencement sont réservés à l\'administrateur : téléphones, WhatsApp, e-mail, adresse, horaires, liens sociaux.',

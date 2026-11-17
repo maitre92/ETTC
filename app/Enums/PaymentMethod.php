@@ -3,16 +3,17 @@
 namespace App\Enums;
 
 /**
- * Moyens de paiement (cahier §3.8) : au centre (espèces) ou électroniques (Orange Money, Wave, carte). En attendant le
- * prestataire en ligne (phase 5), l'équipe enregistre à la main un paiement reçu, avec sa référence.
+ * Moyen de paiement (décision du centre, 2026-11-18) : EN LIGNE, par mobile money (Orange Money, Wave, Moov Money,
+ * chacun avec son numéro marchand réglé dans Paiements → Moyens de paiement ; un moyen sans numéro n'est pas proposé) ;
+ * EN PRÉSENTIEL, au centre (espèces, ou mobile money au guichet), enregistré par l'équipe.
+ * Paiement automatique par un prestataire (notification serveur, cahier §3.8 A) : comptes marchands À VALIDER.
  */
 enum PaymentMethod: string
 {
     case Especes = 'especes';
     case OrangeMoney = 'orange_money';
     case Wave = 'wave';
-    case Carte = 'carte';
-    case Autre = 'autre';
+    case MoovMoney = 'moov_money';
 
     public function label(): string
     {
@@ -20,9 +21,25 @@ enum PaymentMethod: string
             self::Especes => 'Espèces (au centre)',
             self::OrangeMoney => 'Orange Money',
             self::Wave => 'Wave',
-            self::Carte => 'Carte bancaire',
-            self::Autre => 'Autre',
+            self::MoovMoney => 'Moov Money',
         };
+    }
+
+    public function isMobileMoney(): bool
+    {
+        return $this !== self::Especes;
+    }
+
+    /** Réglage du numéro marchand d'un moyen mobile money. */
+    public function settingKey(): ?string
+    {
+        return $this->isMobileMoney() ? 'paiement.'.$this->value : null;
+    }
+
+    /** @return list<self> */
+    public static function mobileMoney(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $m) => $m->isMobileMoney()));
     }
 
     /** @return array<string, string> */

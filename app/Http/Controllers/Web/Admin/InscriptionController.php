@@ -67,7 +67,7 @@ class InscriptionController extends Controller
         Gate::authorize('view', $inscription);
 
         return view('inscriptions.show', [
-            'inscription' => $inscription->load(['niveau', 'formule', 'client', 'testNiveau', 'validator']),
+            'inscription' => $inscription->load(['niveau', 'formule', 'client', 'testNiveau', 'validator', 'paiements']),
             'sessions' => Inscription::whereNotNull('session')->distinct()->orderBy('session')->pluck('session'),
             'history' => ActivityLog::where('subject_type', $inscription->getMorphClass())->where('subject_id', $inscription->id)->latest('id')->limit(30)->get(),
         ]);

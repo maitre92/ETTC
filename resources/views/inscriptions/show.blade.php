@@ -85,12 +85,44 @@
                             @if ($inscription->started_at)<dt>Commencée le</dt><dd>{{ $inscription->started_at->format('d/m/Y') }}</dd>@endif
                             @if ($inscription->finished_at)<dt>Terminée le</dt><dd>{{ $inscription->finished_at->format('d/m/Y') }}</dd>@endif
                         </dl>
-                        <p class="small text-muted mt-3 mb-0"><i class='bx bx-info-circle me-1'></i>Tarif retenu au moment de l'inscription : un changement de tarif ne le modifie pas. L'encaissement et le reçu seront gérés par le module Paiements.</p>
+                        <p class="small text-muted mt-3 mb-0"><i class='bx bx-info-circle me-1'></i>Tarif retenu au moment de l'inscription : un changement de tarif ne le modifie pas.</p>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-7">
+                @can('viewAny', \App\Models\Paiement::class)
+                    <div class="card">
+                        <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-white"><i class='bx bx-wallet me-2'></i>PAIEMENTS</h6>
+                            <span class="badge {{ $inscription->paymentBadge() }}">{{ $inscription->paymentState() }}</span>
+                        </div>
+                        <div class="card-body">
+                            @php $percent = $inscription->total_amount > 0 ? min(100, (int) round($inscription->amount_paid * 100 / $inscription->total_amount)) : 0; @endphp
+                            <div class="d-flex flex-wrap justify-content-between gap-2 small mb-1"><span>Payé : <strong>{{ \App\Models\Formule::money($inscription->amount_paid) }}</strong> sur {{ \App\Models\Formule::money($inscription->total_amount) }}</span><span>Reste : <strong class="{{ $inscription->balance() > 0 ? 'text-danger' : 'text-success' }}">{{ \App\Models\Formule::money($inscription->balance()) }}</strong></span></div>
+                            <div class="progress mb-3" style="height:8px" role="progressbar" aria-label="Part payée" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar bg-success" style="width: {{ $percent }}%"></div></div>
+                            @if ($inscription->paiements->isNotEmpty())
+                                <ul class="list-unstyled small mb-3">
+                                    @foreach ($inscription->paiements as $paiement)
+                                        <li class="d-flex flex-wrap justify-content-between gap-2 py-2 border-bottom">
+                                            <span><a href="{{ route('paiements.show', $paiement) }}">{{ $paiement->number }}</a> · {{ $paiement->paid_at->format('d/m/Y') }} · {{ $paiement->method->label() }}@if ($paiement->period) · {{ $paiement->period }}@endif</span>
+                                            <span><strong>{{ $paiement->money() }}</strong> <span class="badge {{ $paiement->status->badge() }}">{{ $paiement->status->label() }}</span></span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                            @can('create', \App\Models\Paiement::class)
+                                @if ($status !== InscriptionStatus::Annulee && $inscription->balance() > 0)
+                                    <details @if ($errors->hasAny(['amount', 'method', 'reference', 'paid_at'])) open @endif>
+                                        <summary class="btn btn-success btn-sm mb-2"><i class='bx bx-plus me-1'></i>Enregistrer un paiement reçu au centre</summary>
+                                        @include('paiements._record-form', ['inscription' => $inscription, 'formId' => 'pay-form'])
+                                    </details>
+                                @endif
+                            @endcan
+                        </div>
+                    </div>
+                @endcan
+
                 @can('validate', $inscription)
                     @if (in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true))
                         <div class="card">
@@ -105,7 +137,7 @@
                                 @if ($status === InscriptionStatus::EnCours)
                                     <form method="POST" action="{{ route('inscriptions.finish', $inscription) }}" data-crud-form data-no-guard>@csrf @method('PUT')<button type="submit" class="btn btn-success"><i class='bx bx-flag me-1'></i>Terminer la formation</button></form>
                                 @endif
-                                <p class="small text-muted w-100 mb-0 mt-1">« Valider le dossier » : informations vérifiées, l'inscription attend le paiement. « Démarrer » : le paiement est réglé et les séances commencent.</p>
+                                <p class="small text-muted w-100 mb-0 mt-1">« Valider le dossier » : informations vérifiées, l'inscription attend le paiement. Un paiement confirmé fait passer l'inscription « En cours ». « Démarrer » : sans attendre le paiement (accord du centre).</p>
                             </div>
                         </div>
                     @endif

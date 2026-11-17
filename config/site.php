@@ -55,6 +55,12 @@ return [
         // Présentation du test de niveau (Tests de niveau → Présentation sur le site), modifiable par le centre.
         // Le test est GRATUIT (décision du centre, 2026-11-17) : seule l'inscription à une formation est payante.
         'test.presentation' => "## Pourquoi un test de niveau ?\n\nChaque nouvel apprenant passe un test avant de commencer : il évalue ses connaissances en anglais et permet de l'orienter vers le niveau qui lui correspond (débutant, intermédiaire ou avancé).\n\n## Déroulement\n\n- Le test est **gratuit**.\n- Il se passe **au centre** ou **à distance**, selon votre choix.\n- Le centre vous communique ensuite votre niveau et la formule conseillée.",
+        // Moyens de paiement (Paiements → Moyens de paiement, décision du centre 2026-11-18) : en ligne par mobile money,
+        // en présentiel au centre. Numéros marchands vides = moyen non proposé à l'apprenant (à fournir par le centre).
+        'paiement.orange_money' => '',
+        'paiement.wave' => '',
+        'paiement.moov_money' => '',
+        'paiement.instructions' => 'Envoyez le montant au numéro du centre, puis indiquez ici la référence de la transaction (reçue par SMS). Le centre vérifie le paiement et vous délivre un reçu.',
         'home.why_title' => "Pourquoi nous choisir\u{00A0}?",
         // Une ligne par atout : icône Boxicons | texte
         'home.values' => "bxs-award|Formateurs expérimentés\nbx-laptop|Méthodes modernes et interactives\nbxs-check-shield|Suivi et encadrement personnalisés\nbxs-group|Attestation de formation reconnue",

@@ -4,6 +4,7 @@
     $nav = collect([
         ['client.home', 'Tableau de bord', 'bx-grid-alt'],
         ['client.inscriptions', 'Mes inscriptions', 'bx-book-reader'],
+        ['client.paiements', 'Mes paiements', 'bx-wallet'],
         ['client.tests', 'Mes tests de niveau', 'bx-target-lock'],
         ['client.demandes', 'Mes demandes', 'bx-envelope'],
         ['client.documents', 'Mes documents', 'bx-folder'],

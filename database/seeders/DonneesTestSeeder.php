@@ -16,11 +16,13 @@ use App\Models\Demande;
 use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Niveau;
+use App\Models\Paiement;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
 use App\Services\Inscriptions\InscriptionService;
 use App\Services\Numbering\SequenceService;
+use App\Services\Paiements\PaiementService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -94,12 +96,21 @@ class DonneesTestSeeder extends Seeder
             ['name' => 'Mariam Coulibaly', 'email' => 'mariam@'.self::EMAIL_DOMAIN, 'phone' => '+22370000013', 'source' => 'centre', 'status' => InscriptionStatus::EnCours, 'session' => 'Session test', 'validated_at' => now()->subDays(10), 'validated_by' => $agent?->id, 'started_at' => now()->subDays(7)],
         ];
         $sequences = app(SequenceService::class);
+        $created = [];
         foreach ($people as $person) {
-            Inscription::create($person + $service->quote($formule, FormationMode::from($mode)) + [
+            $created[] = Inscription::create($person + $service->quote($formule, FormationMode::from($mode)) + [
                 'number' => $sequences->next(InscriptionService::PREFIX), 'formule_id' => $formule->id, 'niveau_id' => $niveau?->id,
                 'mode' => $mode, 'payment_choice' => 'au_centre', 'city' => 'Bamako', 'consent_at' => now(),
             ]);
         }
+
+        // Paiements fictifs : une mensualité réglée au centre (Mariam) et une déclaration mobile money à vérifier (Boubacar).
+        if ($agent) {
+            app(PaiementService::class)->record($created[2], ['amount' => $created[2]->nextInstallment(), 'method' => 'especes', 'period' => 'Mois 1 (test)', 'paid_at' => now()->subDays(7)->format('Y-m-d')], $agent);
+        }
+        Paiement::create(['number' => $sequences->next(PaiementService::PREFIX), 'inscription_id' => $created[1]->id, 'nature' => 'formation',
+            'amount' => $created[1]->nextInstallment(), 'method' => 'orange_money', 'reference' => 'MPTEST'.random_int(100000, 999999), 'payer_phone' => $created[1]->phone,
+            'status' => 'a_verifier', 'source' => 'apprenant', 'paid_at' => now()]);
     }
 
     private function articles(): void

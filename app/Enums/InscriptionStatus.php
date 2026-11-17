@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Étapes d'une inscription (cahier §3.5, §3.8 B, §5) : à valider (dossier reçu) → validée (en attente du paiement) →
- * en cours (formation commencée) → terminée ; ou annulée. Le paiement et le reçu viendront avec le module Paiements.
+ * en cours (paiement reçu ou formation commencée) → terminée ; ou annulée. Un paiement confirmé fait passer « En cours ».
  */
 enum InscriptionStatus: string
 {

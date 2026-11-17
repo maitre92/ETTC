@@ -104,12 +104,13 @@
                     {{-- 4. Paiement et confirmation --}}
                     <fieldset class="ettc-step" data-step>
                         <legend class="h4 text-ink">4. Paiement et confirmation</legend>
+                        <p class="text-muted">Formation <strong>en présentiel</strong> : paiement au centre. Formation <strong>en ligne</strong> : paiement par <strong>mobile money</strong>. Votre inscription est confirmée dès que le centre a reçu le paiement, et un reçu vous est délivré.</p>
                         <div class="ettc-choices ettc-choices-2">
                             @foreach (\App\Enums\PaymentChoice::cases() as $choice)
                                 <label class="ettc-choice form-check">
-                                    <input class="form-check-input" type="radio" name="payment_choice" value="{{ $choice->value }}" required data-label="{{ $choice->label() }}" @checked(old('payment_choice', 'au_centre') === $choice->value)>
+                                    <input class="form-check-input" type="radio" name="payment_choice" value="{{ $choice->value }}" required data-label="{{ $choice->label() }}" data-payment-for="{{ $choice === \App\Enums\PaymentChoice::AuCentre ? 'presentiel' : 'en_ligne' }}" @checked(old('payment_choice', ($preset['mode'] ?? null) === 'en_ligne' ? 'en_ligne' : 'au_centre') === $choice->value)>
                                     <strong><i class='bx {{ $choice === \App\Enums\PaymentChoice::AuCentre ? 'bx-store' : 'bx-mobile-alt' }}' aria-hidden="true"></i> {{ $choice === \App\Enums\PaymentChoice::AuCentre ? 'Payer au centre' : 'Payer en ligne' }}</strong>
-                                    <small>{{ $choice === \App\Enums\PaymentChoice::AuCentre ? 'Votre inscription est confirmée après l\'encaissement au centre.' : 'Orange Money, Wave ou carte : le centre vous indique comment régler.' }}</small>
+                                    <small>{{ $choice === \App\Enums\PaymentChoice::AuCentre ? 'Vous réglez directement au centre, à l\'accueil.' : 'Par mobile money (Orange Money, Wave, Moov Money) : vous indiquez ensuite la référence de la transaction dans votre espace.' }}</small>
                                 </label>
                             @endforeach
                         </div>

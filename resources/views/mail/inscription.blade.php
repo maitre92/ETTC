@@ -40,9 +40,9 @@
             @else
                 <p style="margin:24px 0 0;font-size:14px">
                     @if ($inscription->payment_choice === \App\Enums\PaymentChoice::AuCentre)
-                        Le paiement se fait au centre ; votre inscription sera confirmée après l'encaissement.
+                        Le paiement se fait au centre, à l'accueil ; votre inscription est confirmée après le paiement et un reçu vous est délivré.
                     @else
-                        Le centre vous indiquera comment régler en ligne (Orange Money, Wave ou carte).
+                        Le paiement se fait par mobile money (Orange Money, Wave ou Moov Money) : envoyez le montant au numéro du centre, puis indiquez la référence de la transaction dans votre espace apprenant (« Mes paiements »). Le centre vérifie le paiement et vous délivre un reçu.
                     @endif
                     @if ($phone) Une question ? Appelez-nous au <strong>{{ $phone }}</strong> en rappelant la référence {{ $inscription->number }}.@endif
                 </p>

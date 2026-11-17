@@ -14,6 +14,7 @@ use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Niveau;
+use App\Models\Paiement;
 use App\Models\Permission;
 use App\Models\Prestation;
 use App\Models\Redirection;
@@ -106,6 +107,13 @@ class AppServiceProvider extends ServiceProvider
             return ['title' => 'Inscriptions', 'icon' => 'bx-book-reader', 'route' => 'client.inscriptions', 'count' => (clone $inscriptions)->count(), 'open' => (clone $inscriptions)->pending()->count(), 'label' => 'en attente'];
         });
 
+        // Tableau de bord de l'espace apprenant : bloc « Paiements » (à vérifier / total).
+        $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
+            $paiements = Paiement::forClient($client);
+
+            return ['title' => 'Paiements', 'icon' => 'bx-wallet', 'route' => 'client.paiements', 'count' => (clone $paiements)->count(), 'open' => (clone $paiements)->where('status', 'a_verifier')->count(), 'label' => 'à vérifier'];
+        });
+
         // Tableau de bord de l'espace apprenant : bloc « Tests de niveau » (en cours / total).
         $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
             $tests = TestNiveau::forClient($client);
@@ -129,6 +137,7 @@ class AppServiceProvider extends ServiceProvider
             'formule' => Formule::class,
             'test_niveau' => TestNiveau::class,
             'inscription' => Inscription::class,
+            'paiement' => Paiement::class,
             'prestation' => Prestation::class,
             'redirection' => Redirection::class,
             'temoignage' => Temoignage::class,

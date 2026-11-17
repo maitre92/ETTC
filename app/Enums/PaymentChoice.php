@@ -3,8 +3,9 @@
 namespace App\Enums;
 
 /**
- * Mode de paiement choisi à l'inscription (cahier §3.5, §3.8) : au centre (inscription « en attente de paiement »
- * jusqu'à l'encaissement) ou en ligne (Orange Money, Wave, carte : prestataire à intégrer au module Paiements).
+ * Façon de payer choisie à l'inscription (cahier §3.5, §3.8 ; décision du centre, 2026-11-18) : au centre (présentiel :
+ * espèces ou mobile money au guichet, enregistré par l'équipe) ou en ligne par mobile money (Orange Money, Wave, Moov
+ * Money : l'apprenant déclare la transaction dans son espace, l'équipe la vérifie). Présélectionné d'après le mode.
  */
 enum PaymentChoice: string
 {
@@ -15,7 +16,7 @@ enum PaymentChoice: string
     {
         return match ($this) {
             self::AuCentre => 'Au centre',
-            self::EnLigne => 'En ligne (Orange Money, Wave, carte)',
+            self::EnLigne => 'En ligne par mobile money (Orange Money, Wave, Moov Money)',
         };
     }
 

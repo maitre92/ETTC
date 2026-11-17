@@ -150,6 +150,11 @@
         marks.forEach(function (m, k) { m.addEventListener('click', function () { if (k < current) { show(k); } }); });
         form.addEventListener('change', function (e) {
             if (e.target.name === 'formule_id' || e.target.name === 'mode') { renderPrice(); }
+            // Paiement présélectionné d'après le mode : présentiel → au centre, en ligne → mobile money (modifiable).
+            if (e.target.name === 'mode') {
+                var pay = form.querySelector('input[name="payment_choice"][data-payment-for="' + e.target.value + '"]');
+                if (pay) { pay.checked = true; }
+            }
             if (current === steps.length - 1) { renderRecap(); }
         });
         // Erreur renvoyée par le serveur : aller à l'étape du premier champ signalé.

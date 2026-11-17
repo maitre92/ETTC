@@ -25,6 +25,6 @@ return [
     'time' => env('BACKUP_TIME', '02:00'),
 
     // Tables dont `backup:verify` exige la présence dans le dump : chaque module y ajoute ses tables essentielles.
-    'required_tables' => ['users', 'audit_logs', 'app_settings', 'demandes', 'clients', 'medias'],
+    'required_tables' => ['users', 'audit_logs', 'app_settings', 'demandes', 'clients', 'medias', 'inscriptions', 'paiements'],
 
 ];

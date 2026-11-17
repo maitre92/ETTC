@@ -118,6 +118,14 @@ Les noms des rôles `gestionnaire` et `commercial` sont hérités ; leur libell�
 - E-mails `InscriptionRecue` (équipe) et `InscriptionRecapitulatif` (apprenant). Espace apprenant : « Mes inscriptions », bloc du tableau de bord ; profil enrichi (date de naissance, sexe ; adresse « de résidence »).
 - 316 tests verts, Pint propre ; assistant vérifié dans Chrome headless (1366 px et 390 px : étape bloquée sans choix, tarif en direct, envoi sans rechargement) et validation d'un dossier en AJAX.
 
+**Fait — phase 5, Paiements et reçus** (2026-11-18) :
+- **Décision du centre (2026-11-18)** : en ligne, le paiement se fait par **mobile money** (Orange Money, Wave, Moov Money) ; en présentiel, **au centre** (espèces, ou mobile money au guichet). Pas de carte bancaire. Dans l'assistant d'inscription, le paiement est présélectionné d'après le mode (modifiable).
+- Table `paiements` (numéro du reçu `REC-AAAA-NNNN`), `PaiementService` : au centre, l'équipe enregistre le paiement → **Confirmé**, reçu ; en ligne, l'apprenant **déclare** sa transaction (moyen dont le numéro marchand est renseigné, montant, référence unique par moyen) → **À vérifier** ; l'équipe confirme après l'avoir retrouvée sur le compte marchand, ou rejette avec un motif. Le navigateur ne confirme jamais un paiement (cahier §3.8 A) ; prestataire avec notification serveur : comptes marchands À VALIDER.
+- Un paiement confirmé met à jour `inscriptions.amount_paid` et fait passer une inscription à valider / en attente de paiement **En cours** (`inscriptions.paid`). Montant plafonné au reste à payer (déclarations en attente comprises). Annulation (erreur) et remboursement (argent rendu) motivés, jamais de suppression. Nature `formation` seulement (test gratuit) ; la colonne garde la distinction test / formation du cahier §3.8 C.
+- Administration (manifeste `paiements` : `view`, `record`, `verify`, `refund`, `configure` ; administrateur tout, commercial sans `refund` par défaut ni `configure`, gestionnaire `view` en option) : recettes du mois, à vérifier, reste à encaisser, remboursé ; liste des paiements ; **impayés** avec enregistrement en modale ; fiche (vérification, annulation / remboursement : deux boutons d'un même formulaire, `formaction` géré par `crud-ajax.js`) ; numéros marchands et consignes (réglages `paiement.*`) ; bloc Paiements sur la fiche d'inscription (barre de progression) ; tableau de bord (tâches, section Finances), pastille, cloche.
+- **Reçu** imprimable (`paiements/recu.blade.php`, page autonome, « Imprimer / PDF » du navigateur, aucune bibliothèque PDF) : numéro, apprenant, inscription, nature, montant, date, moyen et transaction, statut, total / payé / reste. E-mails `PaiementConfirme` (reçu à l'apprenant) et `PaiementDeclare` (équipe).
+- Espace apprenant : « Mes paiements » (total, payé, reste par inscription ; déclaration mobile money en AJAX pour une formation en ligne, « au centre » pour le présentiel ; historique, motif d'un rejet, reçus), bloc du tableau de bord ; état du paiement sur « Mes inscriptions ».
+
 **À faire** : voir le plan (§10).
 
 ## 3. Démarrer
@@ -177,9 +185,10 @@ Noms de tables en français, colonnes en anglais. Tout en `softDeletes` ; clés 
 | `inscriptions` ✔ | `number`, `status` (`a_valider`, `validee`, `en_cours`, `terminee`, `annulee`), `source`, `client_id`, `test_niveau_id`, identité (`name`, `birth_date`, `gender`, `phone`, `email`, `address`, `city`), `niveau_id`, `formule_id`, `mode` (`en_ligne`, `presentiel`), `payment_choice`, tarif figé (`formule_name`, `duration_months`, `billing`, `unit_price`, `total_amount`), `session`, `validated_*`, `started_at`, `finished_at`, `cancel_reason`, `internal_notes` | Le tarif ne change jamais après l'inscription |
 | `sequences` ✔ | `prefix`, `year`, `last_number` | Numérotation sous verrou (`TST`, futurs reçus `REC-AAAA-NNNN`) |
 | `page_vues` ✔ | `day`, `visitor`, `path`, `route`, `source`, `device` | Fréquentation (technique, sans modèle) |
+| `paiements` ✔ ; `inscriptions.amount_paid` | `number` (reçu), `inscription_id`, `client_id`, `nature` (`formation`), `amount`, `method` (`especes`, `orange_money`, `wave`, `moov_money`), `reference`, `payer_phone`, `period`, `status` (`a_verifier`, `confirme`, `rejete`, `annule`, `rembourse`), `source` (`centre`, `apprenant`), `paid_at`, `recorded_by`, `confirmed_*`, `cancel_reason`, `cancelled_*`, `notes` | Jamais supprimé ; seuls les paiements confirmés comptent |
 | `redirections` ✔ | `from_path`, `to_path`, `hits` | Anciennes adresses → nouvelles (301) |
 
-Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan : `sessions` ou `groupes` (la session est pour l'instant un libellé sur l'inscription), `paiements` (nature test / formation, montant, moyen, référence prestataire, statut, reçu), `remboursements`, `seances` (date, lien Google Meet, groupe), `supports` (fichiers privés), `traductions`, `formations_personnalisees`, `excursions` / `reservations`, `commissions` (périodes, montants dus et versés).
+Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan : `sessions` ou `groupes` (la session est pour l'instant un libellé sur l'inscription), `remboursements`, `seances` (date, lien Google Meet, groupe), `supports` (fichiers privés), `traductions`, `formations_personnalisees`, `excursions` / `reservations`, `commissions` (périodes, montants dus et versés).
 
 ### 4.3 Rôles
 
@@ -282,7 +291,7 @@ Phases du cahier §7. Chaque tâche se termine par ses tests et une vérificatio
 | 2 | **Formations et tarifs** : niveaux, options de durée, tarifs par mode, catalogue public par niveau | **Fait** (2026-11-17) |
 | 3 | **Tests de niveau** (gratuit) : présentation, réservation, résultat et niveau attribué | **Fait** (2026-11-17) |
 | 4 | **Inscriptions et apprenants** : inscription en ligne et au centre, récapitulatif, compte apprenant enrichi, suivi des dossiers, organisation par niveau / formule / session | **Fait** (2026-11-17) |
-| 5 | **Paiements et reçus** : paiement au centre (saisie, reçu), puis prestataire en ligne (notification serveur), séparation test / formation, impayés, remboursements | À faire |
+| 5 | **Paiements et reçus** : au centre (présentiel) et mobile money (en ligne, déclaré puis vérifié), reçus, impayés, annulations, remboursements ; prestataire avec notification serveur À VALIDER | **Fait** (2026-11-18) |
 | 6 | **Séances à distance** : programmation, liens Google Meet, supports pédagogiques, calendrier dans l'espace apprenant | À faire |
 | 7 | **Formations personnalisées, traductions, excursion au Ghana** : formulaires dédiés et suivi | À faire |
 | 8 | **Finances, commission et statistiques** : recettes par période, part du centre / commission, commissions versées et dues, rapports téléchargeables | À faire |

@@ -5,13 +5,16 @@ namespace App\Services\Dashboard;
 use App\Enums\DemandeStatus;
 use App\Enums\DemandeType;
 use App\Enums\InscriptionStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\RoleName;
 use App\Enums\TestStatus;
 use App\Models\ActivityLog;
 use App\Models\Article;
 use App\Models\Demande;
+use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Media;
+use App\Models\Paiement;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
@@ -49,6 +52,9 @@ class RealDashboardData
         if ($user->can('tests.view')) {
             $this->tests($user, $dashboard);
         }
+        if ($user->can('paiements.view')) {
+            $this->paiements($dashboard);
+        }
         if ($user->can('statistiques.view')) {
             $this->frequentation($dashboard);
         }
@@ -78,6 +84,7 @@ class RealDashboardData
             'temoignages' => $user->can('temoignages.update') ? Temoignage::where('source', 'client')->where('is_published', false)->count() : 0,
             'inscriptions' => $user->can('inscriptions.view') ? Inscription::where('status', InscriptionStatus::AValider->value)->count() : 0,
             'tests' => $user->can('tests.view') ? TestNiveau::where('status', TestStatus::Demande->value)->count() : 0,
+            'paiements' => $user->can('paiements.verify') ? Paiement::where('status', PaymentStatus::AVerifier->value)->count() : 0,
         ]);
     }
 
@@ -105,6 +112,13 @@ class RealDashboardData
             $new = Inscription::where('status', InscriptionStatus::AValider->value)->count();
             if ($new > 0) {
                 $items[] = ['icon' => 'bx-user-check', 'class' => 'text-danger', 'text' => "{$new} inscription(s) à valider.", 'link' => route('inscriptions.index')];
+            }
+        }
+
+        if ($user->can('paiements.verify') && Route::has('paiements.index')) {
+            $toVerify = Paiement::where('status', PaymentStatus::AVerifier->value)->count();
+            if ($toVerify > 0) {
+                $items[] = ['icon' => 'bx-mobile-alt', 'class' => 'text-warning', 'text' => "{$toVerify} paiement(s) mobile money à vérifier.", 'link' => route('paiements.index')];
             }
         }
 
@@ -142,6 +156,20 @@ class RealDashboardData
             'columns' => ['Niveau', 'Inscriptions'],
             'rows' => $byNiveau->map(fn ($items, $name) => [$name, (string) $items->count()])->values()->all(),
         ]]];
+    }
+
+    /** Paiements (cahier §5 « Gestion financière ») : déclarations à vérifier, impayés, encaissé du mois. */
+    private function paiements(array &$dashboard): void
+    {
+        $dashboard['tasks'][] = $this->task('Paiements à vérifier', 'Mobile money déclaré par un apprenant', Paiement::where('status', PaymentStatus::AVerifier->value)->count(), 'bx bx-mobile-alt', 'warning', 'paiements.index');
+        $unpaid = Inscription::unpaid()->whereIn('status', [InscriptionStatus::Validee->value, InscriptionStatus::EnCours->value, InscriptionStatus::Terminee->value]);
+        $dashboard['tasks'][] = $this->task('Impayés', 'Inscriptions avec un reste à payer', (clone $unpaid)->count(), 'bx bx-time-five', 'danger', 'paiements.index');
+
+        $month = now()->startOfMonth();
+        $dashboard['sections'][] = ['title' => 'Finances', 'icon' => 'bx bx-wallet', 'cards' => [
+            $this->card('Encaissé ce mois', Formule::money((int) Paiement::confirmed()->where('paid_at', '>=', $month)->sum('amount')), 'frais de formation', 'bx bx-wallet', 'success'),
+            $this->card('Reste à encaisser', Formule::money((int) (clone $unpaid)->get()->sum(fn (Inscription $i) => $i->balance())), 'inscriptions validées', 'bx bx-time-five', 'danger'),
+        ], 'tables' => []];
     }
 
     /** Tests de niveau (cahier §5 « suivi des candidats en attente de test ») : à planifier et du jour (test gratuit). */
@@ -359,6 +387,7 @@ class RealDashboardData
     {
         $candidates = [
             ['inscriptions.index', 'inscriptions.view', 'Inscriptions', 'bx bx-user-check'],
+            ['paiements.index', 'paiements.view', 'Paiements', 'bx bx-wallet'],
             ['tests.index', 'tests.view', 'Tests de niveau', 'bx bx-target-lock'],
             ['demandes.index', 'demandes.view', 'Demandes', 'bx bx-envelope'],
             ['articles.create', 'articles.create', 'Rédiger un article', 'bx bx-pencil'],

@@ -94,7 +94,7 @@
         return status;
     }
 
-    function send(form) {
+    function send(form, submitter) {
         if (form.classList.contains('is-busy')) { return; }
         var owner = form.closest('[data-crud-owner]');
         var root = form.closest('[data-crud]')
@@ -103,7 +103,9 @@
         clearErrors(form);
         setBusy(form, true);
 
-        fetch(form.action, {
+        // Bouton avec formaction (deux actions sur un même formulaire) : son adresse l'emporte.
+        var action = submitter && submitter.getAttribute('formaction') ? submitter.getAttribute('formaction') : form.action;
+        fetch(action, {
             method: 'POST',
             body: new FormData(form),
             credentials: 'same-origin',
@@ -169,6 +171,13 @@
             if (table) { table.column(statusColumn).search(chip.dataset.token || '', false, true).draw(); }
         }
         chips.forEach(function (chip) { chip.addEventListener('click', function () { applyChip(chip); }); });
+        // Bouton de raccourci (ex. « Afficher seulement ceux à vérifier ») : <button data-chip-target="jeton">.
+        root.querySelectorAll('[data-chip-target]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var chip = Array.prototype.find.call(chips, function (c) { return (c.dataset.token || '') === button.dataset.chipTarget; });
+                if (chip) { applyChip(chip); }
+            });
+        });
 
         // Listes déroulantes de filtre : <select data-crud-filter-column="N"> filtre la colonne N (texte contenu).
         var selects = Array.prototype.slice.call(root.querySelectorAll('select[data-crud-filter-column]'));
@@ -246,7 +255,7 @@
         if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-crud-form') || form.classList.contains('js-confirm-delete')) { return; }
         if (!window.fetch || !window.FormData) { return; }
         event.preventDefault();
-        send(form);
+        send(form, event.submitter);
     });
 
     window.CrudAjax = { init: init, send: send, toast: toast };
