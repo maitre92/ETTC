@@ -36,6 +36,12 @@ enum PaymentMethod: string
         return $this->isMobileMoney() ? 'paiement.'.$this->value : null;
     }
 
+    /** Réglage de l'image du QR marchand (identifiant d'une image de la bibliothèque). */
+    public function qrSettingKey(): ?string
+    {
+        return $this->isMobileMoney() ? 'paiement.'.$this->value.'_qr' : null;
+    }
+
     /** @return list<self> */
     public static function mobileMoney(): array
     {

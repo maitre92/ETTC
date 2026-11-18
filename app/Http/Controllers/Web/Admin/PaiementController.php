@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Inscription;
 use App\Models\Paiement;
+use App\Services\Medias\MediaService;
 use App\Services\Paiements\Gateway\GatewayManager;
 use App\Services\Paiements\PaiementService;
 use App\Services\Paiements\ReceiptService;
@@ -39,6 +40,7 @@ class PaiementController extends Controller
             'monthTotal' => (int) Paiement::confirmed()->where('paid_at', '>=', $month)->sum('amount'),
             'gateway' => $gateways->active(),
             'refundedMonth' => (int) Paiement::where('status', PaymentStatus::Rembourse->value)->where('cancelled_at', '>=', $month)->sum('amount'),
+            'qrCodes' => $this->service->merchantQrCodes(),
             'settings' => collect(PaymentMethod::mobileMoney())->mapWithKeys(fn (PaymentMethod $m) => [$m->settingKey() => $settings->get($m->settingKey())])
                 ->put('paiement.instructions', $settings->get('paiement.instructions'))->all(),
         ]);
@@ -125,18 +127,28 @@ class PaiementController extends Controller
     }
 
     /** Numéros mobile money et consignes affichés à l'apprenant (paiement en ligne). */
-    public function settings(Request $request): RedirectResponse
+    public function settings(Request $request, MediaService $medias): RedirectResponse
     {
         abort_unless($request->user()->can('paiements.configure'), 403);
         $rules = ['instructions' => ['nullable', 'string', 'max:1000']];
+        $names = [];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $rules[$method->value] = ['nullable', 'string', 'max:60'];
+            $rules[$method->value.'_qr'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+            $names[$method->value] = 'numéro '.$method->label();
+            $names[$method->value.'_qr'] = 'QR '.$method->label();
         }
-        $data = $request->validate($rules, [], ['orange_money' => 'numéro Orange Money', 'wave' => 'numéro Wave', 'moov_money' => 'numéro Moov Money']);
+        $data = $request->validate($rules, [], $names);
 
         $values = ['paiement.instructions' => $data['instructions'] ?? ''];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $values[$method->settingKey()] = $data[$method->value] ?? '';
+            // QR marchand : nouvelle image déposée, ou retirée (case « Retirer »).
+            if ($request->hasFile($method->value.'_qr')) {
+                $values[$method->qrSettingKey()] = (string) $medias->store($request->file($method->value.'_qr'), $request->user(), 'QR '.$method->label(), 'Paiements')->id;
+            } elseif ($request->boolean($method->value.'_qr_remove')) {
+                $values[$method->qrSettingKey()] = '';
+            }
         }
         $this->service->saveSettings($values, $request->user());
 

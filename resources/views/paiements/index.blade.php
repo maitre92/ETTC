@@ -50,7 +50,12 @@
         @endif
 
         <div class="card">
-            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-wallet me-2'></i>PAIEMENTS ET REÇUS</h6></div>
+            <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h6 class="mb-0 text-white"><i class='bx bx-wallet me-2'></i>PAIEMENTS ET REÇUS</h6>
+                @can('paiements.configure')
+                    <button type="button" class="btn btn-light btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#moyens-paiement"><i class='bx bx-mobile-alt'></i> Moyens de paiement{{ $qrCodes ? ' · '.count($qrCodes).' QR' : '' }}</button>
+                @endcan
+            </div>
             <div class="card-body">
                 <div class="nv-chips mb-3" id="paiements-filter">
                     <button type="button" class="nv-chip active" data-token="">Tous <b>{{ $paiements->count() }}</b></button>
@@ -132,44 +137,59 @@
         @endcan
 
         @can('paiements.configure')
-            <div class="card">
-                <div class="card-header card-header-brand d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h6 class="mb-0 text-white"><i class='bx bx-bolt-circle me-2'></i>PAIEMENT AUTOMATIQUE (SANS VÉRIFICATION À LA MAIN)</h6>
-                    @if ($gateway && $gateway->name() !== 'simulation')
-                        <span class="badge bg-success">Actif — {{ $gateway->label() }}</span>
-                    @elseif ($gateway)
-                        <span class="badge bg-warning text-dark">Mode test (simulation)</span>
-                    @else
-                        <span class="badge bg-light text-dark">Pas encore activé</span>
-                    @endif
-                </div>
-                <div class="card-body">
-                    @if ($gateway && $gateway->name() !== 'simulation')
-                        <p class="mb-0">Les apprenants en ligne paient avec Orange Money, Moov Money ou Wave sur la page sécurisée de {{ $gateway->label() }}. Le paiement est confirmé tout seul et le reçu part par e-mail : vous n'avez rien à vérifier.</p>
-                    @else
-                        <p>Aujourd'hui, l'apprenant envoie l'argent à votre numéro puis déclare la transaction, et vous la confirmez. Avec un agrégateur de paiement agréé par la <strong>BCEAO</strong>, la confirmation devient automatique. Le site est prêt : il suffit d'ouvrir le compte marchand.</p>
-                        <ol class="mb-2">
-                            <li>Ouvrir un compte marchand chez un agrégateur agréé BCEAO (par exemple CinetPay ; InTouch est agréé au Mali).</li>
-                            <li>Fournir le dossier : statuts, RCCM, NIF, pièce d'identité du responsable, justificatif d'adresse, relevé d'identité bancaire du centre, adresse du site (HTTPS) avec mentions légales et conditions de remboursement.</li>
-                            <li>Une fois le compte validé, transmettre au développeur la clé API et l'identifiant du site : il les place dans la configuration du serveur (jamais dans cet écran).</li>
-                        </ol>
-                        <p class="small text-muted mb-0">En attendant, la déclaration par l'apprenant reste disponible et ne change pas.</p>
-                    @endif
-                </div>
-            </div>
+            {{-- Moyens de paiement en ligne : fenêtre ouverte depuis l'en-tête du tableau (accès direct, même avec beaucoup
+                 de paiements) — numéros, QR marchands avec aperçu, consignes, état du paiement automatique. --}}
+            <div class="modal fade" id="moyens-paiement" tabindex="-1" aria-hidden="true" aria-labelledby="moyens-paiement-title">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('paiements.settings') }}" enctype="multipart/form-data" data-crud-form data-no-guard>
+                            @csrf @method('PUT')
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="moyens-paiement-title"><i class='bx bx-mobile-alt me-1'></i>Moyens de paiement en ligne (mobile money)</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="small text-muted">Numéros marchands et QR à scanner sur lesquels les apprenants envoient leur paiement en ligne. Sans numéro ni QR, un moyen n'est pas proposé. Les formations en présentiel se règlent au centre.</p>
+                                <div class="row g-3">
+                                    @foreach (PaymentMethod::mobileMoney() as $method)
+                                        <div class="col-md-4">
+                                            <div class="border rounded-3 p-3 h-100 text-center">
+                                                <div class="fw-bold mb-2">{{ $method->label() }}</div>
+                                                <label class="form-label small fw-semibold text-start w-100" for="s-{{ $method->value }}">Numéro marchand</label>
+                                                <input class="form-control mb-3" id="s-{{ $method->value }}" name="{{ $method->value }}" maxlength="60" value="{{ $settings[$method->settingKey()] }}" placeholder="Ex. 75 22 91 25 (ETTC)">
+                                                <div class="small fw-semibold text-start">QR marchand à scanner</div>
+                                                <div class="d-flex align-items-center justify-content-center bg-light rounded my-2" style="height:170px">
+                                                    <img @if (isset($qrCodes[$method->value])) src="{{ $qrCodes[$method->value] }}" @endif alt="Aperçu du QR {{ $method->label() }}" width="150" height="150" style="object-fit:contain" class="bg-white rounded {{ isset($qrCodes[$method->value]) ? '' : 'd-none' }}" data-qr-preview-img="{{ $method->value }}">
+                                                    <span class="small text-muted {{ isset($qrCodes[$method->value]) ? 'd-none' : '' }}" data-qr-preview-empty="{{ $method->value }}"><i class='bx bx-qr fs-1 d-block'></i>Aucun QR</span>
+                                                </div>
+                                                <input class="form-control form-control-sm" type="file" id="s-{{ $method->value }}-qr" name="{{ $method->value }}_qr" accept="image/png,image/jpeg,image/webp" data-qr-preview="{{ $method->value }}" aria-label="Image du QR {{ $method->label() }}">
+                                                @if (isset($qrCodes[$method->value]))
+                                                    <div class="form-check small text-start mt-2"><input class="form-check-input" type="checkbox" id="s-{{ $method->value }}-qr-remove" name="{{ $method->value }}_qr_remove" value="1"><label class="form-check-label" for="s-{{ $method->value }}-qr-remove">Retirer ce QR</label></div>
+                                                @endif
+                                                <div class="form-text text-start">Photo ou capture du QR fourni par {{ $method->label() }}.</div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    <div class="col-12"><label class="form-label fw-semibold" for="s-instructions">Consignes affichées à l'apprenant</label><textarea class="form-control" id="s-instructions" name="instructions" rows="2" maxlength="1000">{{ $settings['paiement.instructions'] }}</textarea></div>
+                                </div>
 
-            <div class="card">
-                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-mobile-alt me-2'></i>MOYENS DE PAIEMENT EN LIGNE (MOBILE MONEY)</h6></div>
-                <div class="card-body">
-                    <p class="small text-muted">Numéros marchands sur lesquels les apprenants envoient leur paiement en ligne. Un numéro vide : ce moyen n'est pas proposé. Les formations en présentiel se règlent au centre.</p>
-                    <form method="POST" action="{{ route('paiements.settings') }}" class="row g-2" data-crud-form data-no-guard>
-                        @csrf @method('PUT')
-                        @foreach (PaymentMethod::mobileMoney() as $method)
-                            <div class="col-md-4"><label class="form-label fw-semibold" for="s-{{ $method->value }}">{{ $method->label() }}</label><input class="form-control" id="s-{{ $method->value }}" name="{{ $method->value }}" maxlength="60" value="{{ $settings[$method->settingKey()] }}" placeholder="Ex. 75 22 91 25 (ETTC)"></div>
-                        @endforeach
-                        <div class="col-12"><label class="form-label fw-semibold" for="s-instructions">Consignes affichées à l'apprenant</label><textarea class="form-control" id="s-instructions" name="instructions" rows="2" maxlength="1000">{{ $settings['paiement.instructions'] }}</textarea></div>
-                        <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-save me-1'></i>Enregistrer</button></div>
-                    </form>
+                                <div class="alert {{ $gateway && $gateway->name() !== 'simulation' ? 'alert-success' : 'alert-light border' }} mt-3 mb-0 small">
+                                    <strong><i class='bx bx-bolt-circle'></i> Paiement automatique :</strong>
+                                    @if ($gateway && $gateway->name() !== 'simulation')
+                                        actif avec {{ $gateway->label() }} — l'apprenant paie sur la page sécurisée de l'opérateur, le paiement est confirmé tout seul et le reçu part par e-mail.
+                                    @elseif ($gateway)
+                                        mode test (simulation).
+                                    @else
+                                        pas encore activé. Avec un agrégateur agréé par la BCEAO (InTouch, CinetPay…), la confirmation devient automatique : le centre ouvre un compte marchand (statuts, RCCM, NIF, pièce du responsable, justificatif d'adresse, RIB), puis transmet la clé API au développeur. En attendant, l'apprenant déclare sa transaction et vous la confirmez.
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                <button type="submit" class="btn btn-primary btn-lg"><i class='bx bx-save me-1'></i>Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         @endcan
@@ -179,4 +199,17 @@
 @push('scripts')
     <script src="{{ asset('assets/js/crud-ajax.js') }}?v={{ filemtime(public_path('assets/js/crud-ajax.js')) }}"></script>
     <script>CrudAjax.init(document.querySelector('[data-crud="paiements"]'));</script>
+    <script>
+        // Aperçu immédiat du QR choisi, avant l'enregistrement (fenêtre « Moyens de paiement »).
+        document.addEventListener('change', function (event) {
+            var input = event.target.closest('input[data-qr-preview]');
+            if (!input || !input.files || !input.files[0]) { return; }
+            var key = input.getAttribute('data-qr-preview');
+            var img = document.querySelector('[data-qr-preview-img="' + key + '"]');
+            var empty = document.querySelector('[data-qr-preview-empty="' + key + '"]');
+            var reader = new FileReader();
+            reader.onload = function () { img.src = reader.result; img.classList.remove('d-none'); if (empty) { empty.classList.add('d-none'); } };
+            reader.readAsDataURL(input.files[0]);
+        });
+    </script>
 @endpush

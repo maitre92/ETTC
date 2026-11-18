@@ -40,7 +40,7 @@ class TestDataCleaner
             'Comptes apprenants' => $this->email(Client::withTrashed())->count(),
             'Groupes' => $this->groupes()->count(),
             'Actualités' => Article::withTrashed()->where('title', 'like', '%(test)%')->count(),
-            'Témoignages' => Temoignage::withTrashed()->where('organization', 'like', '%(test)%')->count(),
+            'Témoignages' => $this->temoignages()->count(),
         ]);
     }
 
@@ -74,13 +74,19 @@ class TestDataCleaner
             ClientDocument::withTrashed()->whereIn('client_id', $clients)->forceDelete();
             Client::withTrashed()->whereIn('id', $clients)->forceDelete();
             Article::withTrashed()->where('title', 'like', '%(test)%')->forceDelete();
-            Temoignage::withTrashed()->where('organization', 'like', '%(test)%')->forceDelete();
+            $this->temoignages()->forceDelete();
         });
 
         Storage::disk('local')->delete($files);
         $this->logger->log('system.test_data_purged', 'system', 'Données de test supprimées : '.collect($counts)->map(fn ($n, $label) => "{$label} {$n}")->implode(', '), new: $counts);
 
         return $counts;
+    }
+
+    /** Témoignages fictifs : organisation « (test) » ou texte « témoignage fictif de test ». */
+    private function temoignages(): Builder
+    {
+        return Temoignage::withTrashed()->where(fn (Builder $q) => $q->where('organization', 'like', '%(test)%')->orWhere('content', 'like', '%fictif de test%'));
     }
 
     private function inscriptions(): Builder

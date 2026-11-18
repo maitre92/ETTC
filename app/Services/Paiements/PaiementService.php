@@ -11,6 +11,7 @@ use App\Mail\PaiementDeclare;
 use App\Models\Client;
 use App\Models\Formule;
 use App\Models\Inscription;
+use App\Models\Media;
 use App\Models\Paiement;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
@@ -49,12 +50,34 @@ class PaiementService
         private readonly CommissionCalculator $commissions,
     ) {}
 
-    /** Moyens proposés à l'apprenant : ceux dont le centre a renseigné le numéro marchand. @return array<string, string> */
+    /**
+     * Moyens proposés à l'apprenant : ceux dont le centre a renseigné le numéro marchand OU déposé le QR marchand.
+     * Valeur : le numéro (chaîne vide s'il n'y a qu'un QR).
+     *
+     * @return array<string, string>
+     */
     public function merchantNumbers(): array
     {
+        $qr = $this->merchantQrCodes();
+
         return collect(PaymentMethod::mobileMoney())
             ->mapWithKeys(fn (PaymentMethod $m) => [$m->value => trim($this->settings->get($m->settingKey()))])
-            ->filter()->all();
+            ->filter(fn (string $number, string $method) => $number !== '' || isset($qr[$method]))->all();
+    }
+
+    /** QR marchands déposés par le centre : [moyen => adresse de l'image]. @return array<string, string> */
+    public function merchantQrCodes(): array
+    {
+        $codes = [];
+        foreach (PaymentMethod::mobileMoney() as $method) {
+            $id = (int) $this->settings->get($method->qrSettingKey());
+            $media = $id ? Media::find($id) : null;
+            if ($media) {
+                $codes[$method->value] = $media->url();
+            }
+        }
+
+        return $codes;
     }
 
     /**

@@ -1,11 +1,21 @@
 {{-- Déclaration d'un paiement mobile money envoyé au numéro du centre (vérifié par l'équipe). $inscription, $payable. --}}
 @use('App\Enums\PaymentMethod')
 @php $money = fn (int $amount) => \App\Models\Formule::money($amount); @endphp
-<ul class="list-unstyled d-flex flex-wrap gap-2 my-2">
+{{-- Moyens du centre : numéro et/ou QR marchand à scanner avec l'application de l'opérateur (touché = agrandi). --}}
+<div class="d-flex flex-wrap gap-3 my-2">
     @foreach ($numbers as $method => $number)
-        <li class="tag tag-info"><strong>{{ PaymentMethod::from($method)->label() }}</strong> : {{ $number }}</li>
+        <div class="border rounded-3 p-2 text-center" style="min-width: 150px">
+            <div class="fw-bold">{{ PaymentMethod::from($method)->label() }}</div>
+            @if ($number !== '')<div class="small">{{ $number }}</div>@endif
+            @if (isset($qrCodes[$method]))
+                <a href="{{ $qrCodes[$method] }}" target="_blank" rel="noopener" title="Agrandir le QR {{ PaymentMethod::from($method)->label() }}">
+                    <img src="{{ $qrCodes[$method] }}" alt="QR marchand {{ PaymentMethod::from($method)->label() }} à scanner" width="140" height="140" style="object-fit:contain" class="bg-white mt-1">
+                </a>
+                <div class="small text-muted">Scannez avec votre application</div>
+            @endif
+        </div>
     @endforeach
-</ul>
+</div>
 <p class="small text-muted">{{ $instructions }}</p>
 <form method="POST" action="{{ route('client.paiements.store') }}" class="row g-3" data-ajax-form novalidate>
     @csrf

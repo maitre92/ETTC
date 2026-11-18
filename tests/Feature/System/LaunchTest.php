@@ -40,7 +40,7 @@ class LaunchTest extends TestCase
         $this->assertSame(0, Inscription::withTrashed()->where('email', 'like', '%@test.ettc.ml')->count());
         $this->assertSame(0, Paiement::withTrashed()->count());
         $this->assertSame(0, Article::withTrashed()->where('title', 'like', '%(test)%')->count());
-        $this->assertSame(0, Temoignage::withTrashed()->where('organization', 'like', '%(test)%')->count());
+        $this->assertSame(0, Temoignage::withTrashed()->count(), 'Tous les témoignages fictifs, même sans « (test) » dans l\'organisation.');
         $this->assertNotNull($real->fresh());
         $this->assertNotNull($realInscription->fresh());
         $this->artisan('donnees-test:supprimer', ['--force' => true])->expectsOutput('Aucune donnée de test à supprimer.');

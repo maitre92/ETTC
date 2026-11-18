@@ -14,12 +14,15 @@ use App\Models\Client;
 use App\Models\Inscription;
 use App\Models\Paiement;
 use App\Models\User;
+use App\Services\Paiements\PaiementService;
 use App\Services\Paiements\ReceiptService;
 use App\Support\SiteSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
@@ -280,5 +283,29 @@ class PaiementsTest extends TestCase
         $this->get('/admin/inscriptions')->assertOk()->assertSee('Encaisser');
         Paiement::factory()->create(['inscription_id' => $inscription->id]);
         $this->get('/admin/paiements')->assertOk()->assertSee('Confirmer')->assertSee('data-confirm=', false);
+    }
+
+    public function test_merchant_qr_codes_are_uploaded_and_shown_to_the_learner(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->administrateur()->create();
+        $client = Client::factory()->create();
+        $inscription = $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::EnLigne, 'payment_choice' => PaymentChoice::EnLigne]);
+
+        // QR Wave seul (sans numéro) : Wave est proposé à l'apprenant, avec son QR à scanner.
+        $this->actingAs($admin)->put('/admin/paiements/moyens', ['orange_money' => '75 22 91 25', 'wave' => '', 'moov_money' => '',
+            'wave_qr' => UploadedFile::fake()->image('qr-wave.png', 400, 400)])->assertRedirect('/admin/paiements');
+        $qr = app(PaiementService::class)->merchantQrCodes();
+        $this->assertArrayHasKey('wave', $qr);
+        $this->get('/admin/paiements')->assertSee('QR marchand à scanner')->assertSee($qr['wave'], false);
+
+        $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()
+            ->assertSee('QR marchand Wave à scanner')->assertSee($qr['wave'], false)->assertSee('75 22 91 25');
+        $this->postJson('/espace-client/paiements', ['inscription_id' => $inscription->id, 'payment_method' => 'wave', 'amount' => 50000, 'reference' => 'WV123456'])->assertOk();
+
+        // « Retirer » : plus de QR, et Wave (sans numéro) n'est plus proposé.
+        $this->actingAs($admin)->put('/admin/paiements/moyens', ['orange_money' => '75 22 91 25', 'wave_qr_remove' => '1'])->assertRedirect();
+        $this->assertArrayNotHasKey('wave', app(PaiementService::class)->merchantNumbers());
+        $this->put('/admin/paiements/moyens', ['wave_qr' => UploadedFile::fake()->create('virus.exe', 10)])->assertSessionHasErrors('wave_qr');
     }
 }

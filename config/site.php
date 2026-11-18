@@ -74,6 +74,10 @@ return [
         'paiement.orange_money' => '',
         'paiement.wave' => '',
         'paiement.moov_money' => '',
+        // QR marchands (image fournie par l'opérateur, à scanner avec son application) : identifiant d'une image.
+        'paiement.orange_money_qr' => '',
+        'paiement.wave_qr' => '',
+        'paiement.moov_money_qr' => '',
         'paiement.instructions' => 'Envoyez le montant au numéro du centre, puis indiquez ici la référence de la transaction (reçue par SMS). Le centre vérifie le paiement et vous délivre un reçu.',
         'home.why_title' => "Pourquoi nous choisir\u{00A0}?",
         // Une ligne par atout : icône Boxicons | texte
