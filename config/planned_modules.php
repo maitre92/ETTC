@@ -45,24 +45,6 @@ return [
         'cahier' => '§3.6, §5 « Gestion des séances à distance »',
         'open' => ['Modalités de programmation des cours et de transmission des liens Google Meet.'],
     ],
-    'formations_personnalisees' => [
-        'label' => 'Formations personnalisées', 'icon' => 'bx bx-customize', 'order' => 150, 'roles' => ['commercial'],
-        'summary' => 'Demande avec description des objectifs, entretien proposé par le centre, proposition et tarif enregistrés, validation par le demandeur avant inscription.',
-        'cahier' => '§3.7',
-        'open' => ['Modalités pratiques de l\'entretien préalable.'],
-    ],
-    'traductions' => [
-        'label' => 'Traductions', 'icon' => 'bx bx-transfer-alt', 'order' => 160, 'roles' => ['commercial'],
-        'summary' => 'Demande de traduction (langues source et cible, type de document, délai, coordonnées, document joint protégé), estimation, tarif communiqué et suivi du statut du dossier.',
-        'cahier' => '§3.9, §5 « Gestion des traductions et des excursions »',
-        'open' => ['Formats de fichiers acceptés, taille maximale et conditions de confidentialité.'],
-    ],
-    'excursions' => [
-        'label' => 'Excursion au Ghana', 'icon' => 'bx bx-world', 'order' => 170, 'roles' => ['gestionnaire', 'commercial'],
-        'summary' => 'Fiche de l\'excursion (objectifs, dates, programme, conditions, tarif, prestations incluses, réservation) et suivi des demandes de renseignements ou de réservation.',
-        'cahier' => '§3.10',
-        'open' => ['Dates, programme, tarif, documents requis et conditions d\'annulation.', 'Inclusion ou non dans le calcul de la commission.'],
-    ],
     'finances' => [
         'label' => 'Finances et commission', 'icon' => 'bx bx-line-chart', 'order' => 180, 'roles' => [],
         'summary' => 'Recettes par période, impayés, remboursements et annulations ; frais de test et de formation séparés ; part du centre (80 %), commission du développeur (20 % des frais mensuels de formation encaissés), commissions versées et restant à payer ; rapports téléchargeables.',

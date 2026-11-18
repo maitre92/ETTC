@@ -9,6 +9,7 @@ use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\PaiementNotificationController;
 use App\Http\Controllers\Site\SearchController;
 use App\Http\Controllers\Site\SeoController;
+use App\Http\Controllers\Site\ServiceController;
 use App\Http\Controllers\Site\TemoignageController;
 use App\Http\Controllers\Site\TestNiveauController;
 use App\Http\Controllers\VideoUploadController;
@@ -41,6 +42,12 @@ Route::name('site.')->group(function () {
     // (throttle:demandes, AppServiceProvider) et anti-spam (SpamGuard).
     Route::get('/contact', [DemandeController::class, 'contact'])->name('contact');
     Route::get('/devis', [DemandeController::class, 'devis'])->name('devis');
+    // Services du centre (cahier §3.7, §3.9, §3.10) : pages dédiées, formulaires envoyés comme des demandes.
+    Route::get('/traduction', [ServiceController::class, 'traduction'])->name('traduction');
+    Route::get('/formation-personnalisee', [ServiceController::class, 'personnalisee'])->name('personnalisee');
+    Route::get('/excursion-ghana', [ServiceController::class, 'excursion'])->name('excursion');
+    Route::get('/proposition/{token}', [ServiceController::class, 'proposition'])->middleware('throttle:60,1')->name('proposition.show');
+    Route::post('/proposition/{token}/accepter', [ServiceController::class, 'accept'])->middleware('throttle:20,1')->name('proposition.accept');
     Route::middleware('throttle:demandes')->group(function () {
         Route::post('/contact', [DemandeController::class, 'storeContact'])->defaults('demande_type', 'contact')->name('contact.store');
         Route::post('/devis', [DemandeController::class, 'storeDevis'])->defaults('demande_type', 'devis')->name('devis.store');

@@ -59,7 +59,13 @@ class DemandeRequest extends FormRequest
             ],
             DemandeType::Devis => [
                 'need_type' => ['required', Rule::enum(NeedType::class)],
-                'message' => ['required', 'string', 'min:10', 'max:5000'],
+                // Excursion (réservation) et traduction (le document parle de lui-même) : description facultative.
+                'message' => [in_array($this->input('need_type'), [NeedType::Excursion->value, NeedType::Traduction->value], true) ? 'nullable' : 'required', 'string', 'min:10', 'max:5000'],
+                'source_language' => ['nullable', Rule::requiredIf($this->input('need_type') === NeedType::Traduction->value), 'string', 'max:60'],
+                'target_language' => ['nullable', Rule::requiredIf($this->input('need_type') === NeedType::Traduction->value), 'string', 'max:60', 'different:source_language'],
+                'document_type' => ['nullable', 'string', 'max:120'],
+                'participants' => ['nullable', 'integer', 'between:1,100'],
+                'availability' => ['nullable', 'string', 'max:300'],
                 'budget' => ['nullable', 'string', 'max:100'],
                 'deadline' => ['nullable', 'string', 'max:100'],
                 'attachment' => ['nullable', 'file', 'mimes:'.implode(',', self::ATTACHMENT_MIMES), 'extensions:'.implode(',', self::ATTACHMENT_MIMES), 'max:'.self::ATTACHMENT_MAX_KB],
@@ -87,6 +93,7 @@ class DemandeRequest extends FormRequest
             'name' => 'nom complet', 'organization' => 'organisation', 'email' => 'e-mail', 'phone' => 'téléphone', 'subject' => 'objet',
             'message' => $this->demandeType() === DemandeType::Contact ? 'message' : 'description du besoin', 'need_type' => 'type de besoin',
             'budget' => 'budget', 'deadline' => 'délai', 'availability' => 'disponibilités', 'attachment' => 'pièce jointe',
+            'source_language' => 'langue du document', 'target_language' => 'langue souhaitée', 'document_type' => 'type de document', 'participants' => 'nombre de participants',
         ];
     }
 }

@@ -15,7 +15,7 @@ class SeoController extends Controller
 {
     public function sitemap(): Response
     {
-        $urls = collect(['site.home', 'site.services', 'site.actualites.index', 'site.temoignages.index', 'site.about', 'site.contact', 'site.devis', 'site.legal', 'site.privacy'])
+        $urls = collect(['site.home', 'site.services', 'site.actualites.index', 'site.temoignages.index', 'site.about', 'site.contact', 'site.devis', 'site.traduction', 'site.personnalisee', 'site.excursion', 'site.legal', 'site.privacy'])
             ->filter(fn ($route) => Route::has($route))
             ->map(fn ($route) => ['loc' => route($route), 'lastmod' => null]);
 

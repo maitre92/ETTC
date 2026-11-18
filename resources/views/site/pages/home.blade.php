@@ -8,13 +8,12 @@
     @php
         $services = Route::has('site.services') ? route('site.services') : null;
         $formations = route('site.formations.index');
-        $demande = fn (string $type) => Route::has('site.devis') ? route('site.devis', ['type' => $type]) : route('site.contact');
         $inscription = route('site.inscription.create');
         $serviceCards = [
             ['blue', 'bxs-graduation', 'Formations par niveau', $niveauxLabel ?: 'Débutant, Intermédiaire et Avancé', 'toque-livres.svg', 'Toque de diplômé sur une pile de livres', $formations],
             ['green', 'bx-desktop', 'Cours en ligne interactifs', 'Séances en direct via Google Meet', 'ordinateur-visio.svg', 'Ordinateur portable en visioconférence', $services ? $services.'#cours-en-ligne-interactifs' : route('site.home').'#formules'],
-            ['yellow', 'bx-transfer-alt', 'Traduction professionnelle', 'Traduction de documents et dossiers (FR ⇄ EN)', 'documents-stylo.svg', 'Documents à traduire et stylo', $demande('traduction')],
-            ['green', 'bxs-plane-take-off', 'Excursion au Ghana', 'Immersion linguistique et culturelle', 'arc-ghana.webp', 'Arc de l\'Indépendance à Accra et drapeau du Ghana', $demande('excursion')],
+            ['yellow', 'bx-transfer-alt', 'Traduction professionnelle', 'Traduction de documents et dossiers (FR ⇄ EN)', 'documents-stylo.svg', 'Documents à traduire et stylo', route('site.traduction')],
+            ['green', 'bxs-plane-take-off', 'Excursion au Ghana', 'Immersion linguistique et culturelle', 'arc-ghana.webp', 'Arc de l\'Indépendance à Accra et drapeau du Ghana', route('site.excursion')],
         ];
         $whyColors = ['yellow', 'blue', 'green', 'orange'];
     @endphp
@@ -79,7 +78,7 @@
                     @include('site.formations._formule', ['formule' => $formule])
                 @endforeach
                 <div class="ettc-formula-side">
-                    <a href="{{ $demande('formation_personnalisee') }}" class="ettc-side-card ettc-tone-blue">
+                    <a href="{{ route('site.personnalisee') }}" class="ettc-side-card ettc-tone-blue">
                         <i class='bx bxs-group' aria-hidden="true"></i>
                         <span><strong>Formation personnalisée</strong><small>Une formation adaptée à vos besoins avec un entretien préalable.</small></span>
                     </a>

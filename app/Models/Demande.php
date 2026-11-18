@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -24,7 +25,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'type', 'status', 'name', 'organization', 'email', 'phone', 'subject', 'message', 'need_type', 'budget', 'deadline',
     'availability', 'subject_type', 'subject_id', 'subject_label', 'source_url', 'attachment_path', 'attachment_name',
     'attachment_size', 'consent_at', 'ip_address', 'user_agent', 'assigned_to', 'client_id', 'closed_reason', 'status_changed_at',
-    'notified_at', 'notification_error',
+    'notified_at', 'notification_error', 'source_language', 'target_language', 'document_type', 'participants',
+    'proposal_amount', 'proposal_text', 'proposal_sent_at', 'proposal_token', 'accepted_at',
 ])]
 class Demande extends Model
 {
@@ -38,6 +40,7 @@ class Demande extends Model
             'status' => DemandeStatus::class,
             'need_type' => NeedType::class,
             'consent_at' => 'datetime',
+            'participants' => 'integer', 'proposal_amount' => 'integer', 'proposal_sent_at' => 'datetime', 'accepted_at' => 'datetime',
             'status_changed_at' => 'datetime',
             'notified_at' => 'datetime',
             'attachment_size' => 'integer',
@@ -95,5 +98,22 @@ class Demande extends Model
     public function activityLabel(): string
     {
         return $this->reference().' — '.$this->name;
+    }
+
+    /** Langues d'une traduction : « Français → Anglais ». */
+    public function languagesLabel(): ?string
+    {
+        return $this->source_language || $this->target_language ? trim(($this->source_language ?? '?').' → '.($this->target_language ?? '?')) : null;
+    }
+
+    /** Une proposition chiffrée peut être faite : demande d'un service (traduction, formation personnalisée, excursion…). */
+    public function acceptsProposal(): bool
+    {
+        return $this->type === DemandeType::Devis;
+    }
+
+    public function inscription(): HasOne
+    {
+        return $this->hasOne(Inscription::class);
     }
 }

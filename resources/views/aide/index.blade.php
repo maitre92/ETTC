@@ -29,7 +29,7 @@
             ['bx bx-envelope', 'Traiter les demandes', [
                 'Chaque formulaire du site (contact, demande avec pièce jointe) crée une demande « Nouvelle » et envoie un e-mail à l\'équipe. Une pastille dans le menu et la cloche signalent les nouvelles demandes.',
                 'Demandes → bouton « œil » : la fiche montre le demandeur, son message, le contenu concerné et la pièce jointe éventuelle (à télécharger).',
-                'Faites évoluer le statut : En cours (prise en charge, la demande vous est attribuée), Devis envoyé, Gagnée, ou Perdue / clôturée avec un motif.',
+                'Faites évoluer le statut : En cours (prise en charge, la demande vous est attribuée), Proposition envoyée, Acceptée, ou Perdue / clôturée avec un motif.',
                 'Les notes internes (échanges, relances) ne sont visibles que par l\'équipe. « Répondre par e-mail » et « Appeler » ouvrent directement votre messagerie ou votre téléphone.',
                 'Si l\'e-mail de notification n\'a pas pu partir, la fiche l\'indique avec un bouton « Réessayer » : la demande, elle, n\'est jamais perdue.',
                 '« Exporter (Excel) » télécharge les demandes filtrées (type, statut, période) dans un fichier qui s\'ouvre dans Excel.',
@@ -62,6 +62,11 @@
                 'Les numéros marchands et les consignes se règlent en bas de l\'écran Paiements. Un numéro vide : ce moyen n\'est pas proposé aux apprenants.',
                 'Un paiement confirmé fait passer l\'inscription « En cours ». Le tableau « Impayés » liste les inscriptions qui ont encore un reste à payer.',
                 'Un paiement ne se supprime jamais : « Annuler » s\'il a été saisi par erreur, « Rembourser » si l\'argent a été rendu (motif obligatoire). Le reçu reste consultable avec son statut. Bouton « Imprimer / PDF » sur chaque reçu.',
+            ]],
+            ['bx bx-transfer-alt', 'Traductions, formations personnalisées et excursion', [
+                'Les pages Traduction, Formation personnalisée et Excursion au Ghana du site ont chacune leur formulaire ; les demandes arrivent dans Demandes (filtre « Tous les types » pour les retrouver). Leurs textes se modifient dans Pages et paramètres.',
+                'Sur la demande, carte « Proposition » : le montant et ce qu\'il comprend, puis « Envoyer la proposition ». Le demandeur la reçoit par e-mail (sinon, bouton « Envoyer le lien par WhatsApp ») et l\'accepte d\'un clic ; vous êtes prévenu et la demande passe « Acceptée ».',
+                'Formation personnalisée acceptée : bouton « Inscrire » (choisir présentiel ou en ligne) ; l\'inscription est créée au tarif accepté et s\'encaisse comme les autres.',
             ]],
             ['bx bx-calendar', 'Organiser les groupes et les séances', [
                 'Séances et groupes → « Nouveau groupe » : un nom, en ligne ou au centre, le lien Google Meet (un lien collé sans son début est complété tout seul) ou la salle, le niveau et le formateur.',

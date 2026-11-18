@@ -8,13 +8,12 @@
     $logoUrl = $site->imageUrl('site.logo', 'assets/site/img/logo-ettc.png');
     $clientUser = auth('client')->user();
     $services = Route::has('site.services') ? route('site.services') : null;
-    $demande = fn (string $type) => Route::has('site.devis') ? route('site.devis', ['type' => $type]) : null;
     // [libellé, adresse, motif de route active]
     $menu = array_filter([
         ['À propos', Route::has('site.about') ? route('site.about') : null, 'site.about'],
         'formations',
-        ['Traduction', $demande('traduction'), null],
-        ['Excursion au Ghana', $demande('excursion'), null],
+        ['Traduction', route('site.traduction'), 'site.traduction'],
+        ['Excursion au Ghana', route('site.excursion'), 'site.excursion'],
         ['Test de niveau', route('site.tests.show'), 'site.tests.*'],
         ['Actualités', Route::has('site.actualites.index') ? route('site.actualites.index') : null, 'site.actualites.*'],
         ['Contact', Route::has('site.contact') ? route('site.contact') : null, 'site.contact*'],
@@ -23,7 +22,7 @@
         ['Nos formations par niveau', route('site.formations.index')],
         ['Formules et tarifs', route('site.formations.index').'#tarifs'],
         ['Réserver mon test de niveau', route('site.tests.show').'#reserver'],
-        ['Formation personnalisée', $demande('formation_personnalisee')],
+        ['Formation personnalisée', route('site.personnalisee')],
         ['Tous nos services', $services],
     ], fn ($item) => $item[1] !== null);
 @endphp

@@ -141,7 +141,8 @@ class FormationsTest extends TestCase
 
     public function test_the_planned_module_disappears_now_that_it_is_built(): void
     {
-        $this->actingAs($this->superadmin())->get('/admin')->assertOk()->assertDontSee('/modules/formations"', false)->assertSee('/modules/formations_personnalisees"', false);
+        $this->actingAs($this->superadmin())->get('/admin')->assertOk()->assertDontSee('/modules/formations"', false)
+            ->assertDontSee('/modules/formations_personnalisees"', false)->assertDontSee('/modules/traductions"', false)->assertSee('/modules/finances"', false);
         $this->get('/admin/modules/formations')->assertNotFound();
     }
 }

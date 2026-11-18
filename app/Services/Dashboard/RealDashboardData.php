@@ -220,7 +220,7 @@ class RealDashboardData
                 'title' => 'CE MOIS-CI', 'icon' => 'bx bx-calendar',
                 'columns' => ['Indicateur', 'Valeur'],
                 'rows' => array_merge(
-                    [['Demandes reçues', (string) $total], ['Gagnées', (string) $won], ['Taux de conversion', $total ? round($won * 100 / $total).' %' : '—']],
+                    [['Demandes reçues', (string) $total], ['Acceptées', (string) $won], ['Taux de conversion', $total ? round($won * 100 / $total).' %' : '—']],
                     collect(DemandeType::cases())->map(fn (DemandeType $t) => [$t->label(), (string) (clone $month)->where('type', $t->value)->count()])->all(),
                 ),
             ],

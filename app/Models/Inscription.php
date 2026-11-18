@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * FIGÉ au moment de l'inscription (formule, durée, périodicité, prix, total), identité recopiée, session.
  */
 #[Fillable([
-    'number', 'status', 'source', 'client_id', 'test_niveau_id', 'name', 'birth_date', 'gender', 'phone', 'email',
+    'number', 'status', 'source', 'client_id', 'test_niveau_id', 'demande_id', 'name', 'birth_date', 'gender', 'phone', 'email',
     'address', 'city', 'message', 'niveau_id', 'formule_id', 'mode', 'payment_choice', 'formule_name',
     'duration_months', 'billing', 'unit_price', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'validated_at', 'validated_by',
     'started_at', 'finished_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
@@ -68,6 +68,11 @@ class Inscription extends Model
     public function validator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validated_by')->withTrashed();
+    }
+
+    public function demande(): BelongsTo
+    {
+        return $this->belongsTo(Demande::class)->withTrashed();
     }
 
     public function groupe(): BelongsTo

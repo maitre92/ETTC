@@ -12,6 +12,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/demandes/{demande}/statut', [DemandeController::class, 'status'])->middleware('permission:demandes.update')->name('demandes.status');
     Route::put('/demandes/{demande}/attribution', [DemandeController::class, 'assign'])->middleware('permission:demandes.update')->name('demandes.assign');
     Route::post('/demandes/{demande}/notes', [DemandeController::class, 'note'])->middleware('permission:demandes.update')->name('demandes.notes.store');
+    Route::post('/demandes/{demande}/proposition', [DemandeController::class, 'proposal'])->middleware('permission:demandes.update')->name('demandes.proposal');
+    Route::post('/demandes/{demande}/inscription', [DemandeController::class, 'inscribe'])->middleware('permission:demandes.update')->name('demandes.inscribe');
     Route::post('/demandes/{demande}/notification', [DemandeController::class, 'resend'])->middleware('permission:demandes.update')->name('demandes.notify');
     Route::delete('/demandes/{demande}', [DemandeController::class, 'destroy'])->middleware('permission:demandes.delete')->name('demandes.destroy');
 });

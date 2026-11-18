@@ -39,7 +39,7 @@
         <div class="col-12 col-xl-8">
             <div class="card">
                 <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <h6 class="mb-0 text-white"><i class='{{ $demande->type->icon() }} me-2'></i>{{ mb_strtoupper($demande->type->label()) }}</h6>
+                    <h6 class="mb-0 text-white"><i class='{{ $demande->type->icon() }} me-2'></i>{{ mb_strtoupper($demande->need_type?->label() ?? $demande->type->label()) }}</h6>
                     <span class="badge {{ $demande->status->badge() }}">{{ $demande->status->label() }}</span>
                 </div>
                 <div class="card-body">
@@ -67,6 +67,9 @@
                                         </dd>
                                     @endif
                                     @if ($demande->need_type)<dt>Besoin</dt><dd>{{ $demande->need_type->label() }}</dd>@endif
+                                    @if ($demande->languagesLabel())<dt>Langues</dt><dd>{{ $demande->languagesLabel() }}</dd>@endif
+                                    @if ($demande->document_type)<dt>Document</dt><dd>{{ $demande->document_type }}</dd>@endif
+                                    @if ($demande->participants)<dt>Participants</dt><dd>{{ $demande->participants }}</dd>@endif
                                     @if ($demande->budget)<dt>Budget</dt><dd>{{ $demande->budget }}</dd>@endif
                                     @if ($demande->deadline)<dt>Délai</dt><dd>{{ $demande->deadline }}</dd>@endif
                                     @if ($demande->availability)<dt>Disponibilités</dt><dd>{{ $demande->availability }}</dd>@endif
@@ -119,6 +122,50 @@
         </div>
 
         <div class="col-12 col-xl-4">
+            @if ($demande->acceptsProposal())
+                @can('update', $demande)
+                    {{-- Proposition chiffrée (cahier §3.7, §3.9, §3.10) : un montant, un texte, envoyés au demandeur qui accepte d'un clic. --}}
+                    <div class="card border-primary">
+                        <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-white"><i class='bx bx-purchase-tag me-2'></i>PROPOSITION</h6>
+                            @if ($demande->accepted_at)<span class="badge bg-success">Acceptée le {{ $demande->accepted_at->format('d/m/Y') }}</span>@elseif ($demande->proposal_sent_at)<span class="badge bg-info-subtle">Envoyée le {{ $demande->proposal_sent_at->format('d/m/Y') }}</span>@endif
+                        </div>
+                        <div class="card-body">
+                            @if ($demande->accepted_at)
+                                <p class="fs-4 fw-bold text-success mb-1">{{ \App\Models\Formule::money((int) $demande->proposal_amount) }}</p>
+                                <p class="small">{!! nl2br(e($demande->proposal_text)) !!}</p>
+                                @if ($demande->need_type === \App\Enums\NeedType::FormationPersonnalisee)
+                                    @if ($demande->inscription)
+                                        <a href="{{ route('inscriptions.show', $demande->inscription) }}" class="btn btn-primary w-100"><i class='bx bx-show me-1'></i>Voir l'inscription {{ $demande->inscription->number }}</a>
+                                    @elseif (auth()->user()->can('inscriptions.create'))
+                                        <p class="small mb-2">Dernière étape : créer son inscription au tarif accepté, puis encaisser.</p>
+                                        <form method="POST" action="{{ route('demandes.inscribe', $demande) }}" class="d-flex gap-2">
+                                            @csrf
+                                            <select class="form-select" name="mode" aria-label="Mode de formation">@foreach (\App\Enums\FormationMode::options() as $value => $label)<option value="{{ $value }}" @selected($value === 'presentiel')>{{ $label }}</option>@endforeach</select>
+                                            <button type="submit" class="btn btn-success text-nowrap"><i class='bx bx-user-check me-1'></i>Inscrire</button>
+                                        </form>
+                                    @endif
+                                @endif
+                            @else
+                                <form method="POST" action="{{ route('demandes.proposal', $demande) }}">
+                                    @csrf
+                                    <label class="form-label fw-semibold" for="p-amount">Montant (FCFA)</label>
+                                    <input class="form-control form-control-lg @error('proposal_amount') is-invalid @enderror" id="p-amount" name="proposal_amount" type="number" min="1" step="1" required value="{{ old('proposal_amount', $demande->proposal_amount) }}">
+                                    @error('proposal_amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <label class="form-label fw-semibold mt-2" for="p-text">Ce que comprend la proposition</label>
+                                    <textarea class="form-control @error('proposal_text') is-invalid @enderror" id="p-text" name="proposal_text" rows="4" maxlength="3000" required placeholder="{{ match ($demande->need_type) { \App\Enums\NeedType::Traduction => 'Traduction de 3 pages, livrée sous 5 jours…', \App\Enums\NeedType::FormationPersonnalisee => '12 séances d\'1 h 30, 2 fois par semaine, en ligne…', \App\Enums\NeedType::Excursion => 'Voyage du … au …, transport, hébergement, activités…', default => 'Détail de la proposition…' } }}">{{ old('proposal_text', $demande->proposal_text) }}</textarea>
+                                    @error('proposal_text')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    <button type="submit" class="btn btn-success btn-lg w-100 mt-3"><i class='bx bx-send me-1'></i>{{ $demande->proposal_sent_at ? 'Renvoyer la proposition' : 'Envoyer la proposition' }}</button>
+                                    <p class="small text-muted mt-2 mb-0">{{ $demande->email ? 'Le demandeur la reçoit par e-mail et l\'accepte d\'un clic.' : 'Pas d\'e-mail : après l\'envoi, transmettez-lui le lien par WhatsApp.' }}</p>
+                                </form>
+                                @if ($demande->proposal_token && ($wa = app(\App\Support\SiteSettings::class)->whatsappTo($demande->phone, 'Bonjour '.$demande->name.', voici notre proposition : '.route('site.proposition.show', $demande->proposal_token))))
+                                    <a href="{{ $wa }}" class="btn btn-outline-success w-100 mt-2" target="_blank" rel="noopener"><i class='bx bxl-whatsapp me-1'></i>Envoyer le lien par WhatsApp</a>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                @endcan
+            @endif
             @can('update', $demande)
                 <div class="card">
                     <div class="card-header card-header-brand">

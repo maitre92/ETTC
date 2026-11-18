@@ -16,8 +16,8 @@ enum DemandeStatus: string
         return match ($this) {
             self::Nouvelle => 'Nouvelle',
             self::EnCours => 'En cours',
-            self::DevisEnvoye => 'Devis envoyé',
-            self::Gagnee => 'Gagnée',
+            self::DevisEnvoye => 'Proposition envoyée',
+            self::Gagnee => 'Acceptée',
             self::Perdue => 'Perdue / clôturée',
         };
     }

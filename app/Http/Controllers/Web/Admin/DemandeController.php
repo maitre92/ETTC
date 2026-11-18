@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\DemandeStatus;
 use App\Enums\DemandeType;
+use App\Enums\FormationMode;
 use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
@@ -11,6 +12,7 @@ use App\Models\Demande;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Demandes\DemandeService;
+use App\Services\Demandes\PropositionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +87,31 @@ class DemandeController extends Controller
         }
 
         return redirect()->route('demandes.show', $demande)->with('status', 'Note ajoutée.');
+    }
+
+    /** Proposition chiffrée envoyée au demandeur (lien d'acceptation). */
+    public function proposal(Request $request, Demande $demande, PropositionService $propositions): RedirectResponse
+    {
+        Gate::authorize('update', $demande);
+        abort_unless($demande->acceptsProposal(), 404);
+        $data = $request->validate([
+            'proposal_amount' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'proposal_text' => ['required', 'string', 'max:3000'],
+        ], [], ['proposal_amount' => 'montant', 'proposal_text' => 'détail de la proposition']);
+        $propositions->send($demande, (int) $data['proposal_amount'], trim($data['proposal_text']), $request->user());
+
+        return redirect()->route('demandes.show', $demande)->with('status', $demande->email ? 'Proposition envoyée par e-mail.' : 'Proposition enregistrée : envoyez le lien par WhatsApp.');
+    }
+
+    /** Formation personnalisée acceptée → inscription au tarif proposé. */
+    public function inscribe(Request $request, Demande $demande, PropositionService $propositions): RedirectResponse
+    {
+        Gate::authorize('update', $demande);
+        abort_unless($request->user()->can('inscriptions.create') && $demande->accepted_at, 403);
+        $mode = $request->validate(['mode' => ['required', Rule::enum(FormationMode::class)]])['mode'];
+        $inscription = $propositions->inscribe($demande, FormationMode::from($mode), $request->user());
+
+        return redirect()->route('inscriptions.show', $inscription)->with('status', "Inscription {$inscription->number} créée au tarif accepté : vous pouvez encaisser.");
     }
 
     public function resend(Demande $demande): RedirectResponse

@@ -69,6 +69,22 @@ class SiteSettings
             'about.values' => ['Valeurs', 'textarea', 1000, 'Une valeur par ligne.'],
             'about.method' => ['Méthode de travail', 'textarea', 1500, 'Une étape par ligne.'],
         ]],
+        // Services du centre (cahier §3.7, §3.9, §3.10) : textes des pages publiques, modifiables à tout moment.
+        'traduction' => ['label' => 'Traduction', 'permission' => 'pages.update', 'icon' => 'bx bx-transfer-alt', 'fields' => [
+            'traduction.presentation' => ['Présentation de la traduction', 'markdown', 5000, 'Prestations, langues, délais, confidentialité. Le formulaire de demande s\'affiche à côté.'],
+        ]],
+        'personnalisee' => ['label' => 'Formation personnalisée', 'permission' => 'pages.update', 'icon' => 'bx bx-customize', 'fields' => [
+            'personnalisee.presentation' => ['Présentation de la formation personnalisée', 'markdown', 5000],
+        ]],
+        'excursion' => ['label' => 'Excursion au Ghana', 'permission' => 'pages.update', 'icon' => 'bx bxs-plane-take-off', 'fields' => [
+            'excursion.presentation' => ['Présentation et objectifs', 'markdown', 5000],
+            'excursion.dates' => ['Dates ou période', 'text', 200, 'Ex. « Du 10 au 20 août 2027 ». Laissée vide : « dates communiquées sur demande ».'],
+            'excursion.price' => ['Tarif', 'text', 200, 'Ex. « 450 000 FCFA par personne ». Laissé vide : « tarif sur demande ».'],
+            'excursion.included' => ['Prestations incluses', 'textarea', 1500, 'Une prestation par ligne.'],
+            'excursion.program' => ['Programme et activités', 'markdown', 5000],
+            'excursion.conditions' => ['Conditions, documents requis et annulation', 'markdown', 5000],
+            'excursion.booking' => ['Réservation et paiement', 'markdown', 3000],
+        ]],
         'legal' => ['label' => 'Pages légales', 'permission' => 'pages.update', 'icon' => 'bx bx-shield-quarter', 'fields' => [
             'legal.mentions' => ['Mentions légales', 'markdown', 20000],
             'legal.privacy' => ['Politique de confidentialité', 'markdown', 20000],

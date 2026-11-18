@@ -55,6 +55,17 @@ return [
         // Présentation du test de niveau (Tests de niveau → Présentation sur le site), modifiable par le centre.
         // Le test est GRATUIT (décision du centre, 2026-11-17) : seule l'inscription à une formation est payante.
         'test.presentation' => "## Pourquoi un test de niveau ?\n\nChaque nouvel apprenant passe un test avant de commencer : il évalue ses connaissances en anglais et permet de l'orienter vers le niveau qui lui correspond (débutant, intermédiaire ou avancé).\n\n## Déroulement\n\n- Le test est **gratuit**.\n- Il se passe **au centre** ou **à distance**, selon votre choix.\n- Le centre vous communique ensuite votre niveau et la formule conseillée.",
+        // Services du centre (Pages et paramètres → Traduction / Formation personnalisée / Excursion au Ghana).
+        'traduction.presentation' => "## Nos prestations\n\nLe centre traduit vos documents du français vers l'anglais et de l'anglais vers le français : documents administratifs, académiques, commerciaux, techniques et correspondances.\n\n## Comment ça se passe ?\n\n1. Vous décrivez votre besoin et joignez le document.\n2. Nous l'étudions et vous envoyons une estimation du prix et du délai.\n3. Vous acceptez la proposition d'un clic, puis nous traduisons.\n\n## Confidentialité\n\nVos documents restent privés : ils ne sont consultés que par l'équipe chargée de la traduction.",
+        'personnalisee.presentation' => "## Une formation construite pour vous\n\nVos objectifs (études, travail, voyage, entretien…), votre niveau, votre rythme : nous adaptons le contenu et l'accompagnement à votre besoin.\n\n## Comment ça se passe ?\n\n1. Vous décrivez vos objectifs.\n2. Nous échangeons avec vous lors d'un entretien.\n3. Vous recevez une proposition chiffrée et l'acceptez d'un clic.\n4. Votre formation commence.",
+        'excursion.presentation' => "## Pratiquer l'anglais en situation réelle\n\nL'excursion au Ghana est une immersion linguistique et culturelle : parler anglais au quotidien, découvrir un pays anglophone voisin et sa culture, en groupe et accompagné par le centre.",
+        'excursion.dates' => '',
+        'excursion.price' => '',
+        'excursion.included' => "Accompagnement par le centre\nActivités de pratique de l'anglais\nVisites culturelles",
+        'excursion.program' => 'Visites, échanges avec des locuteurs anglophones, activités de groupe et découverte culturelle. Le programme détaillé est communiqué aux participants.',
+        'excursion.conditions' => "Les conditions de participation, les documents de voyage requis et les modalités d'annulation sont communiqués avec la confirmation de réservation.",
+        'excursion.booking' => 'Remplissez le formulaire : le centre vous recontacte pour confirmer votre place et vous indiquer les modalités de paiement.',
+
         // Moyens de paiement (Paiements → Moyens de paiement, décision du centre 2026-11-18) : en ligne par mobile money,
         // en présentiel au centre. Numéros marchands vides = moyen non proposé à l'apprenant (à fournir par le centre).
         'paiement.orange_money' => '',

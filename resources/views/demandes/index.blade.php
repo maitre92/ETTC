@@ -36,8 +36,9 @@
                 <div style="min-width: 220px">
                     <select class="form-select form-select-sm" id="demandes-type-filter" aria-label="Filtrer par type">
                         <option value="">Tous les types</option>
-                        @foreach (\App\Enums\DemandeType::cases() as $type)
-                            <option value="{{ $type->label() }}">{{ $type->label() }}</option>
+                        <option value="{{ \App\Enums\DemandeType::Contact->label() }}">{{ \App\Enums\DemandeType::Contact->label() }}</option>
+                        @foreach (\App\Enums\NeedType::cases() as $need)
+                            <option value="{{ $need->label() }}">{{ $need->label() }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -58,7 +59,7 @@
                         @foreach ($demandes as $demande)
                             <tr class="{{ $demande->status === \App\Enums\DemandeStatus::Nouvelle ? 'fw-semibold' : '' }}">
                                 <td data-order="{{ $demande->created_at->timestamp }}">{{ $demande->created_at->format('d/m/Y H:i') }}<div class="small text-muted fw-normal">{{ $demande->reference() }}</div></td>
-                                <td><i class='{{ $demande->type->icon() }} me-1 text-primary'></i>{{ $demande->type->label() }}</td>
+                                <td><i class='{{ $demande->type->icon() }} me-1 text-primary'></i>{{ $demande->need_type?->label() ?? $demande->type->label() }}@if ($demande->accepted_at)<div class="small text-success fw-normal">Proposition acceptée</div>@elseif ($demande->proposal_sent_at)<div class="small text-muted fw-normal">Proposition envoyée</div>@endif</td>
                                 <td class="cell-wrap text-break">
                                     {{ $demande->name }}
                                     <div class="small text-muted fw-normal">{{ collect([$demande->organization, $demande->contactLine()])->filter()->implode(' · ') }}</div>
