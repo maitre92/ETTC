@@ -234,7 +234,7 @@ class RealDashboardData
             ],
         ];
 
-        $dashboard['sections'][] = ['title' => 'Demandes commerciales', 'icon' => 'bx bx-briefcase', 'cards' => $cards, 'tables' => $tables, 'chart' => $this->demandesChart(14)];
+        $dashboard['sections'][] = ['title' => 'Demandes', 'icon' => 'bx bx-briefcase', 'cards' => $cards, 'tables' => $tables, 'chart' => $this->demandesChart(14)];
     }
 
     /** Demandes reçues et gagnées par jour (graphique du tableau de bord). */

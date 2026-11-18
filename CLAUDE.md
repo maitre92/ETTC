@@ -141,6 +141,15 @@ Les noms des rôles `gestionnaire` et `commercial` sont hérités ; leur libell�
 
 **Fait — phase 8, finances, commission et statistiques** (2026-11-20, cahier §5 « Gestion financière », « Statistiques », §8) : manifeste `finances` (`view`, `export`, `payout`, `configure` ; le taux et le périmètre de la commission, fixés par le contrat, ne se règlent que par le superadmin = le développeur). **Commission figée sur chaque paiement** confirmé (`paiements.commission_rate`, `commission_amount`, `CommissionCalculator` : taux `finance.commission_rate`, 20 % par défaut ; frais de formation seulement, formations personnalisées incluses seulement si `finance.include_personnalisee` = 1, à convenir) ; paiements déjà confirmés repris à 20 % par la migration ; remboursé ou annulé = exclu. Table `commission_versements` (mois, montant, date, moyen, référence). Écran **Finances et commission** (`FinanceService`) : période (ce mois, mois dernier, cette année, depuis le début, dates), frais de test (gratuit) et de formation séparés, part du centre, commission, versé, reste ; **mois par mois** avec « Verser » (montant restant proposé) ; statistiques (inscriptions, apprenants en formation, reste à encaisser, par niveau, formule, mode) ; derniers versements ; réglage du taux. **Rapport PDF** (`pdf/rapport-finances`) et **export CSV** des paiements avec la commission. Tableau de bord : « Commission restant à payer ». Regroupement par mois en PHP (MariaDB en mode strict refuse un GROUP BY sur un alias).
 
+**Fait — préparation de la mise en ligne et retouches** (2026-11-20, demandes du centre) :
+- **« Prêt pour la mise en ligne ? »** (`App\Services\System\LaunchChecklist`) : carte sur l'écran Système et `php artisan site:verifier` (code 1 si un point bloque) — production, HTTPS, e-mails, destinataire des alertes, `storage:link`, mot de passe du superadmin changé, données de test, paiement simulé désactivé, formules publiées ; conseils : numéros mobile money, paiement automatique, logo, excursion, cron.
+- **`php artisan donnees-test:supprimer`** (`TestDataCleaner`) : retire définitivement les seules données de `DonneesTestSeeder` (adresses `@test.ettc.ml`, mentions « (test) ») et ce qui en dépend ; jamais une donnée réelle.
+- **Rôle « Secrétaire »** : libellé du rôle technique `commercial` (inchangé dans le code, les permissions et la base), placé juste après l'administrateur (niveau 60). Fil d'Ariane « Demandes et apprenants » au lieu de « Commercial ».
+- **En-tête unique des PDF** (`pdf/_entete.blade.php`, modèle du ticket : logo centré, sigle, nom, ville · téléphone, pointillés) pour le ticket, le reçu A5 et le rapport financier ; `ReceiptService::logoDataUri()`.
+- **QR code des reçus** : le reçu en clair (centre, numéro, apprenant, montant, date, statut) puis le lien de vérification — lisible même sans internet ; en développement le lien pointe sur `localhost`, en ligne sur `APP_URL`.
+- **Ordre d'affichage** (formules, niveaux, services, catégories) : proposé d'office à la fin (plus grand + 10), aide sous le champ.
+- Mise à jour de sécurité de Laravel / Symfony (`composer audit`) **reportée** : la connexion a coupé le téléchargement ; dépendances remises à l'état validé. À refaire avant la mise en ligne : `composer update laravel/framework symfony/* --with-all-dependencies`, puis tests.
+
 **À faire** : voir le plan (§10).
 
 ## 3. Démarrer
@@ -213,7 +222,7 @@ Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan
 | `superadmin` | 100 | tous |
 | `administrateur` | 80 | `gestionnaire`, `commercial` |
 | `gestionnaire` | 50 | aucun |
-| `commercial` | 50 | aucun |
+| `commercial` (libellé « Secrétaire ») | 60 | aucun |
 
 Source unique : `config/role_hierarchy.php` et `App\Enums\RoleName`.
 

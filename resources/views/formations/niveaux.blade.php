@@ -19,7 +19,7 @@
         'labelOf' => fn ($n) => $n->name,
         'fields' => [
             ['name' => 'name', 'label' => 'Nom du niveau', 'required' => true, 'max' => 100, 'placeholder' => 'Débutant', 'col' => 'col-md-8'],
-            ['name' => 'sort_order', 'label' => 'Ordre d\'affichage', 'type' => 'number', 'required' => true, 'default' => 0, 'col' => 'col-md-4'],
+            ['name' => 'sort_order', 'label' => 'Ordre d\'affichage', 'type' => 'number', 'required' => true, 'default' => ((int) $niveaux->max('sort_order')) + 10, 'help' => 'Place sur le site : le plus petit nombre s\'affiche en premier (10, puis 20, puis 30…). Déjà rempli pour mettre le nouvel élément à la fin ; pour le glisser entre 10 et 20, mettez 15.', 'col' => 'col-md-4'],
             ['name' => 'summary', 'label' => 'Résumé', 'type' => 'textarea', 'required' => true, 'max' => 300, 'help' => 'Deux lignes au plus : affiché sur la carte du niveau.'],
             ['name' => 'objectives', 'label' => 'Objectifs pédagogiques', 'type' => 'textarea', 'max' => 3000, 'help' => 'Un objectif par ligne.'],
             ['name' => 'skills', 'label' => 'Compétences visées', 'type' => 'textarea', 'max' => 3000, 'help' => 'Une compétence par ligne.'],

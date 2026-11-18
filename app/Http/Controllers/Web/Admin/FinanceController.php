@@ -7,6 +7,7 @@ use App\Models\CommissionVersement;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Finances\CommissionCalculator;
 use App\Services\Finances\FinanceService;
+use App\Services\Paiements\ReceiptService;
 use App\Support\SiteSettings;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
@@ -76,7 +77,7 @@ class FinanceController extends Controller
         abort_unless($request->user()->can('finances.export'), 403);
         [$from, $to] = $this->period($request);
         $pdf = Pdf::loadView('pdf.rapport-finances', [
-            'from' => $from, 'to' => $to, 'site' => $settings,
+            'from' => $from, 'to' => $to, 'site' => $settings, 'logo' => ReceiptService::logoDataUri(),
             'totals' => $this->finances->totals($from, $to),
             'monthly' => $this->finances->monthly($from, $to),
             'stats' => $this->finances->stats($from, $to),

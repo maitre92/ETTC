@@ -114,7 +114,7 @@
                 'Les apprenants créent leur compte sur le site (« Mon espace » en haut à droite) ; vous pouvez aussi les créer depuis Clients (une invitation leur est envoyée) et déposer des documents dans leur espace.',
             ]],
             ['bx bx-user-circle', 'Gérer les comptes', [
-                'Paramètres → Utilisateurs → « Ajouter » : nom, numéro de téléphone et rôle (Administrateur, Gestionnaire de contenu, Commercial).',
+                'Paramètres → Utilisateurs → « Ajouter » : nom, numéro de téléphone et rôle (Administrateur, Secrétaire, Gestionnaire de contenu).',
                 'Sans mot de passe saisi, un mot de passe temporaire est généré et affiché une seule fois : transmettez-le à la personne, elle le changera à sa première connexion.',
                 'Un compte qui n\'est plus utilisé se désactive (accès coupé immédiatement) ; un mot de passe oublié se réinitialise depuis la liste.',
             ]],

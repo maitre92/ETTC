@@ -7,13 +7,7 @@
     <style>
         @page { margin: 14mm 12mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #10183f; }
-        .head { width: 100%; border-bottom: 3px solid #f96809; padding-bottom: 8px; }
-        .head td { vertical-align: middle; }
-        .logo { width: 58px; }
-        .name { font-size: 12px; font-weight: bold; color: #045eb5; }
         .muted { color: #5d6b82; }
-        .title { text-align: right; white-space: nowrap; width: 120px; }
-        .title h1 { margin: 0; font-size: 20px; color: #045eb5; letter-spacing: 1px; }
         table.rows { width: 100%; border-collapse: collapse; margin-top: 12px; }
         table.rows td { padding: 6px 0; border-bottom: 1px solid #dfe7f1; vertical-align: top; }
         table.rows td.l { color: #5d6b82; width: 38%; }
@@ -27,17 +21,7 @@
     </style>
 </head>
 <body>
-    <table class="head">
-        <tr>
-            @if ($logo)<td class="logo"><img src="{{ $logo }}" width="54" height="54" alt=""></td>@endif
-            <td>
-                <div class="name">{{ $site->get('company.name') }} ({{ $site->get('company.short_name') }})</div>
-                <div class="muted">{{ collect([$site->get('contact.address'), $site->get('contact.city')])->filter()->implode(', ') }}</div>
-                <div class="muted">{{ collect([$site->get('contact.phone_1'), $site->get('contact.email')])->filter()->implode(' · ') }}</div>
-            </td>
-            <td class="title"><h1>REÇU</h1><div class="muted">N° {{ $paiement->number }}</div></td>
-        </tr>
-    </table>
+    @include('pdf._entete', ['title' => 'REÇU DE PAIEMENT', 'subtitle' => 'N° '.$paiement->number, 'logoSize' => 72])
 
     <table class="rows">
         <tr><td class="l">Reçu de</td><td><strong>{{ $inscription->name }}</strong>@if ($inscription->phone) — {{ $inscription->phone }}@endif</td></tr>

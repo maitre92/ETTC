@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Audit\ActivityLogger;
+use App\Services\System\LaunchChecklist;
 use App\Services\System\SystemStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Artisan;
@@ -15,9 +16,10 @@ use Illuminate\View\View;
  */
 class SystemController extends Controller
 {
-    public function index(SystemStatus $status): View
+    public function index(SystemStatus $status, LaunchChecklist $launch): View
     {
         return view('system.index', [
+            'launch' => $launch->items(),
             'environment' => $status->environment(),
             'database' => $status->database(),
             'queue' => $status->queue(),

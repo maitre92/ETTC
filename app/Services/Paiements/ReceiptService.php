@@ -27,8 +27,8 @@ class ReceiptService
             'paiement' => $paiement,
             'inscription' => $paiement->inscription,
             'site' => $this->settings,
-            'logo' => $this->logo(),
-            'qr' => $this->qr($this->verificationUrl($paiement), $thermal ? 150 : 170),
+            'logo' => self::logoDataUri(),
+            'qr' => $this->qr($this->qrText($paiement), $thermal ? 170 : 190),
             'verifyUrl' => $this->verificationUrl($paiement),
         ]);
 
@@ -39,6 +39,22 @@ class ReceiptService
     public function filename(Paiement $paiement, string $format): string
     {
         return ($format === 'thermique' ? 'Ticket_' : 'Recu_').$paiement->number.'.pdf';
+    }
+
+    /**
+     * Contenu du QR code : le reçu en clair (lisible même sans internet, comme KalanNet), puis le lien de vérification
+     * (page « Reçu authentique » du site, accessible une fois le site en ligne).
+     */
+    public function qrText(Paiement $paiement): string
+    {
+        return implode("\n", [
+            $this->settings->get('company.short_name').' — Reçu '.$paiement->number,
+            'Apprenant : '.$paiement->inscription->name,
+            'Montant : '.number_format($paiement->amount, 0, ',', ' ').' FCFA',
+            'Date : '.$paiement->paid_at->format('d/m/Y'),
+            'Statut : '.$paiement->status->label(),
+            'Vérifier : '.$this->verificationUrl($paiement),
+        ]);
     }
 
     public function verificationUrl(Paiement $paiement): string
@@ -63,8 +79,8 @@ class ReceiptService
         return 'data:image/png;base64,'.base64_encode($qr->getString());
     }
 
-    /** Logo local en data URI (dompdf ne charge aucune ressource distante). */
-    private function logo(): ?string
+    /** Logo local en data URI (dompdf ne charge aucune ressource distante), commun à tous les PDF. */
+    public static function logoDataUri(): ?string
     {
         $path = public_path('assets/site/img/logo-ettc.png');
 

@@ -109,7 +109,7 @@ class PermissionScreensTest extends TestCase
             ->assertOk()
             ->assertSee('Administrateur')
             ->assertSee('Gestionnaire de contenu')
-            ->assertSee('Commercial')
+            ->assertSee('Secrétaire')
             ->assertSee('users.reset_password')
             ->assertSee('Gate::before');
     }

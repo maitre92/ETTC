@@ -44,7 +44,7 @@ class ProfileTest extends TestCase
             ->assertSee('id="tab-password"', false)
             ->assertSee('data-active="info"', false)
             ->assertSee('Chef Test')
-            ->assertSee('Commercial');
+            ->assertSee('Secrétaire');
     }
 
     public function test_a_user_updates_their_name_without_needing_the_password(): void

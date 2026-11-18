@@ -8,7 +8,6 @@
     <style>
         @page { margin: 14mm 12mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 9.5px; color: #10183f; }
-        h1 { font-size: 16px; color: #045eb5; margin: 0 0 2px; }
         h2 { font-size: 11px; color: #045eb5; margin: 16px 0 6px; text-transform: uppercase; }
         .muted { color: #5d6b82; }
         table { width: 100%; border-collapse: collapse; }
@@ -17,14 +16,10 @@
         .r { text-align: right; }
         .kpi td { border: 1px solid #dfe7f1; padding: 6px; width: 33%; }
         .kpi strong { display: block; font-size: 12px; }
-        .head { border-bottom: 3px solid #f96809; padding-bottom: 6px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
-    <div class="head">
-        <h1>Rapport financier — {{ $site->get('company.short_name') }}</h1>
-        <div class="muted">{{ $site->get('company.name') }} · du {{ $from->format('d/m/Y') }} au {{ $to->format('d/m/Y') }} · édité le {{ now()->format('d/m/Y à H:i') }}</div>
-    </div>
+    @include('pdf._entete', ['title' => 'RAPPORT FINANCIER', 'subtitle' => 'Du '.$from->format('d/m/Y').' au '.$to->format('d/m/Y').' · édité le '.now()->format('d/m/Y à H:i'), 'logoSize' => 72])
 
     <table class="kpi">
         <tr>

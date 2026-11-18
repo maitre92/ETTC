@@ -17,16 +17,7 @@
     </style>
 </head>
 <body>
-    <div class="c">
-        @if ($logo)<img src="{{ $logo }}" width="64" height="64" alt="" style="margin-bottom: 3px">@endif
-        <div class="title">{{ $site->get('company.short_name') }}</div>
-        <div>{{ $site->get('company.name') }}</div>
-        <div>{{ $site->get('contact.city') }}@if ($site->get('contact.phone_1')) · {{ $site->get('contact.phone_1') }}@endif</div>
-        <div class="line"></div>
-        <div><strong>REÇU DE PAIEMENT</strong></div>
-        <div>N° {{ $paiement->number }}</div>
-    </div>
-    <div class="line"></div>
+    @include('pdf._entete', ['title' => 'REÇU DE PAIEMENT', 'subtitle' => 'N° '.$paiement->number])
     <table>
         <tr><td>Date</td><td class="r">{{ $paiement->paid_at->format('d/m/Y') }}</td></tr>
         <tr><td>Apprenant</td><td class="r">{{ $inscription->name }}</td></tr>
@@ -46,7 +37,7 @@
     </table>
     <div class="line"></div>
     <div class="c">
-        <img src="{{ $qr }}" width="92" height="92" alt="">
+        <img src="{{ $qr }}" width="104" height="104" alt="">
         <div>Scannez pour vérifier ce reçu</div>
     </div>
     <div class="line"></div>

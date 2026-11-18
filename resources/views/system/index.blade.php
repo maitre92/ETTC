@@ -22,6 +22,25 @@
         </div>
 
         <div class="col-12 col-lg-9">
+    {{-- Prêt pour la mise en ligne ? (LaunchChecklist ; aussi : php artisan site:verifier) --}}
+    @php $launchBlocking = collect($launch)->where('state', 'bloquant')->count(); @endphp
+    <div class="card {{ $launchBlocking ? 'border-warning' : 'border-success' }}">
+        <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h6 class="mb-0 text-white"><i class='bx bx-rocket me-2'></i>PRÊT POUR LA MISE EN LIGNE ?</h6>
+            <span class="badge {{ $launchBlocking ? 'bg-warning text-dark' : 'bg-success' }}">{{ $launchBlocking ? $launchBlocking.' point(s) à revoir' : 'Prêt' }}</span>
+        </div>
+        <div class="card-body">
+            @foreach ($launch as $launchItem)
+                <div class="d-flex gap-2 py-2 border-bottom">
+                    <i class='bx fs-5 {{ ['ok' => 'bx-check-circle text-success', 'bloquant' => 'bx-error-circle text-danger', 'conseil' => 'bx-info-circle text-warning'][$launchItem['state']] }}'></i>
+                    <div>
+                        <div class="{{ $launchItem['state'] === 'bloquant' ? 'fw-semibold' : '' }}">{{ $launchItem['label'] }}</div>
+                        @if ($launchItem['state'] !== 'ok')<div class="small text-muted">{{ $launchItem['help'] }}</div>@endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
     <div class="row">
         <div class="col-12">
             <div class="card">

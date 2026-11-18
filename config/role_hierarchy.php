@@ -17,8 +17,9 @@ return [
     'levels' => [
         'superadmin' => 100,
         'administrateur' => 80,
+        // Secrétaire (`commercial`) juste après l'administrateur (demande du centre, 2026-11-18).
+        'commercial' => 60,
         'gestionnaire' => 50,
-        'commercial' => 50,
     ],
 
     // Plafond de rôle : rôles qu'un rôle peut créer et gérer.
