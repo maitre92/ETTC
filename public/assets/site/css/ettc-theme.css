@@ -448,3 +448,10 @@ body { color: #26304a; }
 .page-back { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .75rem; padding: .3rem .8rem; border-radius: 999px; background: rgba(255, 255, 255, .16); color: #fff; font-weight: 600; font-size: .9rem; text-decoration: none; transition: background .2s ease, transform .2s ease; }
 .page-back:hover, .page-back:focus-visible { background: rgba(255, 255, 255, .28); color: #fff; transform: translateX(-3px); }
 .page-back .bx { font-size: 1.15rem; }
+
+/* Paiement mobile money affiché après une inscription en ligne (confirmation). */
+.pay-now { margin-top: 1.25rem; padding: 1rem; border-radius: 14px; background: var(--ettc-tint-yellow, #fdf3d1); text-align: center; }
+.pay-now-methods { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+.pay-now-method { background: #fff; border-radius: 12px; padding: .75rem; min-width: 150px; box-shadow: 0 4px 14px rgba(16, 24, 63, .08); }
+.pay-now-method img { display: block; margin: .4rem auto 0; object-fit: contain; }
+.pay-now-number { font-size: 1.1rem; font-weight: 700; }

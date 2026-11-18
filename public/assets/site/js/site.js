@@ -254,6 +254,32 @@
         else if (first) first.focus();
     }
 
+    /* Paiement mobile money après une inscription en ligne : montant, numéro et QR de chaque opérateur, consignes. */
+    function paymentBlock(info) {
+        var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+        var box = el('div', 'pay-now');
+        box.appendChild(el('h3', 'h5', 'Payer maintenant par mobile money'));
+        box.appendChild(el('p', 'mb-2', info.instructions));
+        var list = el('div', 'pay-now-methods');
+        info.methods.forEach(function (m) {
+            var card = el('div', 'pay-now-method');
+            card.appendChild(el('strong', '', m.label));
+            if (m.number) card.appendChild(el('div', 'pay-now-number', m.number));
+            if (m.qr) {
+                var img = el('img'); img.src = m.qr; img.alt = 'QR marchand ' + m.label + ' à scanner'; img.width = 150; img.height = 150;
+                card.appendChild(img);
+                card.appendChild(el('small', 'text-muted d-block', 'Scannez avec votre application'));
+            }
+            list.appendChild(card);
+        });
+        box.appendChild(list);
+        var actions = el('div', 'd-flex flex-wrap gap-2 justify-content-center mt-3');
+        if (info.whatsapp) { var wa = el('a', 'btn btn-whatsapp', 'J\'ai payé : envoyer la référence sur WhatsApp'); wa.href = info.whatsapp; wa.target = '_blank'; wa.rel = 'noopener'; actions.appendChild(wa); }
+        if (info.account) { var acc = el('a', 'btn btn-outline-primary', 'Créer mon espace apprenant'); acc.href = info.account; actions.appendChild(acc); }
+        box.appendChild(actions);
+        return box;
+    }
+
     function initAjaxForms() {
         document.querySelectorAll('form[data-ajax-form]').forEach(function (form) {
             if (!window.fetch) return;
@@ -296,6 +322,7 @@
                         success.innerHTML = '<span class="form-success-icon"><i class="bx bx-check" aria-hidden="true"></i></span><h2 class="h4"></h2><p></p>';
                         success.querySelector('h2').textContent = result.data.title || 'Message envoyé';
                         success.querySelector('p').textContent = result.data.message;
+                        if (result.data.payment) { success.appendChild(paymentBlock(result.data.payment)); }
                         form.replaceWith(success);
                         success.focus();
                         success.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });

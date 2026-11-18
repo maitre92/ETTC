@@ -1,6 +1,8 @@
 {{-- E-mails d'inscription (styles en ligne : clients de messagerie). $inscription, $kind : equipe | recapitulatif. --}}
 @php
     $phone = $site->get('contact.phone_1');
+    // Formation en ligne : numéros et QR mobile money du centre (null sinon).
+    $payment = $kind !== 'equipe' ? app(\App\Services\Paiements\PaiementService::class)->onlinePaymentInfo($inscription) : null;
     $rows = [
         ['Référence', $inscription->number],
         ['Niveau', $inscription->niveau?->name ?? 'À déterminer par le test de niveau (gratuit)'],
@@ -35,14 +37,34 @@
             </table>
             <p style="font-size:13px;color:#66748a;margin:10px 0 0">Tarif retenu au moment de votre inscription.</p>
 
+            {{-- Formation en ligne : comment payer par mobile money (numéros et QR du centre). --}}
+            @if ($kind !== 'equipe' && $payment)
+                <div style="margin:20px 0 0;padding:16px;border-radius:10px;background:#fdf3d1">
+                    <p style="margin:0 0 8px;font-weight:bold;font-size:16px">Payer maintenant par mobile money</p>
+                    <p style="margin:0 0 12px;font-size:14px">{{ $payment['instructions'] }}</p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%"><tr>
+                        @foreach ($payment['methods'] as $method)
+                            <td style="padding:6px;text-align:center;vertical-align:top;background:#ffffff;border-radius:8px">
+                                <div style="font-weight:bold">{{ $method['label'] }}</div>
+                                @if ($method['number'] !== '')<div style="font-size:16px">{{ $method['number'] }}</div>@endif
+                                @if ($method['qr'])<img src="{{ $method['qr'] }}" alt="QR {{ $method['label'] }}" width="130" height="130" style="display:block;margin:6px auto 0">@endif
+                            </td>
+                        @endforeach
+                    </tr></table>
+                    @if ($payment['whatsapp'])<p style="margin:14px 0 0;font-size:14px">Après le paiement, envoyez-nous la référence du SMS : <a href="{{ $payment['whatsapp'] }}" style="color:#045eb5;font-weight:bold">sur WhatsApp</a>@if ($payment['account']), ou déclarez-la dans votre <a href="{{ $payment['account'] }}" style="color:#045eb5;font-weight:bold">espace apprenant</a> (créé avec cette adresse e-mail)@endif.</p>@endif
+                </div>
+            @endif
+
             @if ($kind === 'equipe')
                 <p style="margin:24px 0 0"><a href="{{ route('inscriptions.show', $inscription) }}" style="display:inline-block;background:#f96809;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Traiter l'inscription</a></p>
             @else
                 <p style="margin:24px 0 0;font-size:14px">
                     @if ($inscription->payment_choice === \App\Enums\PaymentChoice::AuCentre)
                         Le paiement se fait au centre, à l'accueil ; votre inscription est confirmée après le paiement et un reçu vous est délivré.
+                    @elseif (! $payment)
+                        Le paiement se fait par mobile money (Orange Money, Wave ou Moov Money) : le centre vous communique son numéro. Gardez le SMS de confirmation de votre paiement : sa référence le prouve.
                     @else
-                        Le paiement se fait par mobile money (Orange Money, Wave ou Moov Money) : envoyez le montant au numéro du centre, puis indiquez la référence de la transaction dans votre espace apprenant (« Mes paiements »). Le centre vérifie le paiement et vous délivre un reçu.
+                        Le centre vérifie votre paiement et vous délivre un reçu.
                     @endif
                     @if ($phone) Une question ? Appelez-nous au <strong>{{ $phone }}</strong> en rappelant la référence {{ $inscription->number }}.@endif
                 </p>

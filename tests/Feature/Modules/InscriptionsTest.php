@@ -15,10 +15,12 @@ use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
 use App\Models\User;
+use App\Support\SiteSettings;
 use App\Support\SpamGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
 
@@ -227,5 +229,24 @@ class InscriptionsTest extends TestCase
             ->withHeader('X-Crud-From', '/admin/inscriptions')->get("/admin/inscriptions/{$inscription->id}")->assertSee('Inscription enregistrée.');
         $this->flushHeaders()->get("/admin/inscriptions/{$inscription->id}")->assertSee('Inscription enregistrée.');
         $this->get("/admin/inscriptions/{$inscription->id}")->assertDontSee('Inscription enregistrée.');
+    }
+
+    public function test_an_online_learner_gets_the_payment_numbers_and_qr_on_confirmation_and_by_email(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+        app(SiteSettings::class)->save(['paiement.orange_money' => '75 22 91 25']);
+        $formule = $this->formule();
+
+        $online = $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne',
+            'name' => 'Awa', 'phone' => '75 22 91 25', 'email' => 'awa@exemple.ml']))->assertOk();
+        $online->assertJsonPath('payment.methods.0.label', 'Orange Money')->assertJsonPath('payment.methods.0.number', '75 22 91 25')
+            ->assertJsonPath('payment.amount', Formule::money(50000));
+        $this->assertStringContainsString(Inscription::firstOrFail()->number, $online->json('payment.instructions'));
+        Mail::assertSent(InscriptionRecapitulatif::class, fn ($m) => str_contains($m->render(), 'Payer maintenant par mobile money') && str_contains($m->render(), '75 22 91 25'));
+
+        // En présentiel : on paie au centre, pas de numéro affiché.
+        $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'presentiel', 'payment_choice' => 'au_centre',
+            'name' => 'Moussa', 'phone' => '76 00 00 00']))->assertOk()->assertJsonPath('payment', null);
     }
 }

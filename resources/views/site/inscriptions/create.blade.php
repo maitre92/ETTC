@@ -21,6 +21,7 @@
                     <span class="form-success-icon"><i class='bx bx-check' aria-hidden="true"></i></span>
                     <h2 class="h4">{{ session('demande_sent')['title'] }}</h2>
                     <p class="mb-0">{{ session('demande_sent')['message'] }}</p>
+                    @if (! empty(session('demande_sent')['payment']))@include('site.paiements._pay-now', ['payment' => session('demande_sent')['payment']])@endif
                 </div>
             @elseif ($formules->isEmpty())
                 <div class="form-success"><h2 class="h4">Inscriptions bientôt ouvertes</h2><p class="mb-0">Les formules seront publiées très prochainement. Contactez-nous pour en savoir plus.</p></div>

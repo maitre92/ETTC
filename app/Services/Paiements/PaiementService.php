@@ -6,6 +6,7 @@ use App\Enums\InscriptionStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentNature;
 use App\Enums\PaymentStatus;
+use App\Http\Controllers\Client\PaiementController;
 use App\Mail\PaiementConfirme;
 use App\Mail\PaiementDeclare;
 use App\Models\Client;
@@ -26,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -63,6 +65,33 @@ class PaiementService
         return collect(PaymentMethod::mobileMoney())
             ->mapWithKeys(fn (PaymentMethod $m) => [$m->value => trim($this->settings->get($m->settingKey()))])
             ->filter(fn (string $number, string $method) => $number !== '' || isset($qr[$method]))->all();
+    }
+
+    /**
+     * Comment payer en ligne une inscription (écran de confirmation, e-mail récapitulatif) : montant de la première
+     * échéance, moyens du centre (numéro et QR), consignes, message WhatsApp déjà rédigé. Null si l'inscription se paie
+     * au centre ou si le centre n'a renseigné aucun moyen.
+     *
+     * @return array{amount: string, methods: list<array{label: string, number: string, qr: ?string}>, instructions: string, whatsapp: ?string, account: ?string}|null
+     */
+    public function onlinePaymentInfo(Inscription $inscription): ?array
+    {
+        $numbers = $this->merchantNumbers();
+        if ($numbers === [] || ! PaiementController::paysOnline($inscription)) {
+            return null;
+        }
+        $qr = $this->merchantQrCodes();
+        $amount = Formule::money($inscription->nextInstallment());
+
+        return [
+            'amount' => $amount,
+            'methods' => collect($numbers)->map(fn (string $number, string $method) => [
+                'label' => PaymentMethod::from($method)->label(), 'number' => $number, 'qr' => $qr[$method] ?? null,
+            ])->values()->all(),
+            'instructions' => 'Envoyez '.$amount.' (première échéance) au numéro ou au QR du centre, en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.',
+            'whatsapp' => $this->settings->whatsappLink('Bonjour, j\'ai payé '.$amount.' pour mon inscription '.$inscription->number.'. Référence de la transaction : '),
+            'account' => Route::has('client.register') ? route('client.register') : null,
+        ];
     }
 
     /** QR marchands déposés par le centre : [moyen => adresse de l'image]. @return array<string, string> */

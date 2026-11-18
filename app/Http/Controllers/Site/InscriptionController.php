@@ -8,6 +8,7 @@ use App\Http\Requests\Site\InscriptionRequest;
 use App\Models\Formule;
 use App\Models\Niveau;
 use App\Services\Inscriptions\InscriptionService;
+use App\Services\Paiements\PaiementService;
 use App\Support\Seo;
 use App\Support\SpamGuard;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,7 @@ class InscriptionController extends Controller
     public function store(InscriptionRequest $request): JsonResponse|RedirectResponse
     {
         $title = 'Inscription envoyée';
+        $payment = null;
         $message = 'Merci ! Votre inscription est enregistrée : le centre vérifie votre dossier et vous recontacte rapidement.';
 
         if (! SpamGuard::isSpam($request)) {
@@ -52,12 +54,14 @@ class InscriptionController extends Controller
                 .Formule::money($inscription->total_amount).' au total ('.$inscription->priceLabel().'). '
                 .($inscription->niveau ? '' : 'Le centre vous contacte d\'abord pour le test de niveau (gratuit). ')
                 .'Un récapitulatif vous est envoyé'.($inscription->email ? ' par e-mail' : ' par le centre').'.';
+            // Formation en ligne : comment payer par mobile money, tout de suite (numéros et QR du centre).
+            $payment = app(PaiementService::class)->onlinePaymentInfo($inscription);
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['title' => $title, 'message' => $message]);
+            return response()->json(['title' => $title, 'message' => $message, 'payment' => $payment]);
         }
 
-        return back()->with('demande_sent', ['title' => $title, 'message' => $message]);
+        return back()->with('demande_sent', ['title' => $title, 'message' => $message, 'payment' => $payment]);
     }
 }
