@@ -6,6 +6,7 @@
         ['Nos formations', route('site.formations.index')],
         ['Tarifs et formules', route('site.formations.index').'#tarifs'],
         ['Actualités', Route::has('site.actualites.index') ? route('site.actualites.index') : null],
+        ['Témoignages', route('site.temoignages.index')],
         ['Contact', Route::has('site.contact') ? route('site.contact') : null],
     ], fn ($item) => $item[1] !== null);
     $phones = array_values(array_filter([$site->get('contact.phone_1'), $site->get('contact.phone_2')]));

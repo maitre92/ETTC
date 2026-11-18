@@ -43,6 +43,6 @@ class TemoignageBulk extends BulkDefinition
 
     public function create(array $row, User $user): Model
     {
-        return Temoignage::create($row + ['sort_order' => 0]);
+        return Temoignage::create($row);
     }
 }

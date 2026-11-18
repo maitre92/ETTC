@@ -54,6 +54,10 @@
                 'Sur la fiche : « Valider le dossier » (en attente de paiement), puis « Démarrer la formation » et « Terminer la formation ». La session (ex. Janvier 2027) et les notes internes se règlent dans la fiche.',
                 'Annuler demande un motif. Chaque étape est inscrite dans l\'historique de la fiche ; l\'apprenant suit son inscription dans son espace (« Mes inscriptions »).',
             ]],
+            ['bx bx-home-circle', 'Les gros boutons de l\'accueil', [
+                'Sur le tableau de bord, les gestes de tous les jours ont chacun leur gros bouton : « Inscrire un apprenant », « Encaisser un paiement », « Inscrire au test de niveau », « Séances du jour ». Un clic ouvre directement la bonne fenêtre.',
+                'En dessous, « À traiter maintenant » compte ce qui attend : inscriptions à valider, paiements à vérifier, impayés, tests à planifier… Cliquez sur une carte pour voir la liste.',
+            ]],
             ['bx bx-wallet', 'Encaisser les paiements et délivrer les reçus', [
                 'Formation en présentiel : l\'apprenant paie au centre. Dans la liste des inscriptions (ou sur sa fiche), cliquez sur le bouton vert « Encaisser » : vérifiez le montant (une mensualité est proposée), choisissez « Espèces » ou le mobile money (la référence du SMS est alors demandée), puis « Encaisser et créer le reçu ». L\'inscription est validée toute seule.',
                 'Chaque fiche d\'inscription commence par « Que faire maintenant ? » : un seul bouton, celui de l\'étape suivante. Les actions plus rares (session, notes, annulation, valider sans paiement) sont rangées sous « Autres actions ».',

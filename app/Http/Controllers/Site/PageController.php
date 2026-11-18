@@ -34,7 +34,9 @@ class PageController extends Controller
             // Formules et tarifs : module Formations (modifiables à tout moment dans l'administration).
             'formules' => Formule::published()->ordered()->get(),
             'niveauxLabel' => $niveauxLabel,
-            'temoignages' => Temoignage::with('photo')->published()->whereNotNull('content')->where('content', '!=', '')
+            // Témoignages écrits ET vidéo (une vidéo sans texte s'affiche avec « Voir la vidéo »).
+            'temoignages' => Temoignage::with('photo')->published()
+                ->where(fn ($q) => $q->where(fn ($q) => $q->whereNotNull('content')->where('content', '!=', ''))->orWhereNotNull('video_path')->orWhereNotNull('video_url'))
                 ->orderByDesc('is_featured')->ordered()->limit(8)->get(),
             'seo' => Seo::make(canonical: route('site.home')),
         ]);

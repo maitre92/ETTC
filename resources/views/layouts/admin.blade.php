@@ -27,6 +27,7 @@
     @include('partials.password-toggle')
     @include('partials.pwa-install', ['app' => 'team'])
     @stack('scripts')
+    @include('partials.back-button')
 
     <script>
         @if (session('status'))

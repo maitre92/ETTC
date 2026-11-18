@@ -32,7 +32,7 @@ class PrestationRequest extends ContentRequest
             'icon' => ['required', Rule::in(array_keys(Prestation::ICONS))],
             'summary' => ['required', 'string', 'max:300'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['boolean'],
         ];
     }

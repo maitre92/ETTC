@@ -45,7 +45,7 @@ class TemoignageRequest extends ContentRequest
             'remove_video' => ['boolean'],
             'photo_upload' => ['nullable', ...MediaService::rules()],
             'remove_photo' => ['boolean'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['boolean'],
             'is_featured' => ['boolean'],
         ];

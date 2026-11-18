@@ -49,7 +49,7 @@ class FormuleRequest extends ContentRequest
             'price_online' => ['nullable', 'required_without:price_onsite', 'integer', 'min:0', 'max:100000000'],
             'price_onsite' => ['nullable', 'required_without:price_online', 'integer', 'min:0', 'max:100000000'],
             'billing' => ['required', Rule::enum(Billing::class)],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['boolean'],
         ];
     }

@@ -4,8 +4,10 @@ namespace Tests\Feature\Modules;
 
 use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
+use App\Mail\AnnonceCentre;
 use App\Mail\SeancesCalendrier;
 use App\Models\ActivityLog;
+use App\Models\Annonce;
 use App\Models\Client;
 use App\Models\Groupe;
 use App\Models\Inscription;
@@ -120,5 +122,53 @@ class SeancesTest extends TestCase
         $this->post('/admin/groupes', ['name' => 'X', 'mode' => 'presentiel'])->assertForbidden();
         $this->post("/admin/groupes/{$groupe->id}/supports", ['title' => 'X', 'url' => 'https://example.org'])->assertForbidden();
         $this->get('/admin')->assertOk()->assertSee('Séances aujourd');
+    }
+
+    public function test_announcements_reach_the_right_learners(): void
+    {
+        Mail::fake();
+        $groupe = Groupe::factory()->create(['name' => 'Débutants']);
+        $other = Groupe::factory()->create(['name' => 'Avancés']);
+        $client = Client::factory()->create();
+        Inscription::factory()->create(['client_id' => $client->id, 'groupe_id' => $groupe->id, 'status' => InscriptionStatus::EnCours, 'email' => 'awa@exemple.ml']);
+        Inscription::factory()->create(['groupe_id' => $other->id, 'status' => InscriptionStatus::EnCours, 'email' => 'moussa@exemple.ml']);
+        $this->actingAs(User::factory()->gestionnaire()->create());
+
+        $this->get('/admin/groupes')->assertOk()->assertSee('ANNONCES AUX APPRENANTS');
+        $this->post('/admin/groupes/annonces', ['title' => '', 'body' => 'X'])->assertSessionHasErrors('title');
+        $this->post('/admin/groupes/annonces', ['title' => 'Pas de cours lundi', 'body' => 'Jour férié.', 'email' => '1'])->assertRedirect('/admin/groupes');
+        $this->post('/admin/groupes/annonces', ['title' => 'Réservé aux avancés', 'body' => 'Sortie.', 'groupe_id' => $other->id, 'back' => $other->id])->assertRedirect("/admin/groupes/{$other->id}");
+        $this->post('/admin/groupes/annonces', ['title' => 'Ancienne annonce', 'body' => 'Expirée.']);
+        Annonce::where('title', 'Ancienne annonce')->update(['expires_on' => now()->subDay()]);
+
+        Mail::assertSent(AnnonceCentre::class, 2);
+        $this->assertSame(2, Annonce::where('title', 'Pas de cours lundi')->value('emailed_count'));
+        $this->assertTrue(ActivityLog::where('action', 'seances.annonce_published')->exists());
+
+        $this->actingAs($client, 'client')->get('/espace-client/calendrier')->assertOk()
+            ->assertSee('Pas de cours lundi')->assertDontSee('Réservé aux avancés')->assertDontSee('Ancienne annonce');
+        $this->get('/espace-client')->assertOk()->assertSee('Annonces du centre');
+
+        $this->actingAs(User::factory()->commercial()->create())->post('/admin/groupes/annonces', ['title' => 'X', 'body' => 'Y'])->assertForbidden();
+    }
+
+    public function test_a_learner_is_placed_in_a_group_from_the_inscription_page(): void
+    {
+        $niveau = Niveau::factory()->create(['name' => 'Intermédiaire']);
+        $a = Groupe::factory()->create(['name' => 'Soir A']);
+        $b = Groupe::factory()->create(['name' => 'Soir B', 'niveau_id' => $niveau->id]);
+        $inscription = Inscription::factory()->create(['status' => InscriptionStatus::EnCours, 'amount_paid' => 20000]);
+        $this->actingAs(User::factory()->administrateur()->create());
+
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Placer dans un groupe')->assertSee('Soir A')->assertSee('Soir B');
+        $this->put("/admin/inscriptions/{$inscription->id}/dossier", ['groupe_id' => $a->id])->assertRedirect();
+        $this->assertSame([$a->id, 'Soir A'], [$inscription->fresh()->groupe_id, $inscription->fresh()->session]);
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertSee('Groupe :')->assertDontSee('Placer dans un groupe');
+
+        $this->put("/admin/inscriptions/{$inscription->id}/dossier", ['groupe_id' => $b->id, 'internal_notes' => 'Changement de niveau'])->assertRedirect();
+        $this->assertSame([$b->id, 'Soir B', 'Changement de niveau'], [$inscription->fresh()->groupe_id, $inscription->fresh()->session, $inscription->fresh()->internal_notes]);
+        $this->put("/admin/inscriptions/{$inscription->id}/dossier", ['groupe_id' => ''])->assertRedirect();
+        $this->assertNull($inscription->fresh()->groupe_id);
+        $this->assertTrue(ActivityLog::where('action', 'seances.members_added')->exists());
     }
 }

@@ -22,7 +22,7 @@ class SchemaTest extends TestCase
         $tables = collect(Schema::getTables(schema: DB::getDatabaseName()))->pluck('name')->reject(fn ($name) => $name === 'migrations')->sort()->values()->all();
 
         $expected = [
-            'app_settings', 'articles', 'audit_logs', 'cache', 'cache_locks', 'categories', 'client_documents', 'client_password_reset_tokens', 'clients', 'commission_versements', 'demande_notes', 'demandes', 'failed_jobs', 'formules', 'groupes', 'inscriptions', 'job_batches', 'jobs', 'mediables', 'medias', 'model_has_permissions',
+            'annonces', 'app_settings', 'articles', 'audit_logs', 'cache', 'cache_locks', 'categories', 'client_documents', 'client_password_reset_tokens', 'clients', 'commission_versements', 'demande_notes', 'demandes', 'failed_jobs', 'formules', 'groupes', 'inscriptions', 'job_batches', 'jobs', 'mediables', 'medias', 'model_has_permissions',
             'model_has_roles', 'niveaux', 'page_vues', 'paiements', 'permissions', 'prestations', 'redirections', 'role_has_permissions', 'roles', 'seances', 'sequences', 'sessions', 'supports', 'temoignages', 'tests_niveau', 'users',
         ];
 

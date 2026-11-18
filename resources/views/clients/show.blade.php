@@ -9,7 +9,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 p-0">
                     <li class="breadcrumb-item"><a href="{{ route('home') }}"><i class="bx bx-home-alt"></i></a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('clients.index') }}">Clients</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('clients.index') }}">Comptes apprenants</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $client->name }}</li>
                 </ol>
             </nav>
@@ -25,7 +25,7 @@
     <div class="row">
         <div class="col-xl-7">
             <div class="card">
-                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-user me-2'></i>FICHE CLIENT</h6></div>
+                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-user me-2'></i>FICHE DE L'APPRENANT</h6></div>
                 <div class="card-body">
                     @can('update', $client)
                         <form method="POST" action="{{ route('clients.update', $client) }}">
@@ -45,6 +45,23 @@
                     @else
                         <dl class="nv-dl"><dt>Nom</dt><dd>{{ $client->name }}</dd><dt>E-mail</dt><dd>{{ $client->email }}</dd><dt>Téléphone</dt><dd>{{ $client->phone ?? '—' }}</dd></dl>
                     @endcan
+                </div>
+            </div>
+
+            {{-- Inscriptions et paiements (cahier §5 « Gestion des apprenants ») : formation, groupe, paiement. --}}
+            <div class="card">
+                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-book-reader me-2'></i>INSCRIPTIONS ({{ $inscriptions->count() }})</h6></div>
+                <div class="card-body">
+                    @forelse ($inscriptions as $inscription)
+                        <div class="d-flex flex-wrap align-items-center gap-2 py-2 border-bottom">
+                            <a href="{{ route('inscriptions.show', $inscription) }}" class="fw-semibold">{{ $inscription->number }}</a>
+                            <span class="flex-grow-1 small">{{ $inscription->niveau?->name ?? 'Niveau à déterminer' }} · {{ $inscription->formule_name }} · {{ $inscription->mode->label() }}@if ($inscription->groupe) · groupe {{ $inscription->groupe->name }}@endif</span>
+                            <span class="badge {{ $inscription->status->badge() }}">{{ $inscription->status->label() }}</span>
+                            @if ($inscription->status !== \App\Enums\InscriptionStatus::Annulee)<span class="badge {{ $inscription->paymentBadge() }}">{{ $inscription->paymentState() }}@if ($inscription->balance() > 0) · reste {{ \App\Models\Formule::money($inscription->balance()) }}@endif</span>@endif
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Aucune inscription liée à ce compte.</p>
+                    @endforelse
                 </div>
             </div>
 
@@ -68,7 +85,7 @@
 
         <div class="col-xl-5">
             <div class="card">
-                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-folder me-2'></i>DOCUMENTS DE L'ESPACE CLIENT</h6></div>
+                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-folder me-2'></i>DOCUMENTS DE SON ESPACE</h6></div>
                 <div class="card-body">
                     @can('clients.documents')
                         <form method="POST" action="{{ route('clients.documents.store', $client) }}" enctype="multipart/form-data" class="nv-panel mb-3">

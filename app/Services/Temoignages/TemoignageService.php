@@ -45,7 +45,7 @@ class TemoignageService
                 'author_name' => $data['author_name'], 'author_title' => $data['author_title'] ?? null, 'organization' => $data['organization'] ?? null,
                 'contact' => $data['contact'], 'rating' => $data['rating'] ?? null, 'content' => $data['content'] ?? null,
                 'photo_media_id' => $photo ? $this->medias->store($photo, null, $data['author_name'], 'Témoignages')->id : null,
-                'source' => 'client', 'client_id' => $client?->id, 'consent_at' => now(), 'is_published' => false, 'sort_order' => 0,
+                'source' => 'client', 'client_id' => $client?->id, 'consent_at' => now(), 'is_published' => false,
             ]));
             $this->logger->log('temoignages.submitted', 'temoignages', "Témoignage reçu du site — {$temoignage->author_name}", $temoignage, actor: null);
 

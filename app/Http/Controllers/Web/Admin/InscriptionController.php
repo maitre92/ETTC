@@ -12,11 +12,13 @@ use App\Http\Requests\Site\InscriptionRequest;
 use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\Formule;
+use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
 use App\Services\Inscriptions\InscriptionService;
 use App\Services\Paiements\PaiementService;
+use App\Services\Seances\SeanceService;
 use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -170,7 +172,8 @@ class InscriptionController extends Controller
         Gate::authorize('view', $inscription);
 
         return view('inscriptions.show', [
-            'inscription' => $inscription->load(['niveau', 'formule', 'client', 'testNiveau', 'validator', 'paiements']),
+            'inscription' => $inscription->load(['niveau', 'formule', 'client', 'testNiveau', 'validator', 'paiements', 'groupe']),
+            'groupes' => Groupe::with('niveau')->active()->orderBy('name')->get(),
             'sessions' => Inscription::whereNotNull('session')->distinct()->orderBy('session')->pluck('session'),
             'history' => ActivityLog::where('subject_type', $inscription->getMorphClass())->where('subject_id', $inscription->id)->latest('id')->limit(30)->get(),
         ]);
@@ -203,7 +206,27 @@ class InscriptionController extends Controller
     public function organize(Request $request, Inscription $inscription): RedirectResponse
     {
         Gate::authorize('organize', $inscription);
-        $data = $request->validate(['session' => ['nullable', 'string', 'max:100'], 'internal_notes' => ['nullable', 'string', 'max:3000']], [], ['session' => 'session', 'internal_notes' => 'notes internes']);
+        $data = $request->validate([
+            'session' => ['nullable', 'string', 'max:100'],
+            'internal_notes' => ['nullable', 'string', 'max:3000'],
+            'groupe_id' => ['nullable', 'exists:groupes,id'],
+        ], [], ['session' => 'session', 'internal_notes' => 'notes internes', 'groupe_id' => 'groupe']);
+
+        // Groupe choisi sur la fiche : l'apprenant y est placé (ou retiré) ; la session reprend le nom du groupe.
+        if ($request->has('groupe_id')) {
+            $seances = app(SeanceService::class);
+            $newGroup = $data['groupe_id'] ? (int) $data['groupe_id'] : null;
+            if ($newGroup !== $inscription->groupe_id) {
+                if ($inscription->groupe_id) {
+                    $seances->removeMember($inscription->groupe, $inscription, $request->user());
+                }
+                if ($newGroup) {
+                    $seances->addMembers(Groupe::findOrFail($newGroup), [$inscription->id], $request->user());
+                }
+                $inscription->refresh();
+            }
+            $data['session'] = $inscription->session;
+        }
 
         $this->service->organize($inscription, isset($data['session']) ? trim($data['session']) : null, isset($data['internal_notes']) ? trim($data['internal_notes']) : null, $request->user());
 

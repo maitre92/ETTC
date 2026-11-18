@@ -43,7 +43,6 @@ class CategoryBulk extends BulkDefinition
             'type' => ['label' => 'Famille', 'required' => true, 'type' => 'select', 'options' => collect(CategoryType::cases())->mapWithKeys(fn ($t) => [$t->value => $t->label()])->all(), 'width' => 18],
             'name' => ['label' => 'Nom', 'required' => true, 'rules' => ['string', 'max:120'], 'width' => 34],
             'description' => ['label' => 'Description', 'rules' => ['nullable', 'string', 'max:500'], 'width' => 50],
-            'sort_order' => ['label' => 'Ordre', 'type' => 'number', 'rules' => ['nullable', 'integer', 'min:0', 'max:9999'], 'default' => 0, 'width' => 10],
         ];
     }
 
@@ -72,6 +71,6 @@ class CategoryBulk extends BulkDefinition
 
     public function create(array $row, User $user): Model
     {
-        return Category::create($row + ['sort_order' => 0]);
+        return Category::create($row);
     }
 }

@@ -120,8 +120,9 @@
                                         <span class="ettc-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($temoignage->author_name, 0, 1)) }}</span>
                                     @endif
                                     <div>
-                                        <blockquote>« {{ \Illuminate\Support\Str::limit($temoignage->content, 160) }} »</blockquote>
+                                        @if (filled($temoignage->content))<blockquote>« {{ \Illuminate\Support\Str::limit($temoignage->content, 160) }} »</blockquote>@endif
                                         <figcaption>{{ $temoignage->author_name }}</figcaption>
+                                        @if ($temoignage->isVideo())<a href="{{ route('site.temoignages.index') }}" class="small fw-semibold"><i class='bx bx-play-circle' aria-hidden="true"></i> Voir la vidéo</a>@endif
                                     </div>
                                 </figure>
                             @endforeach
@@ -135,6 +136,13 @@
                             @endforeach
                         </div>
                     @endif
+                    <p class="text-center small mt-2 mb-0"><a href="{{ route('site.temoignages.index') }}">Tous les témoignages (vidéos, photos, textes)</a> · <a href="{{ route('site.temoignages.create') }}">Partager mon expérience</a></p>
+                </div>
+            @else
+                <div class="ettc-testimonials">
+                    <h2 class="ettc-title ettc-title-sm"><span>Témoignages</span></h2>
+                    <p class="small mb-2">Vous avez suivi une formation chez nous ? Racontez-la en vidéo, en photo ou en quelques mots.</p>
+                    <a href="{{ route('site.temoignages.create') }}" class="btn btn-sm ettc-btn ettc-btn-blue"><i class='bx bx-video-recording' aria-hidden="true"></i> Partager mon expérience</a>
                 </div>
             @endif
         </div>

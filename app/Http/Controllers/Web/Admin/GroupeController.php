@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Enums\FormationMode;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Annonce;
 use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Seance;
 use App\Models\Support;
+use App\Services\Seances\AnnonceService;
 use App\Services\Seances\SeanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +38,7 @@ class GroupeController extends Controller
             'today' => Seance::with('groupe')->whereDate('starts_at', today())->orderBy('starts_at')->get(),
             'niveaux' => Niveau::ordered()->get(),
             'withoutGroup' => Inscription::whereNull('groupe_id')->whereIn('status', ['validee', 'en_cours'])->count(),
+            'annonces' => Annonce::with('groupe')->latest('id')->limit(10)->get(),
         ]);
     }
 
@@ -128,6 +131,30 @@ class GroupeController extends Controller
         $this->service->cancelSeance($seance, $reason, $request->user());
 
         return redirect()->route('groupes.show', $groupe)->with('status', 'Séance annulée : les apprenants sont prévenus par e-mail.');
+    }
+
+    /** Annonce aux apprenants (tous, ou un groupe), avec prévenance par e-mail cochée d'office. */
+    public function storeAnnonce(Request $request, AnnonceService $annonces): RedirectResponse
+    {
+        Gate::authorize('create', Groupe::class);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:150'],
+            'body' => ['required', 'string', 'max:3000'],
+            'groupe_id' => ['nullable', 'exists:groupes,id'],
+            'expires_on' => ['nullable', 'date', 'after_or_equal:today'],
+        ], [], ['title' => 'titre', 'body' => 'message', 'groupe_id' => 'destinataires', 'expires_on' => 'date de fin']);
+        $annonce = $annonces->publish($data, $request->boolean('email'), $request->user());
+        $back = $request->input('back') ? route('groupes.show', (int) $request->input('back')) : route('groupes.index');
+
+        return redirect()->to($back)->with('status', 'Annonce publiée'.($annonce->emailed_count ? " et envoyée par e-mail à {$annonce->emailed_count} apprenant(s)." : '.'));
+    }
+
+    public function destroyAnnonce(Request $request, Annonce $annonce, AnnonceService $annonces): RedirectResponse
+    {
+        Gate::authorize('create', Groupe::class);
+        $annonces->delete($annonce, $request->user());
+
+        return back()->with('status', 'Annonce retirée.');
     }
 
     public function storeSupport(Request $request, Groupe $groupe): RedirectResponse

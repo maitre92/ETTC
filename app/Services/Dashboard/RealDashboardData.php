@@ -43,7 +43,7 @@ class RealDashboardData
      */
     public function for(User $user): array
     {
-        $dashboard = ['heading' => $this->heading($user), 'alerts' => [], 'tasks' => [], 'quick' => $this->quick($user), 'chart' => null, 'sections' => []];
+        $dashboard = ['heading' => $this->heading($user), 'alerts' => [], 'tasks' => [], 'quick' => $this->quick($user), 'actions' => $this->actions($user), 'chart' => null, 'sections' => []];
 
         if ($user->can('demandes.view')) {
             $this->demandes($user, $dashboard);
@@ -402,6 +402,30 @@ class RealDashboardData
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * Gros boutons de l'accueil (gestes de tous les jours, pensés pour la secrétaire) : chacun ouvre directement la bonne
+     * fenêtre (l'ancre #… est ouverte par crud-ajax.js).
+     *
+     * @return list<array{label: string, hint: string, icon: string, color: string, url: string}>
+     */
+    private function actions(User $user): array
+    {
+        $candidates = [
+            ['inscriptions.create', 'inscriptions.index', '#create-inscription', 'Inscrire un apprenant', 'Inscription et paiement en une fois', 'bx bx-user-plus', 'primary'],
+            ['paiements.record', 'paiements.index', '#impayes', 'Encaisser un paiement', 'Les apprenants qui doivent encore payer', 'bx bx-money', 'success'],
+            ['tests.create', 'tests.index', '#create-test', 'Inscrire au test de niveau', 'Le test est gratuit', 'bx bx-target-lock', 'warning'],
+            ['seances.view', 'groupes.index', '', 'Séances du jour', 'Ouvrir Google Meet, voir les groupes', 'bx bx-calendar', 'info'],
+        ];
+        $actions = [];
+        foreach ($candidates as [$permission, $route, $anchor, $label, $hint, $icon, $color]) {
+            if (Route::has($route) && $user->can($permission)) {
+                $actions[] = ['label' => $label, 'hint' => $hint, 'icon' => $icon, 'color' => $color, 'url' => route($route).$anchor];
+            }
+        }
+
+        return $actions;
+    }
+
     private function quick(User $user): array
     {
         $candidates = [

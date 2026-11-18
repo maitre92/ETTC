@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Clients')
+@section('title', 'Comptes apprenants')
 
 @section('content')
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -9,7 +9,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 p-0">
                     <li class="breadcrumb-item"><a href="{{ route('home') }}"><i class="bx bx-home-alt"></i></a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Clients</li>
+                    <li class="breadcrumb-item active" aria-current="page">Comptes apprenants</li>
                 </ol>
             </nav>
         </div>
@@ -18,7 +18,7 @@
 
     <div class="card">
         <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="mb-0 text-white"><i class='bx bx-user-pin me-2'></i>CLIENTS (ESPACE CLIENT)</h6>
+            <h6 class="mb-0 text-white"><i class='bx bx-user-pin me-2'></i>COMPTES APPRENANTS (ESPACE EN LIGNE)</h6>
             @can('create', \App\Models\Client::class)
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('clients.bulk') }}" class="btn btn-light btn-sm d-flex align-items-center gap-1"><i class='bx bx-table'></i> Saisie en lot / import</a>
@@ -39,7 +39,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table" id="clients-table">
-                    <thead><tr><th>CLIENT</th><th>CONTACT</th><th>DEMANDES</th><th>DOCUMENTS</th><th>DERNIÈRE CONNEXION</th><th>STATUT</th><th width="8%">ACTIONS</th></tr></thead>
+                    <thead><tr><th>APPRENANT</th><th>CONTACT</th><th>DEMANDES</th><th>DOCUMENTS</th><th>DERNIÈRE CONNEXION</th><th>STATUT</th><th width="8%">ACTIONS</th></tr></thead>
                     <tbody>
                         @foreach ($clients as $client)
                             <tr>
@@ -72,7 +72,7 @@
                     <form method="POST" action="{{ route('clients.store') }}">
                         @csrf
                         <div class="modal-header">
-                            <h5 class="modal-title"><i class='bx bx-user-plus me-2'></i>Nouveau client</h5>
+                            <h5 class="modal-title"><i class='bx bx-user-plus me-2'></i>Nouveau compte apprenant</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                         </div>
                         <div class="modal-body p-4">

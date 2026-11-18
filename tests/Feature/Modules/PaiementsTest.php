@@ -188,6 +188,13 @@ class PaiementsTest extends TestCase
         $paiement = Paiement::firstOrFail();
         $url = app(ReceiptService::class)->verificationUrl($paiement);
 
+        // Hors ligne (localhost) : le QR ne contient que le reçu en clair ; en ligne (HTTPS) : le lien de vérification en plus.
+        $receipts = app(ReceiptService::class);
+        $this->assertStringContainsString('50 000 FCFA', $receipts->qrText($paiement));
+        $this->assertStringNotContainsString('http', $receipts->qrText($paiement));
+        config(['app.url' => 'https://ettc-mali.org']);
+        $this->assertStringContainsString('Vérifier : ', $receipts->qrText($paiement));
+
         auth()->logout();
         $this->get($url)->assertOk()->assertSee('Reçu authentique')->assertSee($paiement->number);
         $this->get("/recu/{$paiement->number}/faussecle1234567890")->assertOk()->assertSee('Reçu introuvable');

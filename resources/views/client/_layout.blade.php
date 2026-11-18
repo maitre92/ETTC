@@ -14,6 +14,9 @@
 @endphp
 <section class="page-hero client-hero">
     <div class="container">
+        @unless (request()->routeIs('client.home'))
+            <a href="{{ route('client.home') }}" class="page-back" data-back><i class='bx bx-arrow-back' aria-hidden="true"></i> Retour</a>
+        @endunless
         <p class="mb-1 text-white-75">Espace client</p>
         <h1>{{ $title }}</h1>
         <p>{{ $client->name }}@if ($client->organization) · {{ $client->organization }}@endif</p>

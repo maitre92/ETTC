@@ -4,6 +4,17 @@
      informations pratiques de ses groupes, supports pédagogiques. --}}
 @section('content')
     @component('client._layout', ['title' => 'Mon calendrier'])
+        @if ($annonces->isNotEmpty())
+            <div class="detail-panel mb-4">
+                <h2 class="h5 mb-3"><i class='bx bx-megaphone' aria-hidden="true"></i> Annonces du centre</h2>
+                @foreach ($annonces as $annonce)
+                    <div class="py-2 border-bottom">
+                        <strong>{{ $annonce->title }}</strong> <small class="text-muted">· {{ $annonce->created_at->format('d/m/Y') }}@if ($annonce->groupe) · {{ $annonce->groupe->name }}@endif</small>
+                        <div>{!! nl2br(e($annonce->body)) !!}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
         @if ($groupes->isEmpty())
             <div class="detail-panel">
                 <p class="mb-0 text-muted">Votre calendrier apparaîtra ici dès que le centre vous aura placé dans un groupe (après votre inscription et votre paiement).</p>

@@ -113,6 +113,16 @@
                             @else
                                 <p class="mb-0">Rien à faire pour l'instant.</p>
                             @endif
+                            @if (! $inscription->groupe_id && $groupes->isNotEmpty() && auth()->user()->can('organize', $inscription) && ($inscription->amount_paid > 0 || $status === InscriptionStatus::EnCours))
+                                <form method="POST" action="{{ route('inscriptions.organize', $inscription) }}" class="d-flex flex-wrap align-items-end gap-2 mt-3 pt-3 border-top" data-crud-form data-no-guard>
+                                    @csrf @method('PUT')
+                                    <input type="hidden" name="internal_notes" value="{{ $inscription->internal_notes }}">
+                                    <div class="flex-grow-1"><label class="form-label fw-semibold" for="n-groupe">Placer dans un groupe (séances, lien Google Meet)</label>@include('inscriptions._groupe-select', ['selectId' => 'n-groupe'])</div>
+                                    <button type="submit" class="btn btn-primary"><i class='bx bx-group me-1'></i>Placer</button>
+                                </form>
+                            @elseif ($inscription->groupe)
+                                <p class="small text-muted mt-3 mb-0"><i class='bx bx-group'></i> Groupe : <a href="{{ route('groupes.show', $inscription->groupe) }}">{{ $inscription->groupe->name }}</a></p>
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -164,9 +174,14 @@
                                         @csrf
                                         @method('PUT')
                                         <div class="col-md-5">
-                                            <label class="form-label fw-semibold" for="o-session">Session</label>
-                                            <input class="form-control {{ $field('session') }}" id="o-session" name="session" maxlength="100" value="{{ $inscription->session }}" list="sessions-list" placeholder="Janvier 2027">
-                                            <datalist id="sessions-list">@foreach ($sessions as $session)<option value="{{ $session }}"></option>@endforeach</datalist>
+                                            @if ($groupes->isNotEmpty())
+                                                <label class="form-label fw-semibold" for="o-groupe">Groupe</label>
+                                                @include('inscriptions._groupe-select', ['selectId' => 'o-groupe'])
+                                            @else
+                                                <label class="form-label fw-semibold" for="o-session">Session</label>
+                                                <input class="form-control {{ $field('session') }}" id="o-session" name="session" maxlength="100" value="{{ $inscription->session }}" list="sessions-list" placeholder="Janvier 2027">
+                                                <datalist id="sessions-list">@foreach ($sessions as $session)<option value="{{ $session }}"></option>@endforeach</datalist>
+                                            @endif
                                         </div>
                                         <div class="col-md-7"><label class="form-label fw-semibold" for="o-notes">Notes internes</label><textarea class="form-control" id="o-notes" name="internal_notes" rows="2" maxlength="3000">{{ $inscription->internal_notes }}</textarea></div>
                                         <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-save me-1'></i>Enregistrer</button></div>

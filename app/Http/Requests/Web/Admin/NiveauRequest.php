@@ -32,7 +32,7 @@ class NiveauRequest extends ContentRequest
             'objectives' => ['nullable', 'string', 'max:3000'],
             'skills' => ['nullable', 'string', 'max:3000'],
             'prerequisites' => ['nullable', 'string', 'max:2000'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['boolean'],
         ];
     }

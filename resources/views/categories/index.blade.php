@@ -28,13 +28,11 @@
         'fields' => [
             ['name' => 'name', 'label' => 'Nom', 'required' => true, 'max' => 120],
             ['name' => 'description', 'label' => 'Description', 'type' => 'textarea', 'max' => 500, 'help' => 'Affichée en introduction du catalogue filtré sur cette catégorie.'],
-            ['name' => 'sort_order', 'label' => 'Ordre d\'affichage', 'type' => 'number', 'required' => true, 'default' => ((int) $categories->max('sort_order')) + 10, 'help' => 'Place sur le site : le plus petit nombre s\'affiche en premier (10, puis 20, puis 30…). Déjà rempli pour mettre le nouvel élément à la fin ; pour le glisser entre 10 et 20, mettez 15.', 'col' => 'col-md-6'],
             ['name' => 'is_active', 'label' => 'Active', 'type' => 'switch', 'default' => true, 'col' => 'col-md-6'],
         ],
         'columns' => [
             ['label' => 'CATÉGORIE', 'value' => fn ($c) => '<div class="fw-semibold">'.e($c->name).'</div><div class="small text-muted">'.e($c->slug).'</div>'],
             ['label' => 'CONTENUS', 'value' => fn ($c) => e($usages[$c->id] ?? 0)],
-            ['label' => 'ORDRE', 'value' => fn ($c) => e($c->sort_order)],
         ],
     ])
 @endsection

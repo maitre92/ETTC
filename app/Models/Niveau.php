@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasSlug;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Concerns\SortsAutomatically;
 use Database\Factories\NiveauFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Niveau extends Model
 {
     /** @use HasFactory<NiveauFactory> */
-    use HasFactory, HasSlug, LogsActivity, SoftDeletes;
+    use HasFactory, HasSlug, LogsActivity, SoftDeletes, SortsAutomatically;
 
     protected $table = 'niveaux';
 

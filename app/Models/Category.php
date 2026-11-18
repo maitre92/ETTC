@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CategoryType;
 use App\Models\Concerns\HasSlug;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Concerns\SortsAutomatically;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
-    use HasFactory, HasSlug, LogsActivity, SoftDeletes;
+    use HasFactory, HasSlug, LogsActivity, SoftDeletes, SortsAutomatically;
 
     /**
      * Où une catégorie peut être utilisée, par famille : [table, colonne].

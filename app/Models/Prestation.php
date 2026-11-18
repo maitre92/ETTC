@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasSlug;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Concerns\SortsAutomatically;
 use Database\Factories\PrestationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Prestation extends Model
 {
     /** @use HasFactory<PrestationFactory> */
-    use HasFactory, HasSlug, LogsActivity, SoftDeletes;
+    use HasFactory, HasSlug, LogsActivity, SoftDeletes, SortsAutomatically;
 
     /** Icônes proposées dans le formulaire (Boxicons, servies localement). */
     public const ICONS = [

@@ -48,10 +48,6 @@
                                 @endfor
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold" for="sort_order{{ $sfx }}">Ordre</label>
-                            <input type="number" class="form-control" id="sort_order{{ $sfx }}" name="sort_order" value="{{ $v('sort_order', 0) }}" min="0" max="9999" required>
-                        </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold" for="content{{ $sfx }}">Témoignage écrit</label>
                             <textarea class="form-control @if ($failed) @error('content') is-invalid @enderror @endif" id="content{{ $sfx }}" name="content" rows="3" maxlength="1500">{{ $v('content') }}</textarea>

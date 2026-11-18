@@ -7,6 +7,20 @@
     </div>
 @endforeach
 
+{{-- Gestes de tous les jours : un gros bouton chacun, qui ouvre directement la bonne fenêtre. --}}
+@if (! empty($dashboard['actions']))
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-{{ min(4, count($dashboard['actions'])) }} g-3 mb-4">
+        @foreach ($dashboard['actions'] as $action)
+            <div class="col">
+                <a href="{{ $action['url'] }}" class="btn btn-{{ $action['color'] }} w-100 h-100 d-flex align-items-center gap-3 text-start p-3 shadow-sm">
+                    <i class='{{ $action['icon'] }}' style="font-size: 2rem"></i>
+                    <span><span class="d-block fw-bold fs-6">{{ $action['label'] }}</span><span class="d-block small opacity-75">{{ $action['hint'] }}</span></span>
+                </a>
+            </div>
+        @endforeach
+    </div>
+@endif
+
 @if (! empty($dashboard['tasks']))
     @php
         $openTasks = collect($dashboard['tasks'])->sum('count');

@@ -7,6 +7,7 @@ use App\Http\Controllers\Client\ClientAreaSections;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientDocument;
+use App\Models\Inscription;
 use App\Services\Clients\ClientAdminService;
 use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
@@ -39,6 +40,7 @@ class ClientController extends Controller
         return view('clients.show', [
             'client' => $client->load(['documents', 'demandes' => fn ($q) => $q->latest('id')]),
             'extras' => app(ClientAreaSections::class)->for($client),
+            'inscriptions' => Inscription::with(['niveau', 'groupe'])->forClient($client)->latest('id')->get(),
         ]);
     }
 

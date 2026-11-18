@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Billing;
 use App\Models\Concerns\HasSlug;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Concerns\SortsAutomatically;
 use Database\Factories\FormuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Formule extends Model
 {
     /** @use HasFactory<FormuleFactory> */
-    use HasFactory, HasSlug, LogsActivity, SoftDeletes;
+    use HasFactory, HasSlug, LogsActivity, SoftDeletes, SortsAutomatically;
 
     /** Modes de formation (cahier §3.3) : colonne du tarif => libellé. */
     public const MODES = ['price_online' => 'En ligne', 'price_onsite' => 'En présentiel'];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\Annonce;
 use App\Models\Client;
 use App\Models\Groupe;
 use App\Models\Inscription;
@@ -31,6 +32,7 @@ class CalendrierController extends Controller
             'upcoming' => Seance::with('groupe')->whereIn('groupe_id', $ids)->where('starts_at', '>=', now()->subHours(3))->orderBy('starts_at')->limit(40)->get(),
             'past' => Seance::with('groupe')->whereIn('groupe_id', $ids)->where('starts_at', '<', now()->subHours(3))->where('is_cancelled', false)->latest('starts_at')->limit(10)->get(),
             'supports' => Support::with('groupe')->whereIn('groupe_id', $ids)->latest('id')->get(),
+            'annonces' => Annonce::with('groupe')->current()->visibleTo($ids)->latest('id')->limit(10)->get(),
             'seo' => Seo::make('Mon calendrier')->noIndex(),
         ]);
     }

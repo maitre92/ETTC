@@ -2,6 +2,8 @@
      $title, $intro (facultatif), $crumbs : [[libellé, url|null], …] entre « Accueil » et la page courante. --}}
 <section class="page-hero">
     <div class="container">
+        {{-- Flèche « Retour » (toutes les pages intérieures) : page précédente si l'on vient du site, sinon la page parente. --}}
+        <a href="{{ collect($crumbs ?? [])->last()[1] ?? route('site.home') }}" class="page-back" data-back><i class='bx bx-arrow-back' aria-hidden="true"></i> Retour</a>
         <nav aria-label="Fil d'Ariane">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('site.home') }}">Accueil</a></li>

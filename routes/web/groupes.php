@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/groupes', [GroupeController::class, 'index'])->middleware('permission:seances.view')->name('groupes.index');
     Route::post('/groupes', [GroupeController::class, 'store'])->middleware('permission:seances.manage')->name('groupes.store');
+    Route::post('/groupes/annonces', [GroupeController::class, 'storeAnnonce'])->middleware('permission:seances.manage')->name('groupes.annonces.store');
+    Route::delete('/groupes/annonces/{annonce}', [GroupeController::class, 'destroyAnnonce'])->middleware('permission:seances.manage')->name('groupes.annonces.destroy');
     Route::get('/groupes/{groupe}', [GroupeController::class, 'show'])->middleware('permission:seances.view')->name('groupes.show');
     Route::put('/groupes/{groupe}', [GroupeController::class, 'update'])->middleware('permission:seances.manage')->name('groupes.update');
     Route::post('/groupes/{groupe}/apprenants', [GroupeController::class, 'addMembers'])->middleware('permission:seances.manage')->name('groupes.members.add');

@@ -65,7 +65,7 @@ class BulkEntryTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
         file_put_contents($path, $template);
         $book = IOFactory::load($path);
-        $this->assertSame(['Titre *', 'Icône', 'Résumé *', 'Ordre', 'Publié'], array_slice($book->getSheet(0)->toArray()[0], 0, 5));
+        $this->assertSame(['Titre *', 'Icône', 'Résumé *', 'Publié'], array_slice($book->getSheet(0)->toArray()[0], 0, 4));
         $this->assertNotNull($book->getSheetByName('Mode d\'emploi'));
 
         $this->post('/admin/prestations/import', ['fichier' => $this->xlsx([
@@ -75,6 +75,8 @@ class BulkEntryTest extends TestCase
         ])])->assertRedirect('/admin/prestations')->assertSessionHas('status', 'Import réussi : 2 services créé(e)s.');
         $this->assertSame('bx-chat', Prestation::where('title', 'Club de conversation')->value('icon'));
         $this->assertFalse(Prestation::where('title', 'Anglais des affaires')->value('is_published'));
+        // Plus de champ « Ordre » : chaque nouveau service se place à la fin, tout seul.
+        $this->assertGreaterThan(Prestation::where('title', 'Club de conversation')->value('sort_order'), Prestation::where('title', 'Anglais des affaires')->value('sort_order'));
 
         $this->post('/admin/prestations/import', ['fichier' => $this->xlsx([
             ['Titre', 'Résumé'],

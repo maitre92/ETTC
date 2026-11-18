@@ -24,14 +24,12 @@
             ['name' => 'price_onsite', 'label' => 'Tarif en présentiel (FCFA)', 'placeholder' => '50 000', 'col' => 'col-md-4', 'help' => 'Vide : non proposé au centre.'],
             ['name' => 'billing', 'label' => 'Périodicité', 'type' => 'select', 'required' => true, 'options' => \App\Enums\Billing::options(), 'default' => 'mois', 'col' => 'col-md-4'],
             ['name' => 'points', 'label' => 'Points forts', 'type' => 'textarea', 'max' => 1000, 'placeholder' => "Formation intensive\nSuivi personnalisé", 'help' => 'Un point par ligne : coches vertes de la carte sur le site.'],
-            ['name' => 'sort_order', 'label' => 'Ordre d\'affichage', 'type' => 'number', 'required' => true, 'default' => ((int) $formules->max('sort_order')) + 10, 'help' => 'Place sur le site : le plus petit nombre s\'affiche en premier (10, puis 20, puis 30…). Déjà rempli pour mettre le nouvel élément à la fin ; pour le glisser entre 10 et 20, mettez 15.', 'col' => 'col-md-4'],
             ['name' => 'is_published', 'label' => 'Publiée sur le site', 'type' => 'switch', 'default' => true, 'col' => 'col-md-8'],
         ],
         'columns' => [
             ['label' => 'FORMULE', 'value' => fn ($f) => '<div class="fw-semibold">'.e($f->name).'</div><div class="small text-muted">'.e($f->duration_months).' mois · '.e($f->billing->label()).'</div>'],
             ['label' => 'EN LIGNE', 'value' => fn ($f) => $f->price_online === null ? '<span class="text-muted">—</span>' : '<span class="fw-semibold">'.e(\App\Models\Formule::money($f->price_online)).'</span> <span class="small text-muted">'.e($f->billing->suffix()).'</span>'],
             ['label' => 'EN PRÉSENTIEL', 'value' => fn ($f) => $f->price_onsite === null ? '<span class="text-muted">—</span>' : '<span class="fw-semibold">'.e(\App\Models\Formule::money($f->price_onsite)).'</span> <span class="small text-muted">'.e($f->billing->suffix()).'</span>'],
-            ['label' => 'ORDRE', 'value' => fn ($f) => e($f->sort_order)],
         ],
         'statusLabels' => ['Publiée', 'Masquée'],
     ])

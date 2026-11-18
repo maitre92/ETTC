@@ -17,6 +17,10 @@
         @else
             <span class="vt-placeholder"><i class='bx bx-user-voice' aria-hidden="true"></i></span>
         @endif
+        @if (($preview ?? false) && $temoignage->hasVideo())
+            {{-- Aperçu muet en boucle (premières secondes), seulement à l'écran ; jamais avec « économie de données ». --}}
+            <video class="vt-frame vt-preview" src="{{ $temoignage->videoUrl() }}" muted playsinline loop preload="none" tabindex="-1" aria-hidden="true" data-video-preview></video>
+        @endif
         <span class="vt-play"><i class='bx bx-play' aria-hidden="true"></i></span>
         @if ($temoignage->durationForDisplay())
             <span class="vt-duration">{{ $temoignage->durationForDisplay() }}</span>

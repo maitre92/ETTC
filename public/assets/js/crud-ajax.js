@@ -287,5 +287,18 @@
     document.addEventListener('shown.bs.modal', function (event) { applyShowWhen(event.target); });
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { applyShowWhen(); }); } else { applyShowWhen(); }
 
+    // Adresse terminée par #id-d-une-fenêtre (ex. bouton « Inscrire un apprenant » du tableau de bord) : la fenêtre s'ouvre.
+    function openModalFromHash() {
+        var id = window.location.hash.slice(1);
+        if (!/^[A-Za-z][\w-]*$/.test(id)) { return; }
+        var el = document.getElementById(id);
+        if (el && el.classList.contains('modal') && window.bootstrap) {
+            (bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el)).show();
+        } else if (el) {
+            el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        }
+    }
+    window.addEventListener('load', function () { setTimeout(openModalFromHash, 150); });
+
     window.CrudAjax = { init: init, send: send, toast: toast };
 })();

@@ -47,14 +47,28 @@ class ReceiptService
      */
     public function qrText(Paiement $paiement): string
     {
-        return implode("\n", [
+        $lines = [
             $this->settings->get('company.short_name').' — Reçu '.$paiement->number,
             'Apprenant : '.$paiement->inscription->name,
             'Montant : '.number_format($paiement->amount, 0, ',', ' ').' FCFA',
             'Date : '.$paiement->paid_at->format('d/m/Y'),
             'Statut : '.$paiement->status->label(),
-            'Vérifier : '.$this->verificationUrl($paiement),
-        ]);
+        ];
+        // Lien de vérification seulement une fois le site en ligne (HTTPS) : une adresse « localhost » ne s'ouvre pas sur
+        // un téléphone, et les lecteurs de QR n'afficheraient qu'elle au lieu du reçu.
+        if ($this->isOnline()) {
+            $lines[] = 'Vérifier : '.$this->verificationUrl($paiement);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /** Site en ligne : adresse publique en HTTPS (pas localhost ni une adresse locale). */
+    public function isOnline(): bool
+    {
+        $url = (string) config('app.url');
+
+        return str_starts_with($url, 'https://') && ! preg_match('~://(localhost|127\.|192\.168\.|10\.)~', $url);
     }
 
     public function verificationUrl(Paiement $paiement): string

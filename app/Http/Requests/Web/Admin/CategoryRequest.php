@@ -51,7 +51,7 @@ class CategoryRequest extends ContentRequest
         return [
             'name' => ['required', 'string', 'max:120', Rule::unique('categories', 'name')->where('type', $this->type()->value)->ignore($this->model())],
             'description' => ['nullable', 'string', 'max:500'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['boolean'],
         ];
     }

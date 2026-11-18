@@ -465,6 +465,9 @@
 .vt-media { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0; background: linear-gradient(135deg, #084a80, #2a7cc0); overflow: hidden; cursor: pointer; text-decoration: none; }
 .vt-media img, .vt-media .vt-frame { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
 .vt-media .vt-frame { display: block; pointer-events: none; background: #084a80; }
+/* Aperçu muet de la vidéo mise en avant : posé sur l'image, visible dès qu'il joue. */
+.vt-media .vt-preview { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; }
+.vt-media .vt-preview.is-playing { opacity: 1; }
 .video-testimonial:hover .vt-media img, .video-testimonial:hover .vt-media .vt-frame { transform: scale(1.06); }
 .vt-media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(5, 20, 50, .55)); }
 .vt-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, .5); font-size: 4rem; }

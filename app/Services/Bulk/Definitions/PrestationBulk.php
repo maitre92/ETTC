@@ -36,13 +36,12 @@ class PrestationBulk extends BulkDefinition
             'title' => ['label' => 'Titre', 'required' => true, 'rules' => ['string', 'max:150'], 'unique' => true, 'width' => 34, 'example' => 'Club de conversation'],
             'icon' => ['label' => 'Icône', 'type' => 'select', 'options' => Prestation::ICONS, 'default' => 'bx-check-circle', 'width' => 20],
             'summary' => ['label' => 'Résumé', 'required' => true, 'type' => 'textarea', 'rules' => ['string', 'max:300'], 'width' => 60],
-            'sort_order' => ['label' => 'Ordre', 'type' => 'number', 'rules' => ['nullable', 'integer', 'min:0', 'max:9999'], 'default' => 0, 'width' => 10],
             'is_published' => ['label' => 'Publié', 'type' => 'bool', 'default' => true, 'width' => 10],
         ];
     }
 
     public function create(array $row, User $user): Model
     {
-        return Prestation::create(['icon' => $row['icon'] ?? 'bx-check-circle', 'sort_order' => $row['sort_order'] ?? 0] + $row);
+        return Prestation::create(['icon' => $row['icon'] ?? 'bx-check-circle'] + $row);
     }
 }

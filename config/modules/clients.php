@@ -5,7 +5,7 @@
 */
 
 return [
-    'label' => 'Clients',
+    'label' => 'Comptes apprenants',
 
     'permissions' => [
         'view' => 'Voir les clients et leur espace (demandes, commandes, tickets, documents)',
@@ -23,6 +23,6 @@ return [
     ],
 
     'navigation' => [
-        ['label' => 'Clients', 'icon' => 'bx bx-user-pin', 'route' => 'clients.index', 'permission' => 'clients.view', 'active' => 'clients.*', 'order' => 6],
+        ['label' => 'Comptes apprenants', 'icon' => 'bx bx-user-pin', 'route' => 'clients.index', 'permission' => 'clients.view', 'active' => 'clients.*', 'order' => 6],
     ],
 ];

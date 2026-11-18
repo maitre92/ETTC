@@ -814,6 +814,32 @@
         });
     }
 
+    /* ——— Aperçu muet de la vidéo mise en avant ([data-video-preview]) ———
+       Joue sans le son, en boucle sur les 8 premières secondes, seulement quand la carte est à l'écran ; jamais si le
+       visiteur a demandé moins d'animations ou l'économie de données (forfait mobile). Le clic ouvre la vidéo en grand. */
+    function initVideoPreview() {
+        var previews = document.querySelectorAll('video[data-video-preview]');
+        var saveData = navigator.connection && navigator.connection.saveData;
+        if (!previews.length || reduceMotion || saveData || !('IntersectionObserver' in window)) return;
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                var video = entry.target;
+                if (entry.isIntersecting) {
+                    video.preload = 'auto';
+                    var playing = video.play();
+                    if (playing && playing.catch) playing.catch(function () {});
+                } else {
+                    video.pause();
+                }
+            });
+        }, { threshold: 0.5 });
+        previews.forEach(function (video) {
+            video.addEventListener('playing', function () { video.classList.add('is-playing'); });
+            video.addEventListener('timeupdate', function () { if (video.currentTime >= 8) video.currentTime = 0; });
+            observer.observe(video);
+        });
+    }
+
     /* ——— Témoignages vidéo : lecture en grand ([data-video-play]) ———
        Lecteur HTML5 du navigateur (vidéo hébergée par le site, aucun script externe) ; Échap ou clic hors de la vidéo ferme. */
     function initVideoLightbox() {
@@ -881,6 +907,14 @@
         initCarousels();
         initLoops();
         initVideoLightbox();
+        initVideoPreview();
+        // Flèche « Retour » ([data-back]) : page précédente si l'on vient de ce site, sinon le lien (page parente).
+        document.addEventListener('click', function (event) {
+            var back = event.target.closest('[data-back]');
+            if (!back) return;
+            var sameSite = document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer !== location.href;
+            if (sameSite && history.length > 1) { event.preventDefault(); history.back(); }
+        });
     });
 
     SiteUI.initReveal = initReveal;

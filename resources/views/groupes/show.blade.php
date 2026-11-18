@@ -34,7 +34,7 @@
                 <div class="card">
                     <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 text-white"><i class='bx bx-group me-2'></i>{{ mb_strtoupper($groupe->name) }}</h6>
-                        @if ($canManage)<button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#edit-groupe"><i class='bx bx-edit'></i> Modifier</button>@endif
+                        @if ($canManage)<span class="d-flex gap-1"><button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#annonce-groupe"><i class='bx bx-megaphone'></i> Annonce</button><button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#edit-groupe"><i class='bx bx-edit'></i> Modifier</button></span>@endif
                     </div>
                     <div class="card-body">
                         <dl class="nv-dl mb-0">
@@ -191,6 +191,7 @@
         </div>
 
         @if ($canManage)
+            @include('groupes._annonce-modal', ['modalId' => 'annonce-groupe', 'groupes' => collect(), 'groupe' => $groupe])
             @include('groupes._form-modal', ['groupe' => $groupe, 'modalId' => 'edit-groupe', 'action' => route('groupes.update', $groupe), 'method' => 'PUT', 'niveaux' => $niveaux])
 
             <div class="modal fade" id="add-members" tabindex="-1" aria-hidden="true" aria-labelledby="add-members-title">

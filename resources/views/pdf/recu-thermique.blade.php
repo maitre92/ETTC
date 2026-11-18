@@ -38,7 +38,7 @@
     <div class="line"></div>
     <div class="c">
         <img src="{{ $qr }}" width="104" height="104" alt="">
-        <div>Scannez pour vérifier ce reçu</div>
+        <div>Scannez pour lire ce reçu</div>
     </div>
     <div class="line"></div>
     <div class="c">Merci de votre confiance !<br>{{ now()->format('d/m/Y H:i') }}</div>

@@ -93,7 +93,7 @@
         </div>
 
         <div class="card">
-            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-time-five me-2'></i>IMPAYÉS — INSCRIPTIONS AVEC UN RESTE À PAYER</h6></div>
+            <div class="card-header card-header-brand" id="impayes"><h6 class="mb-0 text-white"><i class='bx bx-time-five me-2'></i>IMPAYÉS — INSCRIPTIONS AVEC UN RESTE À PAYER</h6></div>
             <div class="card-body">
                 @if ($unpaid->isEmpty())
                     <p class="text-muted mb-0">Aucun impayé : toutes les inscriptions validées sont réglées.</p>

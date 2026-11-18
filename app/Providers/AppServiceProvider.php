@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Client\ClientAreaSections;
+use App\Models\Annonce;
 use App\Models\AppSetting;
 use App\Models\Article;
 use App\Models\Category;
@@ -103,6 +104,14 @@ class AppServiceProvider extends ServiceProvider
         // Paramètres du site (coordonnées, slogan…) disponibles dans toutes les vues du site public et dans les e-mails.
         View::composer(['layouts.site', 'site.*', 'mail.*', 'client.*'], fn ($view) => $view->with('site', app(SiteSettings::class)));
 
+        // Tableau de bord de l'espace apprenant : bloc « Annonces du centre » (pour tous ou pour ses groupes).
+        $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
+            $groupIds = Inscription::forClient($client)->whereNotNull('groupe_id')->where('status', '!=', 'annulee')->pluck('groupe_id');
+            $annonces = Annonce::current()->visibleTo($groupIds);
+
+            return ['title' => 'Annonces du centre', 'icon' => 'bx-megaphone', 'route' => 'client.calendrier', 'count' => (clone $annonces)->count(), 'open' => (clone $annonces)->where('created_at', '>=', now()->subDays(7))->count(), 'label' => 'cette semaine'];
+        });
+
         // Tableau de bord de l'espace apprenant : bloc « Calendrier » (séances à venir), en premier.
         $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
             $groupIds = Inscription::forClient($client)->whereNotNull('groupe_id')->where('status', '!=', 'annulee')->pluck('groupe_id');
@@ -152,6 +161,7 @@ class AppServiceProvider extends ServiceProvider
             'groupe' => Groupe::class,
             'seance' => Seance::class,
             'support' => Support::class,
+            'annonce' => Annonce::class,
             'prestation' => Prestation::class,
             'redirection' => Redirection::class,
             'temoignage' => Temoignage::class,

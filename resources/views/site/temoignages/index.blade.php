@@ -19,8 +19,9 @@
                     <span class="text-muted small">{{ $videos->count() }} témoignage(s)</span>
                 </div>
                 <div class="row g-4 mb-5">
+                    @php $previewId = $videos->first(fn ($t) => $t->hasVideo())?->id; @endphp
                     @foreach ($videos as $temoignage)
-                        <div class="col-md-6 col-lg-4">@include('site.temoignages._video-card')</div>
+                        <div class="col-md-6 col-lg-4">@include('site.temoignages._video-card', ['preview' => $temoignage->id === $previewId])</div>
                     @endforeach
                 </div>
             @endif

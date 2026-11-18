@@ -77,7 +77,32 @@
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h6 class="mb-0 text-white"><i class='bx bx-megaphone me-2'></i>ANNONCES AUX APPRENANTS</h6>
+                @can('create', \App\Models\Groupe::class)
+                    <button type="button" class="btn btn-light btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#annonce"><i class='bx bx-plus'></i> Nouvelle annonce</button>
+                @endcan
+            </div>
+            <div class="card-body">
+                @forelse ($annonces as $annonce)
+                    <div class="d-flex flex-wrap align-items-start gap-2 py-2 border-bottom {{ $annonce->expires_on && $annonce->expires_on->isPast() ? 'opacity-50' : '' }}">
+                        <div class="flex-grow-1">
+                            <strong>{{ $annonce->title }}</strong> <span class="badge bg-light text-dark">{{ $annonce->audience() }}</span>
+                            <div class="small text-muted">{{ $annonce->created_at->format('d/m/Y') }}@if ($annonce->expires_on) · jusqu'au {{ $annonce->expires_on->format('d/m/Y') }}@endif @if ($annonce->emailed_count) · envoyée à {{ $annonce->emailed_count }} apprenant(s)@endif</div>
+                        </div>
+                        @can('create', \App\Models\Groupe::class)
+                            <form method="POST" action="{{ route('groupes.annonces.destroy', $annonce) }}" data-crud-form data-no-guard data-confirm="Retirer l'annonce « {{ $annonce->title }} » ?">@csrf @method('DELETE')<button type="submit" class="btn btn-light btn-sm" title="Retirer"><i class='bx bx-trash'></i></button></form>
+                        @endcan
+                    </div>
+                @empty
+                    <p class="text-muted mb-0">Aucune annonce. Exemple : « Pas de cours lundi (jour férié) », « Nouvelle session en janvier ».</p>
+                @endforelse
+            </div>
+        </div>
+
         @can('create', \App\Models\Groupe::class)
+            @include('groupes._annonce-modal', ['modalId' => 'annonce', 'groupes' => $groupes->where('is_active', true), 'groupe' => null])
             @include('groupes._form-modal', ['groupe' => null, 'modalId' => 'create-groupe', 'action' => route('groupes.store'), 'method' => 'POST', 'niveaux' => $niveaux])
         @endcan
     </div>

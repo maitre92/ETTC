@@ -443,3 +443,8 @@ body { color: #26304a; }
 .ettc-formula-cta:hover { background: var(--ettc-blue); color: #fff; transform: translateY(-2px); }
 .ettc-formula-cta i { transition: transform .3s var(--ettc-spring); }
 .ettc-formula-cta:hover i { transform: translateX(4px); }
+
+/* Flèche « Retour » des pages intérieures (bandeau de titre), demande du centre. */
+.page-back { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .75rem; padding: .3rem .8rem; border-radius: 999px; background: rgba(255, 255, 255, .16); color: #fff; font-weight: 600; font-size: .9rem; text-decoration: none; transition: background .2s ease, transform .2s ease; }
+.page-back:hover, .page-back:focus-visible { background: rgba(255, 255, 255, .28); color: #fff; transform: translateX(-3px); }
+.page-back .bx { font-size: 1.15rem; }

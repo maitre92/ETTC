@@ -43,7 +43,7 @@
             </td>
             <td style="text-align:right">
                 <img src="{{ $qr }}" width="88" height="88" alt="">
-                <div class="muted small">Scannez pour vérifier ce reçu</div>
+                <div class="muted small">Scannez pour lire ce reçu</div>
             </td>
         </tr>
     </table>
