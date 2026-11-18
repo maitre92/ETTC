@@ -158,7 +158,14 @@ Les noms des rôles `gestionnaire` et `commercial` sont hérités ; leur libell�
 - **Flèche « Retour »** partout : administration (`partials/back-button`, posée devant le fil d'Ariane, sauf tableau de bord), site (`site.partials.page-hero`) et espace apprenant (`client._layout`, sauf son accueil) ; clic = page précédente si l'on vient du site, sinon la page parente.
 - **Témoignages** : page reliée au pied de page et à l'accueil (vidéos sans texte comprises, invitation à partager s'il n'y en a pas) ; **aperçu muet en boucle** (8 premières secondes) de la première vidéo hébergée sur `/temoignages`, seulement à l'écran, jamais avec « moins d'animations » ni l'économie de données (`[data-video-preview]`, `site.js`).
 
-**À faire** : voir le plan (§10).
+**État au 2026-11-20** : les phases 0 à 8 sont faites et tout le cahier est couvert (formations, tests, inscriptions, paiements et reçus, séances, services, finances et commission, annonces, espace apprenant). 352 tests verts, Pint propre ; contrôle complet dans Chrome (25 pages du site, 8 de l'espace apprenant, 25 de l'administration, en 1366 px et 390 px) : aucune erreur, aucun débordement.
+
+**Reste à faire avec le centre** (phases 9 et 10) :
+1. **Contenus** : logo, textes officiels, formules et tarifs définitifs, dates et tarif de l'excursion, mentions légales (forme juridique, RCCM), numéros Orange Money / Wave / Moov Money (Paiements → Moyens de paiement).
+2. **Mise en ligne** (§9) : `php artisan site:verifier` doit être tout vert — production, HTTPS, SMTP et destinataire des alertes, `storage:link`, cron `schedule:run`, mot de passe du superadmin choisi, `php artisan donnees-test:supprimer`, `PAYMENT_GATEWAY` vide ou `cinetpay`.
+3. **Sécurité** : `composer update laravel/framework symfony/http-foundation symfony/http-kernel symfony/mime symfony/routing --with-all-dependencies` (failles signalées par `composer audit` ; la connexion de développement a coupé le téléchargement), puis `composer test`.
+4. **Paiement automatique** (facultatif) : compte marchand du centre chez un agrégateur agréé BCEAO (InTouch conseillé, CinetPay en secours), clés dans `.env`, revérifier les champs du pilote avec leur documentation.
+5. **Contrat** : base de calcul de la commission (montant payé par l'apprenant ou net des frais de l'agrégateur), formations personnalisées incluses ou non, périodicité des versements.
 
 ## 3. Démarrer
 
