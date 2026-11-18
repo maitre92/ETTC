@@ -14,6 +14,7 @@ use App\Models\Inscription;
 use App\Models\Paiement;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
+use App\Services\Finances\CommissionCalculator;
 use App\Services\Numbering\SequenceService;
 use App\Services\Paiements\Gateway\GatewayException;
 use App\Services\Paiements\Gateway\GatewayManager;
@@ -45,6 +46,7 @@ class PaiementService
         private readonly SequenceService $sequences,
         private readonly SiteSettings $settings,
         private readonly GatewayManager $gateways,
+        private readonly CommissionCalculator $commissions,
     ) {}
 
     /** Moyens proposés à l'apprenant : ceux dont le centre a renseigné le numéro marchand. @return array<string, string> */
@@ -68,7 +70,7 @@ class PaiementService
             $paiement = Paiement::create($this->attributes($inscription, $data) + [
                 'status' => PaymentStatus::Confirme, 'source' => 'centre', 'recorded_by' => $actor->id,
                 'confirmed_at' => now(), 'confirmed_by' => $actor->id,
-            ]);
+            ] + $this->commissions->forPayment($inscription, (int) $data['amount']));
             $this->logger->log('paiements.recorded', 'paiements', "Paiement enregistré — {$paiement->number} : {$paiement->money()} par {$paiement->method->label()} ({$inscription->number}, {$inscription->name})", $paiement, actor: $actor);
             $this->afterConfirmation($inscription, $actor);
 
@@ -178,7 +180,7 @@ class PaiementService
 
                 return false;
             }
-            $this->change($paiement, $values + ['status' => PaymentStatus::Confirme, 'confirmed_at' => now()], 'paiements.online_confirmed', 'Paiement en ligne confirmé par '.$this->gateways->make($paiement->gateway)?->label(), null);
+            $this->change($paiement, $values + ['status' => PaymentStatus::Confirme, 'confirmed_at' => now()] + $this->commissions->forPayment($inscription, $paiement->amount), 'paiements.online_confirmed', 'Paiement en ligne confirmé par '.$this->gateways->make($paiement->gateway)?->label(), null);
             $this->afterConfirmation($inscription, null);
 
             return true;
@@ -228,7 +230,7 @@ class PaiementService
         $this->ensurePayable($inscription, $paiement->amount);
 
         DB::transaction(function () use ($paiement, $inscription, $actor) {
-            $this->change($paiement, ['status' => PaymentStatus::Confirme, 'confirmed_at' => now(), 'confirmed_by' => $actor->id], 'paiements.confirmed', 'Paiement confirmé', $actor);
+            $this->change($paiement, ['status' => PaymentStatus::Confirme, 'confirmed_at' => now(), 'confirmed_by' => $actor->id] + $this->commissions->forPayment($inscription, $paiement->amount), 'paiements.confirmed', 'Paiement confirmé', $actor);
             $this->afterConfirmation($inscription, $actor);
         });
         $this->mailReceipt($paiement);

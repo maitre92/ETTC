@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * `REC-AAAA-NNNN` = numéro du reçu. Jamais supprimé : une erreur s'annule avec un motif (suivi financier vérifiable).
  */
 #[Fillable([
-    'number', 'inscription_id', 'client_id', 'nature', 'amount', 'method', 'reference', 'payer_phone', 'period', 'status',
+    'number', 'inscription_id', 'client_id', 'nature', 'amount', 'commission_rate', 'commission_amount', 'method', 'reference', 'payer_phone', 'period', 'status',
     'source', 'gateway', 'gateway_transaction_id', 'gateway_status', 'gateway_checked_at', 'paid_at', 'recorded_by', 'confirmed_at', 'confirmed_by', 'notes', 'cancel_reason', 'cancelled_at',
     'cancelled_by', 'ip_address',
 ])]
@@ -32,7 +32,7 @@ class Paiement extends Model
     {
         return [
             'nature' => PaymentNature::class, 'method' => PaymentMethod::class, 'status' => PaymentStatus::class,
-            'amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime', 'gateway_checked_at' => 'datetime',
+            'amount' => 'integer', 'commission_rate' => 'float', 'commission_amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime', 'gateway_checked_at' => 'datetime',
         ];
     }
 

@@ -19,6 +19,7 @@ use App\Models\Seance;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
+use App\Services\Finances\FinanceService;
 use App\Services\Statistiques\SiteStats;
 use App\Support\SiteSettings;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,13 @@ class RealDashboardData
         }
         if ($user->can('paiements.view')) {
             $this->paiements($dashboard);
+        }
+        if ($user->can('finances.view')) {
+            $overall = app(FinanceService::class)->overall();
+            $dashboard['sections'][] = ['title' => 'Commission', 'icon' => 'bx bx-line-chart', 'cards' => [
+                $this->card('Commission restant à payer', Formule::money(max(0, $overall['due'])), 'depuis le début', 'bx bx-time-five', $overall['due'] > 0 ? 'warning' : 'success'),
+                $this->card('Commission déjà versée', Formule::money($overall['paid']), 'depuis le début', 'bx bx-check-circle', 'secondary'),
+            ], 'tables' => []];
         }
         if ($user->can('seances.view')) {
             $this->seances($dashboard);
@@ -400,6 +408,7 @@ class RealDashboardData
             ['inscriptions.index', 'inscriptions.view', 'Inscriptions', 'bx bx-user-check'],
             ['paiements.index', 'paiements.view', 'Paiements', 'bx bx-wallet'],
             ['groupes.index', 'seances.view', 'Séances et groupes', 'bx bx-calendar'],
+            ['finances.index', 'finances.view', 'Finances', 'bx bx-line-chart'],
             ['tests.index', 'tests.view', 'Tests de niveau', 'bx bx-target-lock'],
             ['demandes.index', 'demandes.view', 'Demandes', 'bx bx-envelope'],
             ['articles.create', 'articles.create', 'Rédiger un article', 'bx bx-pencil'],

@@ -63,6 +63,11 @@
                 'Un paiement confirmé fait passer l\'inscription « En cours ». Le tableau « Impayés » liste les inscriptions qui ont encore un reste à payer.',
                 'Un paiement ne se supprime jamais : « Annuler » s\'il a été saisi par erreur, « Rembourser » si l\'argent a été rendu (motif obligatoire). Le reçu reste consultable avec son statut. Bouton « Imprimer / PDF » sur chaque reçu.',
             ]],
+            ['bx bx-line-chart', 'Suivre les finances et la commission', [
+                'Finances et commission : choisissez la période (ce mois, mois dernier, cette année, depuis le début, ou des dates). Vous voyez les frais de formation encaissés, la part du centre, la commission du développeur, ce qui est déjà versé et ce qui reste à payer.',
+                'La commission (20 % par défaut) est calculée sur chaque paiement de formation confirmé et reste fixée même si le taux change ensuite. Un paiement remboursé ou annulé ne compte plus. Le test de niveau est gratuit : il n\'entre pas dans le calcul.',
+                'Quand la commission d\'un mois est versée, bouton « Verser » sur la ligne du mois : le montant restant est proposé. Rapport PDF et fichier Excel en un clic, pour la période choisie.',
+            ]],
             ['bx bx-transfer-alt', 'Traductions, formations personnalisées et excursion', [
                 'Les pages Traduction, Formation personnalisée et Excursion au Ghana du site ont chacune leur formulaire ; les demandes arrivent dans Demandes (filtre « Tous les types » pour les retrouver). Leurs textes se modifient dans Pages et paramètres.',
                 'Sur la demande, carte « Proposition » : le montant et ce qu\'il comprend, puis « Envoyer la proposition ». Le demandeur la reçoit par e-mail (sinon, bouton « Envoyer le lien par WhatsApp ») et l\'accepte d\'un clic ; vous êtes prévenu et la demande passe « Acceptée ».',

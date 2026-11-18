@@ -68,6 +68,9 @@ return [
 
         // Moyens de paiement (Paiements → Moyens de paiement, décision du centre 2026-11-18) : en ligne par mobile money,
         // en présentiel au centre. Numéros marchands vides = moyen non proposé à l'apprenant (à fournir par le centre).
+        // Commission du développeur (cahier §8, Finances → Réglages) : taux en %, formations personnalisées incluses ou non.
+        'finance.commission_rate' => '20',
+        'finance.include_personnalisee' => '0',
         'paiement.orange_money' => '',
         'paiement.wave' => '',
         'paiement.moov_money' => '',
