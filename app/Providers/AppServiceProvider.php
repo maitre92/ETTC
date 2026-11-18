@@ -11,6 +11,7 @@ use App\Models\ClientDocument;
 use App\Models\Demande;
 use App\Models\DemandeNote;
 use App\Models\Formule;
+use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Niveau;
@@ -18,6 +19,8 @@ use App\Models\Paiement;
 use App\Models\Permission;
 use App\Models\Prestation;
 use App\Models\Redirection;
+use App\Models\Seance;
+use App\Models\Support;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
@@ -100,6 +103,14 @@ class AppServiceProvider extends ServiceProvider
         // Paramètres du site (coordonnées, slogan…) disponibles dans toutes les vues du site public et dans les e-mails.
         View::composer(['layouts.site', 'site.*', 'mail.*', 'client.*'], fn ($view) => $view->with('site', app(SiteSettings::class)));
 
+        // Tableau de bord de l'espace apprenant : bloc « Calendrier » (séances à venir), en premier.
+        $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
+            $groupIds = Inscription::forClient($client)->whereNotNull('groupe_id')->where('status', '!=', 'annulee')->pluck('groupe_id');
+            $upcoming = Seance::whereIn('groupe_id', $groupIds)->upcoming();
+
+            return ['title' => 'Mon calendrier', 'icon' => 'bx-calendar', 'route' => 'client.calendrier', 'count' => (clone $upcoming)->count(), 'open' => (clone $upcoming)->whereDate('starts_at', today())->count(), 'label' => 'aujourd\'hui'];
+        });
+
         // Tableau de bord de l'espace apprenant : bloc « Inscriptions » (en attente / total).
         $this->app->make(ClientAreaSections::class)->register(function (Client $client) {
             $inscriptions = Inscription::forClient($client);
@@ -138,6 +149,9 @@ class AppServiceProvider extends ServiceProvider
             'test_niveau' => TestNiveau::class,
             'inscription' => Inscription::class,
             'paiement' => Paiement::class,
+            'groupe' => Groupe::class,
+            'seance' => Seance::class,
+            'support' => Support::class,
             'prestation' => Prestation::class,
             'redirection' => Redirection::class,
             'temoignage' => Temoignage::class,

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Client\AccountController;
 use App\Http\Controllers\Client\AuthController;
+use App\Http\Controllers\Client\CalendrierController;
 use App\Http\Controllers\Client\PaiementController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,8 @@ Route::prefix('espace-client')->name('client.')->group(function () {
 
     Route::middleware(['auth:client', 'client.active'])->group(function () {
         Route::get('/', [AccountController::class, 'home'])->name('home');
+        Route::get('/calendrier', [CalendrierController::class, 'index'])->name('calendrier');
+        Route::get('/calendrier/supports/{support}', [CalendrierController::class, 'download'])->name('calendrier.support');
         Route::get('/inscriptions', [AccountController::class, 'inscriptions'])->name('inscriptions');
         Route::get('/paiements', [PaiementController::class, 'index'])->name('paiements');
         Route::post('/paiements', [PaiementController::class, 'store'])->middleware('throttle:demandes')->name('paiements.store');

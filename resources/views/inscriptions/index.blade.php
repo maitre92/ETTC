@@ -28,6 +28,7 @@
 
     <div data-crud="inscriptions" data-crud-columns="5">
         <span data-crud-status hidden>{{ session('status') }}</span>
+        @include('paiements._last-receipt')
         <div class="row g-3 mb-3">
             @foreach ([['À valider', $count(InscriptionStatus::AValider), 'bx-folder-open', 'danger'], ['En attente de paiement', $count(InscriptionStatus::Validee), 'bx-time-five', 'warning'], ['En cours', $count(InscriptionStatus::EnCours), 'bx-book-reader', 'primary'], ['Montant des inscriptions', \App\Models\Formule::money($engaged), 'bx-purchase-tag', 'success']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
                 <div class="col-6 col-xl-3">
@@ -113,5 +114,6 @@
 
 @push('scripts')
     <script src="{{ asset('assets/js/crud-ajax.js') }}?v={{ filemtime(public_path('assets/js/crud-ajax.js')) }}"></script>
+    <script src="{{ asset('assets/js/inscription-form.js') }}?v={{ filemtime(public_path('assets/js/inscription-form.js')) }}"></script>
     <script>CrudAjax.init(document.querySelector('[data-crud="inscriptions"]'));</script>
 @endpush

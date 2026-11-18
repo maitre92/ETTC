@@ -63,6 +63,13 @@
                 'Un paiement confirmé fait passer l\'inscription « En cours ». Le tableau « Impayés » liste les inscriptions qui ont encore un reste à payer.',
                 'Un paiement ne se supprime jamais : « Annuler » s\'il a été saisi par erreur, « Rembourser » si l\'argent a été rendu (motif obligatoire). Le reçu reste consultable avec son statut. Bouton « Imprimer / PDF » sur chaque reçu.',
             ]],
+            ['bx bx-calendar', 'Organiser les groupes et les séances', [
+                'Séances et groupes → « Nouveau groupe » : un nom, en ligne ou au centre, le lien Google Meet (un lien collé sans son début est complété tout seul) ou la salle, le niveau et le formateur.',
+                'Sur la fiche du groupe, « Que faire maintenant ? » indique l\'étape suivante. « Ajouter des apprenants » propose les inscrits qui correspondent (même mode, même niveau, sans groupe), déjà cochés.',
+                '« Programmer les séances » crée toutes les séances d\'un coup : cochez les jours (ex. lundi et mercredi), l\'heure, la durée et la période. Chaque apprenant reçoit son calendrier par e-mail ; relancer la même série ne crée pas de doublon.',
+                'Annuler une séance : bouton « Annuler » puis le motif, envoyé aux apprenants. Supports : un fichier (PDF, Word, audio… 20 Mo au plus) ou un lien (YouTube, Drive) ; visibles seulement par les apprenants du groupe.',
+                'L\'apprenant voit « Mon calendrier » dans son espace : prochaine séance, bouton « Rejoindre » actif 15 minutes avant, supports à télécharger.',
+            ]],
             ['bx bx-file', 'Modifier les pages et les coordonnées', [
                 'Pages et paramètres → onglets Accueil, À propos, Pages légales : textes du site. Les textes longs utilisent le Markdown : ## Titre, **gras**, - liste.',
                 'Les onglets Entreprise, Coordonnées, Réseaux sociaux et Référencement sont réservés à l\'administrateur : téléphones, WhatsApp, e-mail, adresse, horaires, liens sociaux.',

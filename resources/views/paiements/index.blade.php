@@ -27,6 +27,7 @@
 
     <div data-crud="paiements" data-crud-columns="5">
         <span data-crud-status hidden>{{ session('status') }}</span>
+        @include('paiements._last-receipt')
         <div class="row g-3 mb-3">
             @foreach ([['Encaissé ce mois', $money($monthTotal), 'bx-wallet', 'success'], ['À vérifier', $toVerify->count().' ('.$money((int) $toVerify->sum('amount')).')', 'bx-search-alt', 'warning'], ['Reste à encaisser', $money((int) $unpaid->sum(fn ($i) => $i->balance())), 'bx-time-five', 'danger'], ['Remboursé ce mois', $money($refundedMonth), 'bx-undo', 'info']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
                 <div class="col-6 col-xl-3">
@@ -112,6 +113,7 @@
                                             @can('create', \App\Models\Paiement::class)
                                                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}"><i class='bx bx-money'></i><span class="ms-1">Encaisser</span></button>
                                             @endcan
+                                            @if ($wa = $inscription->whatsappMessageUrl())<a href="{{ $wa }}" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener" title="Rappel WhatsApp déjà rédigé"><i class='bx bxl-whatsapp'></i><span class="ms-1">Relancer</span></a>@endif
                                             <a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-primary btn-sm" title="Voir l'inscription"><i class='bx bx-show'></i></a>
                                         </td>
                                     </tr>

@@ -58,6 +58,9 @@ class TestNiveauController extends Controller
             'formules' => $test->niveau ? Formule::published()->ordered()->get() : collect(),
             'inscriptionsDuTest' => Inscription::where('test_niveau_id', $test->id)->where('status', '!=', 'annulee')->get(['id', 'number']),
             'history' => ActivityLog::where('subject_type', $test->getMorphClass())->where('subject_id', $test->id)->latest('id')->limit(30)->get(),
+            // Planification proposée : le prochain jour ouvré à 9 h, au dernier lieu utilisé pour ce mode.
+            'suggestedSlot' => ($next = now()->addDay()->setTime(9, 0))->isSunday() ? $next->addDay()->format('Y-m-d\TH:i') : $next->format('Y-m-d\TH:i'),
+            'recentLocations' => TestNiveau::where('test_mode', $test->test_mode->value)->whereNotNull('location')->latest('scheduled_at')->limit(30)->pluck('location')->unique()->take(5)->values(),
         ]);
     }
 

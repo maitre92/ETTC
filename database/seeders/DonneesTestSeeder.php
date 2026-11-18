@@ -14,9 +14,11 @@ use App\Models\Category;
 use App\Models\Client;
 use App\Models\Demande;
 use App\Models\Formule;
+use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Paiement;
+use App\Models\Seance;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
@@ -111,6 +113,17 @@ class DonneesTestSeeder extends Seeder
         Paiement::create(['number' => $sequences->next(PaiementService::PREFIX), 'inscription_id' => $created[1]->id, 'nature' => 'formation',
             'amount' => $created[1]->nextInstallment(), 'method' => 'orange_money', 'reference' => 'MPTEST'.random_int(100000, 999999), 'payer_phone' => $created[1]->phone,
             'status' => 'a_verifier', 'source' => 'apprenant', 'paid_at' => now()]);
+
+        // Groupe fictif avec Mariam (en cours) et deux semaines de séances (lundi, mercredi, 18 h).
+        $groupe = Groupe::create(['name' => 'Groupe test — soir', 'niveau_id' => $niveau?->id, 'mode' => $mode, 'teacher' => 'Formateur (test)',
+            'meet_url' => $mode === 'en_ligne' ? 'https://meet.google.com/aaa-bbbb-ccc' : null, 'location' => $mode === 'presentiel' ? 'Salle 1 (test)' : null,
+            'schedule' => 'Lundi et mercredi, 18h–19h30', 'starts_on' => today(), 'is_active' => true]);
+        $created[2]->forceFill(['groupe_id' => $groupe->id, 'session' => $groupe->name])->saveQuietly();
+        for ($day = today(); $day->lte(today()->addDays(14)); $day = $day->addDay()) {
+            if (in_array($day->dayOfWeekIso, [1, 3], true)) {
+                Seance::create(['groupe_id' => $groupe->id, 'starts_at' => $day->copy()->setTime(18, 0), 'duration_minutes' => 90]);
+            }
+        }
     }
 
     private function articles(): void

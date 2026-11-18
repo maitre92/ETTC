@@ -27,6 +27,7 @@
 
     <div data-crud="inscription-{{ $inscription->id }}">
         <span data-crud-status hidden>{{ session('status') }}</span>
+        @include('paiements._last-receipt')
         @if ($errors->has('status'))
             <div class="alert alert-warning">{{ $errors->first('status') }}</div>
         @endif
@@ -54,7 +55,7 @@
                     <div class="card-body">
                         <dl class="nv-dl mb-0">
                             <dt>Numéro</dt><dd>{{ $inscription->number }} <span class="text-muted small">({{ $inscription->source === 'site' ? 'inscription en ligne' : 'inscrit au centre' }}, le {{ $inscription->created_at->format('d/m/Y H:i') }})</span></dd>
-                            @if ($inscription->phone)<dt>Téléphone</dt><dd><a href="tel:{{ $inscription->phone }}">{{ $inscription->phone }}</a></dd>@endif
+                            @if ($inscription->phone)<dt>Téléphone</dt><dd><a href="tel:{{ $inscription->phone }}">{{ $inscription->phone }}</a>@if ($wa = $inscription->whatsappMessageUrl()) <a href="{{ $wa }}" class="btn btn-success btn-sm py-0 ms-1" target="_blank" rel="noopener" title="Message WhatsApp déjà rédigé"><i class='bx bxl-whatsapp'></i> Écrire</a>@endif</dd>@endif
                             @if ($inscription->email)<dt>E-mail</dt><dd><a href="mailto:{{ $inscription->email }}">{{ $inscription->email }}</a></dd>@endif
                             @if ($inscription->birth_date)<dt>Naissance</dt><dd>{{ $inscription->birth_date->format('d/m/Y') }} <span class="text-muted small">({{ $inscription->birth_date->age }} ans)</span></dd>@endif
                             @if ($inscription->gender)<dt>Sexe</dt><dd>{{ $inscription->gender->label() }}</dd>@endif

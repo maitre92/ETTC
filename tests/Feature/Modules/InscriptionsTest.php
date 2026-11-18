@@ -176,4 +176,56 @@ class InscriptionsTest extends TestCase
         Inscription::factory()->count(2)->create();
         $this->actingAs(User::factory()->administrateur()->create())->get('/admin')->assertOk()->assertSee('Inscriptions');
     }
+
+    public function test_at_the_centre_a_presential_inscription_is_paid_in_the_same_step(): void
+    {
+        Mail::fake();
+        $formule = $this->formule();
+        $this->actingAs(User::factory()->commercial()->create());
+
+        $this->get('/admin/inscriptions')->assertOk()->assertSee('Inscrire et encaisser')->assertSee('data-lookup-phone', false);
+        $base = ['name' => 'Oumar Sidibé', 'phone' => '76 11 22 33', 'formule_id' => $formule->id, 'mode' => 'presentiel', 'pay_now' => '1'];
+
+        $this->post('/admin/inscriptions', $base + ['pay_amount' => 50000, 'pay_method' => 'especes'])->assertSessionHasErrors('pay_amount');
+        $this->post('/admin/inscriptions', $base + ['pay_amount' => 20000, 'pay_method' => 'wave'])->assertSessionHasErrors('pay_reference');
+        $this->assertSame(0, Inscription::count());
+
+        $response = $this->post('/admin/inscriptions', $base + ['pay_amount' => 20000, 'pay_method' => 'especes'])->assertRedirect();
+        $inscription = Inscription::firstOrFail();
+        $response->assertSessionHas('receipt_id');
+        $this->assertSame([InscriptionStatus::EnCours, 20000, 'au_centre'], [$inscription->status, $inscription->amount_paid, $inscription->payment_choice->value]);
+        $this->assertSame('Mois 1', $inscription->paiements()->first()->period);
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertSee('Imprimez-le pour l');
+
+        // En ligne, sans paiement immédiat : mobile money plus tard.
+        $this->post('/admin/inscriptions', ['name' => 'Awa', 'phone' => '76 99 88 77', 'formule_id' => $formule->id, 'mode' => 'en_ligne'])->assertRedirect();
+        $this->assertSame(['en_ligne', 0], [Inscription::latest('id')->first()->payment_choice->value, Inscription::latest('id')->first()->amount_paid]);
+    }
+
+    public function test_a_known_person_is_found_by_phone(): void
+    {
+        $niveau = Niveau::factory()->create(['name' => 'Intermédiaire']);
+        TestNiveau::factory()->create(['name' => 'Fatou Keïta', 'phone' => '+22375000001', 'email' => 'fatou@exemple.ml', 'status' => TestStatus::Passe, 'niveau_id' => $niveau->id]);
+        $this->actingAs(User::factory()->commercial()->create());
+
+        $this->getJson('/admin/inscriptions/personne?phone=75 00 00 01')->assertOk()
+            ->assertJsonPath('found', true)->assertJsonPath('fields.name', 'Fatou Keïta')->assertJsonPath('fields.niveau_id', $niveau->id)->assertJsonPath('fields.email', 'fatou@exemple.ml');
+        $this->getJson('/admin/inscriptions/personne?phone=70 00 00 00')->assertOk()->assertJsonPath('found', false);
+
+        Inscription::factory()->create(['phone' => '+22375000001', 'status' => InscriptionStatus::EnCours]);
+        $this->getJson('/admin/inscriptions/personne?phone=75000001')->assertJsonPath('found', true)->assertJsonFragment(['found' => true])
+            ->assertJson(fn ($json) => $json->where('warning', fn ($w) => str_contains($w, 'déjà une inscription en cours'))->etc());
+    }
+
+    public function test_the_message_survives_an_ajax_form_that_opens_another_page(): void
+    {
+        $inscription = Inscription::factory()->create();
+        $this->actingAs(User::factory()->administrateur()->create());
+
+        // crud-ajax.js : le navigateur suit la redirection en arrière-plan (X-Crud-From), puis ouvre la page.
+        $this->withSession(['status' => 'Inscription enregistrée.', '_flash' => ['old' => [], 'new' => ['status']]])
+            ->withHeader('X-Crud-From', '/admin/inscriptions')->get("/admin/inscriptions/{$inscription->id}")->assertSee('Inscription enregistrée.');
+        $this->flushHeaders()->get("/admin/inscriptions/{$inscription->id}")->assertSee('Inscription enregistrée.');
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertDontSee('Inscription enregistrée.');
+    }
 }

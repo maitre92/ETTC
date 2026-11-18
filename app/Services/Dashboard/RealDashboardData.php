@@ -15,6 +15,7 @@ use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Paiement;
+use App\Models\Seance;
 use App\Models\Temoignage;
 use App\Models\TestNiveau;
 use App\Models\User;
@@ -54,6 +55,9 @@ class RealDashboardData
         }
         if ($user->can('paiements.view')) {
             $this->paiements($dashboard);
+        }
+        if ($user->can('seances.view')) {
+            $this->seances($dashboard);
         }
         if ($user->can('statistiques.view')) {
             $this->frequentation($dashboard);
@@ -156,6 +160,13 @@ class RealDashboardData
             'columns' => ['Niveau', 'Inscriptions'],
             'rows' => $byNiveau->map(fn ($items, $name) => [$name, (string) $items->count()])->values()->all(),
         ]]];
+    }
+
+    /** Séances (cahier §5) : séances du jour, apprenants payés sans groupe (à placer). */
+    private function seances(array &$dashboard): void
+    {
+        $dashboard['tasks'][] = $this->task('Séances aujourd\'hui', 'Cours programmés ce jour', Seance::whereDate('starts_at', today())->where('is_cancelled', false)->count(), 'bx bx-calendar', 'primary', 'groupes.index');
+        $dashboard['tasks'][] = $this->task('Apprenants sans groupe', 'Inscrits à placer dans un groupe', Inscription::whereNull('groupe_id')->whereIn('status', [InscriptionStatus::Validee->value, InscriptionStatus::EnCours->value])->count(), 'bx bx-group', 'warning', 'groupes.index');
     }
 
     /** Paiements (cahier §5 « Gestion financière ») : déclarations à vérifier, impayés, encaissé du mois. */
@@ -388,6 +399,7 @@ class RealDashboardData
         $candidates = [
             ['inscriptions.index', 'inscriptions.view', 'Inscriptions', 'bx bx-user-check'],
             ['paiements.index', 'paiements.view', 'Paiements', 'bx bx-wallet'],
+            ['groupes.index', 'seances.view', 'Séances et groupes', 'bx bx-calendar'],
             ['tests.index', 'tests.view', 'Tests de niveau', 'bx bx-target-lock'],
             ['demandes.index', 'demandes.view', 'Demandes', 'bx bx-envelope'],
             ['articles.create', 'articles.create', 'Rédiger un article', 'bx bx-pencil'],

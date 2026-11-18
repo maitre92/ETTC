@@ -152,6 +152,14 @@ class SiteSettings
         return 'https://wa.me/'.ltrim($number, '+').($message ? '?text='.rawurlencode($message) : '');
     }
 
+    /** Message WhatsApp prérempli vers une personne (relance d'un apprenant par l'équipe), ou null sans numéro valide. */
+    public function whatsappTo(?string $phone, string $message): ?string
+    {
+        $number = PhoneNumber::normalize($phone);
+
+        return $number ? 'https://wa.me/'.ltrim($number, '+').'?text='.rawurlencode($message) : null;
+    }
+
     /** Partage d'un texte sur WhatsApp (le visiteur choisit le destinataire). */
     public function whatsappShareLink(string $text): string
     {

@@ -68,7 +68,7 @@ class PaiementController extends Controller
             default => route('inscriptions.show', $inscription),
         };
 
-        return redirect()->to($back)->with('status', "Paiement enregistré : reçu {$paiement->number}.");
+        return redirect()->to($back)->with('status', "Paiement enregistré : reçu {$paiement->number}.")->with('receipt_id', $paiement->id);
     }
 
     public function show(Paiement $paiement): View

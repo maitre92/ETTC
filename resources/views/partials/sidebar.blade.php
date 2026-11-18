@@ -18,7 +18,7 @@
             'pages' => 'Contenus du site', 'prestations' => 'Contenus du site', 'articles' => 'Contenus du site',
             'temoignages' => 'Contenus du site', 'medias' => 'Contenus du site',
             // Modules du cahier ETTC (config/planned_modules.php) : leur groupe est prêt avant leur construction.
-            'formations' => 'Formations', 'tests' => 'Formations', 'inscriptions' => 'Formations', 'seances' => 'Formations',
+            'formations' => 'Formations', 'tests' => 'Formations', 'inscriptions' => 'Formations', 'seances' => 'Formations', 'groupes' => 'Formations',
             'paiements' => 'Finances', 'finances' => 'Finances',
             'demandes' => 'Demandes et apprenants', 'clients' => 'Demandes et apprenants', 'statistiques' => 'Demandes et apprenants',
             'traductions' => 'Demandes et apprenants', 'formations_personnalisees' => 'Demandes et apprenants', 'excursions' => 'Demandes et apprenants',

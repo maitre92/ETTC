@@ -110,7 +110,7 @@
             method: 'POST',
             body: new FormData(form),
             credentials: 'same-origin',
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/html;q=0.9' },
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/html;q=0.9', 'X-Crud-From': window.location.pathname },
         }).then(function (response) {
             if (response.status === 422) {
                 return response.json().then(function (data) {

@@ -102,9 +102,9 @@
                                 <form method="POST" action="{{ route('tests.schedule', $test) }}" class="row g-2" data-crud-form data-no-guard>
                                     @csrf
                                     @method('PUT')
-                                    <div class="col-md-5"><label class="form-label fw-semibold" for="s-at">Date et heure <span class="text-danger">*</span></label><input type="datetime-local" class="form-control {{ $field('scheduled_at') }}" id="s-at" name="scheduled_at" value="{{ old('scheduled_at', $test->scheduled_at?->format('Y-m-d\TH:i')) }}" required></div>
+                                    <div class="col-md-5"><label class="form-label fw-semibold" for="s-at">Date et heure <span class="text-danger">*</span></label><input type="datetime-local" class="form-control {{ $field('scheduled_at') }}" id="s-at" name="scheduled_at" value="{{ old('scheduled_at', $test->scheduled_at?->format('Y-m-d\TH:i') ?? $suggestedSlot) }}" required><div class="form-text">Proposé : le prochain jour ouvré à 9 h.</div></div>
                                     <div class="col-md-3"><label class="form-label fw-semibold" for="s-mode">Mode</label><select class="form-select" id="s-mode" name="test_mode">@foreach (\App\Enums\TestMode::options() as $value => $label)<option value="{{ $value }}" @selected($test->test_mode->value === $value)>{{ $label }}</option>@endforeach</select></div>
-                                    <div class="col-md-4"><label class="form-label fw-semibold" for="s-loc">Lieu ou lien</label><input class="form-control {{ $field('location') }}" id="s-loc" name="location" maxlength="500" value="{{ old('location', $test->location) }}" placeholder="Salle 2 / lien Google Meet"></div>
+                                    <div class="col-md-4"><label class="form-label fw-semibold" for="s-loc">Lieu ou lien</label><input class="form-control {{ $field('location') }}" id="s-loc" name="location" maxlength="500" value="{{ old('location', $test->location ?? $recentLocations->first()) }}" placeholder="Salle 2 / lien Google Meet" list="recent-locations"><datalist id="recent-locations">@foreach ($recentLocations as $recent)<option value="{{ $recent }}"></option>@endforeach</datalist></div>
                                     <div class="col-12 d-flex align-items-center gap-2 mt-2">
                                         <button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-calendar-check me-1'></i>{{ $test->scheduled_at ? 'Reporter' : 'Planifier' }}</button>
                                         <span class="small text-muted">{{ $test->email ? 'Une convocation part par e-mail au candidat.' : 'Pas d\'e-mail : prévenez le candidat par téléphone.' }}</span>
@@ -182,6 +182,7 @@
 
 @push('scripts')
     <script src="{{ asset('assets/js/crud-ajax.js') }}?v={{ filemtime(public_path('assets/js/crud-ajax.js')) }}"></script>
+    <script src="{{ asset('assets/js/inscription-form.js') }}?v={{ filemtime(public_path('assets/js/inscription-form.js')) }}"></script>
     <script>CrudAjax.init(document.querySelector('[data-crud="test-{{ $test->id }}"]'));</script>
     @include('partials.confirm-delete')
 @endpush

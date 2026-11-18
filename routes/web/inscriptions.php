@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/inscriptions', [InscriptionController::class, 'index'])->middleware('permission:inscriptions.view')->name('inscriptions.index');
     Route::post('/inscriptions', [InscriptionController::class, 'store'])->middleware('permission:inscriptions.create')->name('inscriptions.store');
+    Route::get('/inscriptions/personne', [InscriptionController::class, 'lookup'])->middleware('permission:inscriptions.create')->name('inscriptions.lookup');
     Route::post('/inscriptions/depuis-test/{test}', [InscriptionController::class, 'fromTest'])->middleware('permission:inscriptions.create')->name('inscriptions.from-test');
     Route::get('/inscriptions/{inscription}', [InscriptionController::class, 'show'])->middleware('permission:inscriptions.view')->name('inscriptions.show');
     Route::put('/inscriptions/{inscription}/validation', [InscriptionController::class, 'validateFile'])->middleware('permission:inscriptions.validate')->name('inscriptions.validate');

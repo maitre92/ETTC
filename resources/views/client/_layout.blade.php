@@ -3,6 +3,7 @@
     $client = auth('client')->user();
     $nav = collect([
         ['client.home', 'Tableau de bord', 'bx-grid-alt'],
+        ['client.calendrier', 'Mon calendrier', 'bx-calendar'],
         ['client.inscriptions', 'Mes inscriptions', 'bx-book-reader'],
         ['client.paiements', 'Mes paiements', 'bx-wallet'],
         ['client.tests', 'Mes tests de niveau', 'bx-target-lock'],

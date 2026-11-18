@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureClientIsActive;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureSuperadminsExist;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\KeepFlashForCrudNavigation;
 use App\Http\Middleware\TrackVisit;
 use App\Models\Redirection;
 use Illuminate\Foundation\Application;
@@ -23,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Fréquentation du site public (App\Services\Statistiques\VisitTracker).
-        $middleware->web(append: [TrackVisit::class]);
+        $middleware->web(append: [TrackVisit::class, KeepFlashForCrudNavigation::class]);
         // Notification serveur du prestataire de paiement : appel sans jeton CSRF ; elle ne confirme rien par elle-même
         // (le site relit l'état de la transaction chez le prestataire, PaiementService::synchronize).
         $middleware->validateCsrfTokens(except: ['paiements/notification/*']);

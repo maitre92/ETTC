@@ -8,6 +8,7 @@ use App\Enums\Gender;
 use App\Enums\InscriptionStatus;
 use App\Enums\PaymentChoice;
 use App\Models\Concerns\LogsActivity;
+use App\Support\SiteSettings;
 use Database\Factories\InscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'number', 'status', 'source', 'client_id', 'test_niveau_id', 'name', 'birth_date', 'gender', 'phone', 'email',
     'address', 'city', 'message', 'niveau_id', 'formule_id', 'mode', 'payment_choice', 'formule_name',
-    'duration_months', 'billing', 'unit_price', 'total_amount', 'amount_paid', 'session', 'validated_at', 'validated_by',
+    'duration_months', 'billing', 'unit_price', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'validated_at', 'validated_by',
     'started_at', 'finished_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
     'notified_at', 'notification_error',
 ])]
@@ -69,6 +70,11 @@ class Inscription extends Model
         return $this->belongsTo(User::class, 'validated_by')->withTrashed();
     }
 
+    public function groupe(): BelongsTo
+    {
+        return $this->belongsTo(Groupe::class)->withTrashed();
+    }
+
     public function paiements(): HasMany
     {
         return $this->hasMany(Paiement::class)->latest('paid_at')->latest('id');
@@ -105,6 +111,21 @@ class Inscription extends Model
         $unit = $this->billing === Billing::Mensuel ? $this->unit_price : $this->total_amount;
 
         return min($unit, $this->balance());
+    }
+
+    /** Message WhatsApp prêt à envoyer à l'apprenant, adapté à son dossier (rappel du reste à payer, bienvenue…). */
+    public function whatsappMessageUrl(): ?string
+    {
+        $site = app(SiteSettings::class);
+        $hello = 'Bonjour '.$this->name.', ici '.$site->get('company.short_name').'. ';
+        $message = match (true) {
+            $this->status === InscriptionStatus::Annulee => $hello.'Nous revenons vers vous au sujet de votre inscription '.$this->number.'.',
+            $this->balance() > 0 && $this->amount_paid === 0 => $hello.'Votre inscription '.$this->number.' ('.$this->formule_name.') est enregistrée. Il reste à régler '.Formule::money($this->balance()).($this->mode === FormationMode::EnLigne ? ' par mobile money, depuis votre espace apprenant.' : ' au centre.').' Merci !',
+            $this->balance() > 0 => $hello.'Petit rappel : il reste '.Formule::money($this->balance()).' à régler pour votre formation ('.$this->number.'). Merci !',
+            default => $hello.'Votre formation est entièrement réglée. Merci et bonne formation !',
+        };
+
+        return $site->whatsappTo($this->phone, $message);
     }
 
     /** Inscriptions qui ont encore un reste à payer (impayés), hors annulées. */
