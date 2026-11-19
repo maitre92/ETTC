@@ -245,8 +245,9 @@ class InscriptionsTest extends TestCase
         $this->assertStringContainsString(Inscription::firstOrFail()->number, $online->json('payment.instructions'));
         Mail::assertSent(InscriptionRecapitulatif::class, fn ($m) => str_contains($m->render(), 'Payer maintenant par mobile money') && str_contains($m->render(), '75 22 91 25'));
 
-        // En présentiel : on paie au centre, pas de numéro affiché.
-        $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'presentiel', 'payment_choice' => 'au_centre',
-            'name' => 'Moussa', 'phone' => '76 00 00 00']))->assertOk()->assertJsonPath('payment', null);
+        // En présentiel : paiement au centre OU en ligne, au choix de l'apprenant (numéros affichés aussi).
+        $presentiel = $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'presentiel', 'payment_choice' => 'au_centre',
+            'name' => 'Moussa', 'phone' => '76 00 00 00']))->assertOk()->assertJsonPath('payment.methods.0.number', '75 22 91 25');
+        $this->assertStringContainsString('payer au centre', $presentiel->json('payment.instructions'));
     }
 }

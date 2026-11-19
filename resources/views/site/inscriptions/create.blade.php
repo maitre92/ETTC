@@ -105,7 +105,7 @@
                     {{-- 4. Paiement et confirmation --}}
                     <fieldset class="ettc-step" data-step>
                         <legend class="h4 text-ink">4. Paiement et confirmation</legend>
-                        <p class="text-muted">Formation <strong>en présentiel</strong> : paiement au centre. Formation <strong>en ligne</strong> : paiement par <strong>mobile money</strong>. Votre inscription est confirmée dès que le centre a reçu le paiement, et un reçu vous est délivré.</p>
+                        <p class="text-muted">Vous payez <strong>au centre</strong>, à l'accueil, ou <strong>en ligne par mobile money</strong> (Orange Money, Wave, Moov Money), que la formation soit en présentiel ou en ligne. Votre inscription est confirmée dès que le centre a reçu le paiement, et un reçu vous est délivré.</p>
                         <div class="ettc-choices ettc-choices-2">
                             @foreach (\App\Enums\PaymentChoice::cases() as $choice)
                                 <label class="ettc-choice form-check">

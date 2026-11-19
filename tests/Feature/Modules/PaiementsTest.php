@@ -131,19 +131,20 @@ class PaiementsTest extends TestCase
         $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()->assertSee('Rejeté')->assertSee('Transaction introuvable');
     }
 
-    public function test_a_presential_learner_pays_at_the_centre_and_cannot_declare_online(): void
+    public function test_a_presential_learner_can_pay_at_the_centre_or_online(): void
     {
         app(SiteSettings::class)->save(['paiement.orange_money' => '75 22 91 25']);
         $client = Client::factory()->create();
         $inscription = $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::Presentiel, 'payment_choice' => PaymentChoice::AuCentre]);
 
-        $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()->assertSee('au centre')->assertDontSee('Déclarer mon paiement');
-        $this->postJson('/espace-client/paiements', ['inscription_id' => $inscription->id, 'payment_method' => 'orange_money', 'amount' => 50000, 'reference' => 'MP0001'])->assertNotFound();
+        // Présentiel (demande du centre) : au centre, ou en ligne si l'apprenant le souhaite.
+        $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()->assertSee('au centre')->assertSee('Déclarer mon paiement')->assertSee('75 22 91 25');
+        $this->postJson('/espace-client/paiements', ['inscription_id' => $inscription->id, 'payment_method' => 'orange_money', 'amount' => 20000, 'reference' => 'MP0001'])->assertOk();
 
         // L'inscription d'un autre apprenant n'est jamais accessible.
         $other = $this->inscription(['mode' => FormationMode::EnLigne, 'email' => 'autre@exemple.ml']);
         $this->postJson('/espace-client/paiements', ['inscription_id' => $other->id, 'payment_method' => 'orange_money', 'amount' => 50000, 'reference' => 'MP0002'])->assertNotFound();
-        $this->assertSame(0, Paiement::count());
+        $this->assertSame(1, Paiement::count());
     }
 
     public function test_a_refund_or_a_cancellation_lowers_the_amount_paid_and_needs_the_permission(): void
@@ -307,5 +308,17 @@ class PaiementsTest extends TestCase
         $this->actingAs($admin)->put('/admin/paiements/moyens', ['orange_money' => '75 22 91 25', 'wave_qr_remove' => '1'])->assertRedirect();
         $this->assertArrayNotHasKey('wave', app(PaiementService::class)->merchantNumbers());
         $this->put('/admin/paiements/moyens', ['wave_qr' => UploadedFile::fake()->create('virus.exe', 10)])->assertSessionHasErrors('wave_qr');
+    }
+
+    public function test_the_qr_codes_stay_visible_even_with_the_automatic_payment(): void
+    {
+        config(['services.paiement.gateway' => 'simulation']);
+        app(SiteSettings::class)->save(['paiement.orange_money' => '75 22 91 25']);
+        $client = Client::factory()->create();
+        $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::EnLigne, 'payment_choice' => PaymentChoice::EnLigne]);
+
+        $this->actingAs($client, 'client')->get('/espace-client/paiements')->assertOk()
+            ->assertSeeInOrder(['Payer par mobile money', '75 22 91 25', 'Déclarer mon paiement', 'Ou payer directement en ligne'])
+            ->assertDontSee('J\'ai déjà envoyé l\'argent', false);
     }
 }

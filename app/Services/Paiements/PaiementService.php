@@ -2,6 +2,7 @@
 
 namespace App\Services\Paiements;
 
+use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentNature;
@@ -88,7 +89,8 @@ class PaiementService
             'methods' => collect($numbers)->map(fn (string $number, string $method) => [
                 'label' => PaymentMethod::from($method)->label(), 'number' => $number, 'qr' => $qr[$method] ?? null,
             ])->values()->all(),
-            'instructions' => 'Envoyez '.$amount.' (première échéance) au numéro ou au QR du centre, en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.',
+            'instructions' => 'Envoyez '.$amount.' (première échéance) au numéro ou au QR du centre, en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.'
+                .($inscription->mode === FormationMode::Presentiel ? ' Vous pouvez aussi payer au centre, à l\'accueil.' : ''),
             'whatsapp' => $this->settings->whatsappLink('Bonjour, j\'ai payé '.$amount.' pour mon inscription '.$inscription->number.'. Référence de la transaction : '),
             'account' => Route::has('client.register') ? route('client.register') : null,
         ];

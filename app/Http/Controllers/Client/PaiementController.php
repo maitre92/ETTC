@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Client;
 
 use App\Enums\FormationMode;
-use App\Enums\PaymentChoice;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
@@ -113,10 +112,19 @@ class PaiementController extends Controller
         return $request->boolean('imprimer') ? $pdf->stream($receipts->filename($paiement, $format)) : $pdf->download($receipts->filename($paiement, $format));
     }
 
-    /** En ligne = mobile money (formation en ligne ou paiement en ligne choisi) ; en présentiel, on règle au centre. */
+    /**
+     * Paiement en ligne (mobile money) possible pour TOUTE inscription, même en présentiel (demande du centre,
+     * 2026-11-19) : l'apprenant choisit de payer en ligne ou au centre, à l'accueil.
+     */
     public static function paysOnline(Inscription $inscription): bool
     {
-        return $inscription->mode === FormationMode::EnLigne || $inscription->payment_choice === PaymentChoice::EnLigne;
+        return true;
+    }
+
+    /** Formation en présentiel : on rappelle que le paiement au centre reste possible. */
+    public static function canAlsoPayAtCentre(Inscription $inscription): bool
+    {
+        return $inscription->mode === FormationMode::Presentiel;
     }
 
     private function client(Request $request): Client

@@ -35,36 +35,38 @@
                 @endif
 
                 @if ($payable > 0)
-                    @if (! PaiementController::paysOnline($inscription))
-                        <p class="mb-0"><i class='bx bx-store' aria-hidden="true"></i> Formation en présentiel : le paiement se fait <strong>au centre</strong>, à l'accueil. Un reçu vous est remis et apparaît ensuite ici.</p>
-                    @elseif ($gateway)
-                        <h3 class="h6 text-ink"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Payer maintenant par mobile money</h3>
-                        <p class="small text-muted">Orange Money, Moov Money ou Wave : vous validez le paiement sur votre téléphone, puis vous revenez ici avec votre reçu. Le paiement est confirmé automatiquement.</p>
-                        <form method="POST" action="{{ route('client.paiements.online') }}" class="row g-2 align-items-end">
-                            @csrf
-                            <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
-                            <div class="col-sm-5">
-                                <label for="o-amount-{{ $inscription->id }}" class="form-label required">Montant (FCFA)</label>
-                                <input type="number" class="form-control @error('amount') is-invalid @enderror" id="o-amount-{{ $inscription->id }}" name="amount" min="100" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
-                                @error('amount')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            </div>
-                            <div class="col-sm-4">
-                                <label for="o-phone-{{ $inscription->id }}" class="form-label">Téléphone</label>
-                                <input type="tel" class="form-control" id="o-phone-{{ $inscription->id }}" name="payer_phone" maxlength="30" value="{{ $inscription->phone }}">
-                            </div>
-                            <div class="col-sm-3"><button type="submit" class="btn btn-accent w-100"><i class='bx bx-lock-alt' aria-hidden="true"></i> Payer</button></div>
-                        </form>
-                        @if (! empty($numbers))
-                            <details class="mt-3">
-                                <summary class="small">J'ai déjà envoyé l'argent au numéro du centre</summary>
-                                @include('client._declare-form', ['inscription' => $inscription, 'payable' => $payable])
-                            </details>
-                        @endif
-                    @elseif (empty($numbers))
+                    @if (PaiementController::canAlsoPayAtCentre($inscription))
+                        <p class="small mb-3"><i class='bx bx-store' aria-hidden="true"></i> Formation en présentiel : payez <strong>au centre</strong>, à l'accueil, ou <strong>en ligne</strong> par mobile money ci-dessous. Dans les deux cas, votre reçu apparaît ici.</p>
+                    @endif
+                    @if (empty($numbers) && ! $gateway)
                         <p class="mb-0"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Paiement par mobile money : le centre vous communique son numéro. Une question ? Appelez le {{ $site->get('contact.phone_1') }}.</p>
                     @else
-                        <h3 class="h6 text-ink"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Payer par mobile money</h3>
-                        @include('client._declare-form', ['inscription' => $inscription, 'payable' => $payable])
+                        {{-- Numéros et QR du centre TOUJOURS visibles (scanner ou envoyer, puis déclarer la référence). --}}
+                        @if (! empty($numbers))
+                            <h3 class="h6 text-ink"><i class='bx bx-mobile-alt' aria-hidden="true"></i> Payer par mobile money</h3>
+                            @include('client._declare-form', ['inscription' => $inscription, 'payable' => $payable])
+                        @endif
+                        {{-- Paiement automatique (agrégateur) : une possibilité de plus, jamais à la place des QR. --}}
+                        @if ($gateway)
+                            <div class="{{ empty($numbers) ? '' : 'mt-4 pt-3 border-top' }}">
+                                <h3 class="h6 text-ink"><i class='bx bx-lock-alt' aria-hidden="true"></i> {{ empty($numbers) ? 'Payer maintenant par mobile money' : 'Ou payer directement en ligne' }}</h3>
+                                <p class="small text-muted">Orange Money, Moov Money ou Wave : vous validez le paiement sur votre téléphone, puis vous revenez ici avec votre reçu. Le paiement est confirmé automatiquement.</p>
+                                <form method="POST" action="{{ route('client.paiements.online') }}" class="row g-2 align-items-end">
+                                    @csrf
+                                    <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
+                                    <div class="col-sm-5">
+                                        <label for="o-amount-{{ $inscription->id }}" class="form-label required">Montant (FCFA)</label>
+                                        <input type="number" class="form-control @error('amount') is-invalid @enderror" id="o-amount-{{ $inscription->id }}" name="amount" min="100" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
+                                        @error('amount')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label for="o-phone-{{ $inscription->id }}" class="form-label">Téléphone</label>
+                                        <input type="tel" class="form-control" id="o-phone-{{ $inscription->id }}" name="payer_phone" maxlength="30" value="{{ $inscription->phone }}">
+                                    </div>
+                                    <div class="col-sm-3"><button type="submit" class="btn btn-accent w-100"><i class='bx bx-lock-alt' aria-hidden="true"></i> Payer</button></div>
+                                </form>
+                            </div>
+                        @endif
                     @endif
                 @endif
             </div>
