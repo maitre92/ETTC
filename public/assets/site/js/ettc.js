@@ -91,6 +91,12 @@
             var q = quote();
             var amount = block.querySelector('[data-online-amount]');
             if (amount) { amount.textContent = q && !q.missing ? money(q.monthly ? q.unit : q.total) : '—'; }
+            // Montant envoyé prérempli (première échéance), sauf si l'apprenant l'a déjà changé.
+            var input = block.querySelector('[data-online-amount-input]');
+            if (input && q && !q.missing && !input.dataset.touched) { input.value = q.monthly ? q.unit : q.total; }
+            if (input && !input.dataset.watch) { input.dataset.watch = '1'; input.addEventListener('input', function () { input.dataset.touched = '1'; }); }
+            // Champs du paiement déclaré ignorés quand on choisit « Payer au centre ».
+            block.querySelectorAll('input, select').forEach(function (field) { field.disabled = block.hidden; });
         }
         function renderRecap() {
             renderOnlinePay();

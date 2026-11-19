@@ -5,19 +5,25 @@ namespace Tests\Feature\Modules;
 use App\Enums\Billing;
 use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
+use App\Enums\PaymentChoice;
+use App\Enums\PaymentStatus;
 use App\Enums\TestStatus;
 use App\Mail\InscriptionRecapitulatif;
 use App\Mail\InscriptionRecue;
+use App\Mail\PaiementConfirme;
 use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Niveau;
+use App\Models\Paiement;
 use App\Models\TestNiveau;
 use App\Models\User;
+use App\Services\Medias\MediaService;
 use App\Support\SiteSettings;
 use App\Support\SpamGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -257,5 +263,54 @@ class InscriptionsTest extends TestCase
         $this->get('/inscription')->assertOk()->assertDontSee('data-online-pay', false);
         app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01']);
         $this->get('/inscription')->assertOk()->assertSee('data-online-pay', false)->assertSee('Payer en ligne par mobile money')->assertSee('70 00 00 01');
+    }
+
+    public function test_a_payment_declared_at_inscription_is_verified_then_the_learner_gets_the_receipt(): void
+    {
+        Mail::fake();
+        app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01', 'paiement.notify_email' => 'promoteur@ettc.test']);
+        $formule = $this->formule();
+        $base = ['formule_id' => $formule->id, 'mode' => 'presentiel', 'payment_choice' => 'en_ligne', 'name' => 'Awa', 'phone' => '75 22 91 25', 'email' => 'awa@exemple.ml'];
+
+        // Moyen non proposé par le centre : rien n'est enregistré.
+        $this->postJson('/inscription', $this->human($base + ['pay_method' => 'orange_money', 'pay_amount' => 20000, 'pay_reference' => 'OM123456']))
+            ->assertUnprocessable()->assertJsonValidationErrors('pay_method');
+        $this->assertSame(0, Inscription::count());
+
+        $this->postJson('/inscription', $this->human($base + ['pay_method' => 'wave', 'pay_amount' => 20000, 'pay_reference' => 'wv-2026-778']))
+            ->assertOk()->assertJsonPath('title', 'Inscription et paiement envoyés')->assertJsonPath('payment', null);
+        $inscription = Inscription::firstOrFail();
+        $paiement = Paiement::firstOrFail();
+        $this->assertSame([PaymentStatus::AVerifier, 'WV-2026-778', 20000], [$paiement->status, $paiement->reference, $paiement->amount]);
+
+        // Un seul e-mail, à la personne désignée, avec le bouton de vérification ; rien encore pour l'apprenant.
+        Mail::assertSent(InscriptionRecue::class, fn ($m) => $m->hasTo('promoteur@ettc.test') && str_contains($m->render(), 'Paiement déclaré à vérifier') && str_contains($m->render(), 'WV-2026-778'));
+        Mail::assertNotSent(InscriptionRecapitulatif::class);
+
+        // Même référence une seconde fois : refusée.
+        $this->postJson('/inscription', $this->human($base + ['pay_method' => 'wave', 'pay_amount' => 20000, 'pay_reference' => 'WV-2026-778']))->assertUnprocessable()->assertJsonValidationErrors('pay_reference');
+
+        // L'équipe confirme : l'apprenant reçoit la confirmation de son inscription et son reçu PDF.
+        $this->actingAs(User::factory()->commercial()->create())->put("/admin/paiements/{$paiement->id}/confirmation")->assertRedirect();
+        $this->assertSame(InscriptionStatus::EnCours, $inscription->fresh()->status);
+        Mail::assertSent(PaiementConfirme::class, function ($m) use ($paiement) {
+            return $m->hasTo('awa@exemple.ml') && str_contains($m->render(), 'votre inscription est confirmée')
+                && $m->envelope()->subject === '['.config('app.name').'] Inscription confirmée — reçu '.$paiement->number
+                && count($m->attachments()) === 1;
+        });
+    }
+
+    public function test_the_qr_codes_are_embedded_in_the_recap_email(): void
+    {
+        Storage::fake('public');
+        config(['mail.default' => 'array']);
+        $media = app(MediaService::class)->store(UploadedFile::fake()->image('qr.png', 300, 300), null, 'QR', 'Paiements');
+        app(SiteSettings::class)->save(['paiement.orange_money' => '75 22 91 25', 'paiement.orange_money_qr' => (string) $media->id]);
+        $inscription = Inscription::factory()->create(['mode' => FormationMode::EnLigne, 'payment_choice' => PaymentChoice::EnLigne, 'email' => 'awa@exemple.ml']);
+
+        Mail::to('awa@exemple.ml')->send(new InscriptionRecapitulatif($inscription));
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+        $this->assertNotEmpty(array_filter($sent->getAttachments(), fn ($part) => $part->getDisposition() === 'inline'), 'Le QR est joint à l\'e-mail (image intégrée), pas un simple lien.');
+        $this->assertStringContainsString('cid:', $sent->getHtmlBody());
     }
 }

@@ -119,7 +119,7 @@
                         @if (! empty($mobileMoney))
                             <div class="pay-now mt-3" data-online-pay @if (old('payment_choice') !== 'en_ligne') hidden @endif>
                                 <h3 class="h5">Payer en ligne par mobile money</h3>
-                                <p class="mb-2">Montant de la première échéance : <strong data-online-amount>—</strong>. Envoyez-le au numéro ou au QR du centre ; après « Confirmer mon inscription », votre référence s'affiche : indiquez-la avec la référence du SMS reçu.</p>
+                                <p class="mb-2">Montant de la première échéance : <strong data-online-amount>—</strong>. Envoyez-le au numéro ou au QR du centre, puis indiquez ci-dessous la référence du SMS reçu — ou payez plus tard.</p>
                                 <div class="pay-now-methods">
                                     @foreach ($mobileMoney as $method => $number)
                                         <div class="pay-now-method">
@@ -131,6 +131,21 @@
                                             @endif
                                         </div>
                                     @endforeach
+                                </div>
+                                {{-- Déjà payé ? La référence part avec l'inscription : le centre vérifie, puis confirme (reçu par e-mail). --}}
+                                <div class="pay-now-declare text-start mt-3">
+                                    <h4 class="h6 mb-1">Vous avez déjà payé ? Indiquez la référence</h4>
+                                    <p class="small text-muted mb-2">Facultatif : vous pouvez aussi payer après votre inscription. Le centre vérifie votre paiement, puis vous recevez par e-mail la confirmation et votre reçu.</p>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">@include('site.demandes._field', ['name' => 'pay_method', 'label' => 'Moyen utilisé', 'type' => 'select', 'options' => collect($mobileMoney)->mapWithKeys(fn ($n, $m) => [$m => \App\Enums\PaymentMethod::from($m)->label()])->all(), 'value' => count($mobileMoney) === 1 ? array_key_first($mobileMoney) : null])</div>
+                                        <div class="col-md-6">
+                                            <label for="f-pay_amount" class="form-label">Montant envoyé (FCFA)</label>
+                                            <input type="number" class="form-control @error('pay_amount') is-invalid @enderror" id="f-pay_amount" name="pay_amount" min="1" step="1" value="{{ old('pay_amount') }}" data-online-amount-input>
+                                            @error('pay_amount')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        </div>
+                                        <div class="col-md-6">@include('site.demandes._field', ['name' => 'pay_reference', 'label' => 'Référence de la transaction (SMS)', 'max' => 100, 'placeholder' => 'Ex. MP241118.1530.A12345'])</div>
+                                        <div class="col-md-6">@include('site.demandes._field', ['name' => 'pay_phone', 'label' => 'Numéro qui a payé', 'type' => 'tel', 'max' => 30])</div>
+                                    </div>
                                 </div>
                             </div>
                         @endif

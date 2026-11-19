@@ -5,6 +5,8 @@
         [$kind === 'recu' ? 'Reçu n°' : 'Référence', $paiement->number],
         ['Apprenant', $inscription->name],
         ['Inscription', $inscription->number.' — '.$inscription->formule_name.', '.mb_strtolower($inscription->mode->label())],
+        ['Niveau', $inscription->niveau?->name ?? 'À déterminer par le test de niveau (gratuit)'],
+        ['Total de la formation', \App\Models\Formule::money($inscription->total_amount)],
         ['Nature', $paiement->nature->label()],
         ['Montant', $paiement->money()],
         ['Moyen', $paiement->method->label()],
@@ -12,7 +14,9 @@
     if ($paiement->reference) { $rows[] = ['Transaction', $paiement->reference]; }
     if ($paiement->period) { $rows[] = ['Période', $paiement->period]; }
     $rows[] = ['Date', $paiement->paid_at->format('d/m/Y')];
+    $rows[] = ['Déjà payé', \App\Models\Formule::money($inscription->amount_paid)];
     $rows[] = ['Reste à payer', \App\Models\Formule::money($inscription->balance())];
+    if ($inscription->groupe) { $rows[] = ['Groupe', $inscription->groupe->name]; }
 @endphp
 <!DOCTYPE html>
 <html lang="fr">
@@ -28,7 +32,8 @@
                 <p style="margin-top:0"><strong>{{ $inscription->name }}</strong> déclare avoir payé {{ $paiement->money() }} par {{ $paiement->method->label() }}. Vérifiez la transaction sur le compte marchand avant de confirmer.</p>
             @else
                 <p style="margin-top:0">Bonjour {{ $inscription->name }},</p>
-                <p>Nous confirmons la réception de votre paiement. Merci ! Voici votre reçu ; il reste disponible dans votre espace apprenant.</p>
+                <p>Nous confirmons la réception de votre paiement : <strong>votre inscription est confirmée</strong>. Merci ! Votre reçu est joint à cet e-mail (PDF) ; il reste aussi disponible dans votre espace apprenant.</p>
+                <p>Le centre vous communique ensuite votre groupe et le calendrier de vos séances.</p>
             @endif
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:12px">
                 @foreach ($rows as [$label, $value])

@@ -42,7 +42,8 @@ class PaiementController extends Controller
             'refundedMonth' => (int) Paiement::where('status', PaymentStatus::Rembourse->value)->where('cancelled_at', '>=', $month)->sum('amount'),
             'qrCodes' => $this->service->merchantQrCodes(),
             'settings' => collect(PaymentMethod::mobileMoney())->mapWithKeys(fn (PaymentMethod $m) => [$m->settingKey() => $settings->get($m->settingKey())])
-                ->put('paiement.instructions', $settings->get('paiement.instructions'))->all(),
+                ->put('paiement.instructions', $settings->get('paiement.instructions'))->put('paiement.notify_email', $settings->get('paiement.notify_email'))->all(),
+            'defaultVerifier' => $settings->notificationEmail(),
         ]);
     }
 
@@ -130,7 +131,7 @@ class PaiementController extends Controller
     public function settings(Request $request, MediaService $medias): RedirectResponse
     {
         abort_unless($request->user()->can('paiements.configure'), 403);
-        $rules = ['instructions' => ['nullable', 'string', 'max:1000']];
+        $rules = ['instructions' => ['nullable', 'string', 'max:1000'], 'notify_email' => ['nullable', 'email', 'max:190']];
         $names = [];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $rules[$method->value] = ['nullable', 'string', 'max:60'];
@@ -140,7 +141,7 @@ class PaiementController extends Controller
         }
         $data = $request->validate($rules, [], $names);
 
-        $values = ['paiement.instructions' => $data['instructions'] ?? ''];
+        $values = ['paiement.instructions' => $data['instructions'] ?? '', 'paiement.notify_email' => $data['notify_email'] ?? ''];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $values[$method->settingKey()] = $data[$method->value] ?? '';
             // QR marchand : nouvelle image déposée, ou retirée (case « Retirer »).

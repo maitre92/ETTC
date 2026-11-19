@@ -25,6 +25,15 @@
         <tr><td style="padding:24px;font-size:15px;line-height:1.6">
             @if ($kind === 'equipe')
                 <p style="margin-top:0"><strong>{{ $inscription->name }}</strong> s'est inscrit(e) sur le site.@if ($inscription->contactLine()) Contact : {{ $inscription->contactLine() }}.@endif</p>
+                @if ($declared ?? null)
+                    {{-- Paiement déclaré à l'inscription : à vérifier sur le compte marchand, puis « Confirmer ». --}}
+                    <div style="margin:16px 0;padding:16px;border-radius:10px;background:#fdf3d1">
+                        <p style="margin:0 0 8px;font-weight:bold;font-size:16px">Paiement déclaré à vérifier</p>
+                        <p style="margin:0">Montant : <strong>{{ $declared->money() }}</strong> · {{ $declared->method->label() }}<br>Référence de la transaction : <strong>{{ $declared->reference }}</strong>@if ($declared->payer_phone)<br>Payé depuis : {{ $declared->payer_phone }}@endif</p>
+                        <p style="margin:12px 0 0;font-size:14px">Vérifiez que cette transaction est bien arrivée sur le compte {{ $declared->method->label() }} du centre, puis cliquez sur « Confirmer » : l'apprenant reçoit alors son reçu par e-mail.</p>
+                        <p style="margin:14px 0 0"><a href="{{ route('paiements.show', $declared) }}" style="display:inline-block;background:#257e34;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Vérifier le paiement</a></p>
+                    </div>
+                @endif
             @else
                 <p style="margin-top:0">Bonjour {{ $inscription->name }},</p>
                 <p>Merci pour votre inscription. Nous avons bien reçu votre demande ; le centre vérifie votre dossier et vous recontacte pour la suite{{ $inscription->niveau ? '' : ', à commencer par le test de niveau (gratuit)' }}.</p>
@@ -47,7 +56,13 @@
                             <td style="padding:6px;text-align:center;vertical-align:top;background:#ffffff;border-radius:8px">
                                 <div style="font-weight:bold">{{ $method['label'] }}</div>
                                 @if ($method['number'] !== '')<div style="font-size:16px">{{ $method['number'] }}</div>@endif
-                                @if ($method['qr'])<img src="{{ $method['qr'] }}" alt="QR {{ $method['label'] }}" width="130" height="130" style="display:block;margin:6px auto 0">@endif
+                                @if ($method['qr'])
+                                    {{-- QR joint à l'e-mail (pièce intégrée) : s'affiche même si le site n'est pas joignable (local). --}}
+                                    @php
+                                        $qrSrc = ($method['qr_path'] ?? null) && isset($message) && method_exists($message, 'embed') ? $message->embed($method['qr_path']) : $method['qr'];
+                                    @endphp
+                                    <img src="{{ $qrSrc }}" alt="QR {{ $method['label'] }}" width="130" height="130" style="display:block;margin:6px auto 0">
+                                @endif
                             </td>
                         @endforeach
                     </tr></table>

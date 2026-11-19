@@ -74,6 +74,8 @@ return [
         'paiement.orange_money' => '',
         'paiement.wave' => '',
         'paiement.moov_money' => '',
+        // Qui reçoit les paiements à vérifier (vide : l'adresse des alertes, SITE_NOTIFICATION_EMAIL ou e-mail de contact).
+        'paiement.notify_email' => '',
         // QR marchands (image fournie par l'opérateur, à scanner avec son application) : identifiant d'une image.
         'paiement.orange_money_qr' => '',
         'paiement.wave_qr' => '',

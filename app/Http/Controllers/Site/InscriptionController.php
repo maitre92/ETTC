@@ -57,8 +57,16 @@ class InscriptionController extends Controller
                 .Formule::money($inscription->total_amount).' au total ('.$inscription->priceLabel().'). '
                 .($inscription->niveau ? '' : 'Le centre vous contacte d\'abord pour le test de niveau (gratuit). ')
                 .'Un récapitulatif vous est envoyé'.($inscription->email ? ' par e-mail' : ' par le centre').'.';
-            // Formation en ligne : comment payer par mobile money, tout de suite (numéros et QR du centre).
-            $payment = app(PaiementService::class)->onlinePaymentInfo($inscription);
+            $declared = $inscription->getRelation('declaredPayment');
+            if ($declared) {
+                // Paiement déjà fait : en vérification ; l'e-mail de confirmation (avec le reçu) suit la validation.
+                $title = 'Inscription et paiement envoyés';
+                $message = "Merci ! Votre inscription {$inscription->number} est enregistrée et votre paiement de {$declared->money()} ({$declared->method->label()}, référence {$declared->reference}) est en cours de vérification. "
+                    .($inscription->email ? 'Dès qu\'il est confirmé, vous recevez par e-mail la confirmation de votre inscription et votre reçu.' : 'Dès qu\'il est confirmé, le centre vous contacte avec votre reçu.');
+            } else {
+                // Pas encore payé : comment payer par mobile money (numéros et QR du centre).
+                $payment = app(PaiementService::class)->onlinePaymentInfo($inscription);
+            }
         }
 
         if ($request->expectsJson()) {

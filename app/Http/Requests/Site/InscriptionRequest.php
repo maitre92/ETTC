@@ -5,6 +5,7 @@ namespace App\Http\Requests\Site;
 use App\Enums\FormationMode;
 use App\Enums\Gender;
 use App\Enums\PaymentChoice;
+use App\Enums\PaymentMethod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,7 +39,14 @@ class InscriptionRequest extends FormRequest
      */
     public function rules(): array
     {
-        return self::baseRules() + ['consent' => [$this->routeIs('site.*') ? 'accepted' : 'nullable']];
+        return self::baseRules() + [
+            'consent' => [$this->routeIs('site.*') ? 'accepted' : 'nullable'],
+            // Payer en ligne : l'apprenant peut donner tout de suite la référence de sa transaction (facultatif).
+            'pay_reference' => ['nullable', 'string', 'min:4', 'max:100'],
+            'pay_method' => ['nullable', 'required_with:pay_reference', Rule::enum(PaymentMethod::class)],
+            'pay_amount' => ['nullable', 'required_with:pay_reference', 'integer', 'min:1', 'max:100000000'],
+            'pay_phone' => ['nullable', 'string', 'max:30'],
+        ];
     }
 
     /**
@@ -79,6 +87,7 @@ class InscriptionRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'pay_reference' => 'référence de la transaction', 'pay_method' => 'moyen utilisé', 'pay_amount' => 'montant envoyé', 'pay_phone' => 'numéro qui a payé',
             'niveau_id' => 'niveau', 'formule_id' => 'formule', 'mode' => 'mode de formation', 'payment_choice' => 'mode de paiement',
             'name' => 'nom complet', 'birth_date' => 'date de naissance', 'gender' => 'sexe', 'phone' => 'téléphone', 'email' => 'e-mail',
             'address' => 'adresse', 'city' => 'ville', 'message' => 'message',

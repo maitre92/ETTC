@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -87,13 +88,65 @@ class PaiementService
         return [
             'amount' => $amount,
             'methods' => collect($numbers)->map(fn (string $number, string $method) => [
-                'label' => PaymentMethod::from($method)->label(), 'number' => $number, 'qr' => $qr[$method] ?? null,
+                'value' => $method, 'label' => PaymentMethod::from($method)->label(), 'number' => $number, 'qr' => $qr[$method] ?? null,
+                'qr_path' => $this->merchantQrPaths()[$method] ?? null,
             ])->values()->all(),
             'instructions' => 'Envoyez '.$amount.' (première échéance) au numéro ou au QR du centre, en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.'
                 .($inscription->mode === FormationMode::Presentiel ? ' Vous pouvez aussi payer au centre, à l\'accueil.' : ''),
             'whatsapp' => $this->settings->whatsappLink('Bonjour, j\'ai payé '.$amount.' pour mon inscription '.$inscription->number.'. Référence de la transaction : '),
             'account' => Route::has('client.register') ? route('client.register') : null,
         ];
+    }
+
+    /** Fichiers des QR marchands (pour les joindre aux e-mails : une image en ligne ne s'affiche pas toujours). @return array<string, string> */
+    public function merchantQrPaths(): array
+    {
+        $paths = [];
+        foreach (PaymentMethod::mobileMoney() as $method) {
+            $id = (int) $this->settings->get($method->qrSettingKey());
+            $media = $id ? Media::find($id) : null;
+            if ($media && Storage::disk('public')->exists($media->path)) {
+                $paths[$method->value] = Storage::disk('public')->path($media->path);
+            }
+        }
+
+        return $paths;
+    }
+
+    /** Qui reçoit les paiements à vérifier : l'adresse choisie dans « Moyens de paiement », sinon celle des alertes. */
+    public function verifierEmail(): ?string
+    {
+        $email = trim($this->settings->get('paiement.notify_email'));
+
+        return $email !== '' ? $email : $this->settings->notificationEmail();
+    }
+
+    /**
+     * Contrôles d'un paiement déclaré AVANT d'enregistrer l'inscription (étape « Paiement » de l'assistant) : moyen
+     * proposé par le centre, référence jamais déclarée, montant au plus égal au total.
+     */
+    public function assertDeclarable(string $method, string $reference, int $amount, int $total): void
+    {
+        if (! array_key_exists($method, $this->merchantNumbers())) {
+            throw ValidationException::withMessages(['pay_method' => 'Ce moyen de paiement n\'est pas proposé par le centre.']);
+        }
+        if (Paiement::where('method', $method)->where('reference', Str::upper(trim($reference)))->whereIn('status', [PaymentStatus::AVerifier->value, PaymentStatus::Confirme->value])->exists()) {
+            throw ValidationException::withMessages(['pay_reference' => 'Cette référence de transaction a déjà été déclarée.']);
+        }
+        if ($amount < 1 || $amount > $total) {
+            throw ValidationException::withMessages(['pay_amount' => 'Le montant doit être compris entre 1 et '.Formule::money($total).'.']);
+        }
+    }
+
+    /** Paiement déclaré en même temps que l'inscription (visiteur sans compte) : « À vérifier » ; l'alerte part avec l'inscription. */
+    public function declareAtInscription(Inscription $inscription, array $data, Request $request): Paiement
+    {
+        $paiement = Paiement::create($this->attributes($inscription, ['paid_at' => null] + $data) + [
+            'status' => PaymentStatus::AVerifier, 'source' => 'apprenant', 'ip_address' => $request->ip(),
+        ]);
+        $this->logger->log('paiements.declared', 'paiements', "Paiement déclaré à l'inscription — {$paiement->number} : {$paiement->money()} par {$paiement->method->label()}, référence {$paiement->reference} ({$inscription->number})", $paiement);
+
+        return $paiement;
     }
 
     /** QR marchands déposés par le centre : [moyen => adresse de l'image]. @return array<string, string> */
@@ -160,7 +213,7 @@ class PaiementService
             return $paiement;
         });
 
-        $this->mail(fn () => Mail::to($this->settings->notificationEmail())->send(new PaiementDeclare($paiement)), $paiement, 'alerte à l\'équipe', (bool) $this->settings->notificationEmail());
+        $this->mail(fn () => Mail::to($this->verifierEmail())->send(new PaiementDeclare($paiement)), $paiement, 'alerte à l\'équipe', (bool) $this->verifierEmail());
 
         return $paiement;
     }

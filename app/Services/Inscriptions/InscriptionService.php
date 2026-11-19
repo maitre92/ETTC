@@ -5,14 +5,17 @@ namespace App\Services\Inscriptions;
 use App\Enums\Billing;
 use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
+use App\Enums\PaymentChoice;
 use App\Mail\InscriptionRecapitulatif;
 use App\Mail\InscriptionRecue;
 use App\Models\Formule;
 use App\Models\Inscription;
+use App\Models\Paiement;
 use App\Models\TestNiveau;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Numbering\SequenceService;
+use App\Services\Paiements\PaiementService;
 use App\Support\PhoneNumber;
 use App\Support\SiteSettings;
 use Illuminate\Http\Request;
@@ -68,7 +71,16 @@ class InscriptionService
      */
     public function submit(array $data, Request $request): Inscription
     {
-        $inscription = DB::transaction(function () use ($data, $request) {
+        // Paiement en ligne déjà fait : référence donnée à l'inscription, contrôlée AVANT tout enregistrement.
+        $payments = app(PaiementService::class);
+        $declared = ($data['payment_choice'] ?? null) === PaymentChoice::EnLigne->value && filled($data['pay_reference'] ?? null);
+        if ($declared) {
+            $quote = $this->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']));
+            $payments->assertDeclarable((string) $data['pay_method'], (string) $data['pay_reference'], (int) $data['pay_amount'], $quote['total_amount']);
+        }
+
+        $paiement = null;
+        $inscription = DB::transaction(function () use ($data, $request, $declared, $payments, &$paiement) {
             $inscription = Inscription::create($this->attributes($data) + [
                 'number' => $this->sequences->next(self::PREFIX),
                 'status' => InscriptionStatus::AValider,
@@ -79,12 +91,22 @@ class InscriptionService
                 'client_id' => $request->user('client')?->id,
             ]);
             $this->logger->log('inscriptions.submitted', 'inscriptions', "Inscription reçue — {$inscription->number} ({$inscription->name}) : {$inscription->summary()}", $inscription);
+            if ($declared) {
+                $paiement = $payments->declareAtInscription($inscription, [
+                    'method' => $data['pay_method'], 'amount' => (int) $data['pay_amount'], 'reference' => $data['pay_reference'], 'payer_phone' => $data['pay_phone'] ?? $data['phone'] ?? null,
+                ], $request);
+            }
 
             return $inscription;
         });
 
-        $this->notifyTeam($inscription);
-        $this->mailLearner($inscription, new InscriptionRecapitulatif($inscription), 'récapitulatif');
+        // Paiement déclaré : UN e-mail à la personne qui vérifie ; l'apprenant reçoit le sien à la confirmation (avec
+        // son reçu). Sinon : alerte à l'équipe et récapitulatif à l'apprenant (numéros et QR pour payer plus tard).
+        $this->notifyTeam($inscription, $paiement);
+        if (! $paiement) {
+            $this->mailLearner($inscription, new InscriptionRecapitulatif($inscription), 'récapitulatif');
+        }
+        $inscription->setRelation('declaredPayment', $paiement);
 
         return $inscription;
     }
@@ -202,14 +224,14 @@ class InscriptionService
         }
     }
 
-    private function notifyTeam(Inscription $inscription): void
+    private function notifyTeam(Inscription $inscription, ?Paiement $paiement = null): void
     {
-        $recipient = $this->settings->notificationEmail();
+        $recipient = $paiement ? app(PaiementService::class)->verifierEmail() : $this->settings->notificationEmail();
         try {
             if (! $recipient) {
                 throw new RuntimeException('Aucun destinataire configuré (SITE_NOTIFICATION_EMAIL ou e-mail de contact).');
             }
-            Mail::to($recipient)->send(new InscriptionRecue($inscription));
+            Mail::to($recipient)->send(new InscriptionRecue($inscription, $paiement));
             $inscription->forceFill(['notified_at' => now(), 'notification_error' => null])->saveQuietly();
         } catch (Throwable $e) {
             $message = Str::limit($e->getMessage(), 480);

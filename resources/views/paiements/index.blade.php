@@ -170,6 +170,11 @@
                                             </div>
                                         </div>
                                     @endforeach
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold" for="s-notify">Qui reçoit les paiements à vérifier ?</label>
+                                        <input type="email" class="form-control" id="s-notify" name="notify_email" maxlength="190" value="{{ $settings['paiement.notify_email'] }}" placeholder="{{ $defaultVerifier ?: 'adresse@exemple.com' }}">
+                                        <div class="form-text">Le promoteur ou la personne désignée reçoit un e-mail à chaque paiement en ligne déclaré, avec un bouton pour le vérifier. Vide : {{ $defaultVerifier ? 'l\'adresse des alertes ('.$defaultVerifier.')' : 'l\'adresse des alertes du site' }}.</div>
+                                    </div>
                                     <div class="col-12"><label class="form-label fw-semibold" for="s-instructions">Consignes affichées à l'apprenant</label><textarea class="form-control" id="s-instructions" name="instructions" rows="2" maxlength="1000">{{ $settings['paiement.instructions'] }}</textarea></div>
                                 </div>
 
