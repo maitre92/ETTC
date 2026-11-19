@@ -321,4 +321,25 @@ class PaiementsTest extends TestCase
             ->assertSeeInOrder(['Payer par mobile money', '75 22 91 25', 'Déclarer mon paiement', 'Ou payer directement en ligne'])
             ->assertDontSee('J\'ai déjà envoyé l\'argent', false);
     }
+
+    public function test_an_amount_paid_online_is_never_cashed_again_only_the_remainder(): void
+    {
+        Mail::fake();
+        $inscription = $this->inscription(['status' => InscriptionStatus::AValider, 'unit_price' => 20000, 'total_amount' => 60000, 'duration_months' => 3]);
+        $declared = Paiement::factory()->create(['inscription_id' => $inscription->id, 'amount' => 20000, 'reference' => 'WV123', 'method' => 'wave']);
+        $this->assertSame([40000, 20000, 'Paiement à vérifier'], [$inscription->payableNow(), $inscription->nextInstallment(), $inscription->paymentState()]);
+
+        $this->actingAs(User::factory()->administrateur()->create());
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Vérifier le paiement déclaré')->assertSee('WV123')->assertSee('déjà payé en ligne par l', false);
+
+        // L'accueil ne peut pas encaisser le montant déjà payé en ligne : seulement le reliquat.
+        $this->post("/admin/inscriptions/{$inscription->id}/paiements", ['amount' => 60000, 'method' => 'especes'])->assertSessionHasErrors('amount');
+        $this->post("/admin/inscriptions/{$inscription->id}/paiements", ['amount' => 40000, 'method' => 'especes'])->assertRedirect();
+        $this->assertSame(0, $inscription->fresh()->payableNow());
+        $this->get('/admin/paiements')->assertSee('Vérifier');
+
+        // Rejeté : le montant redevient à encaisser.
+        $this->put("/admin/paiements/{$declared->id}/rejet", ['reason' => 'Introuvable'])->assertRedirect();
+        $this->assertSame(20000, $inscription->fresh()->payableNow());
+    }
 }

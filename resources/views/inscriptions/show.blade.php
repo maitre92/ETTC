@@ -94,7 +94,8 @@
             <div class="col-xl-7">
                 @php
                     $open = in_array($status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true);
-                    $canPay = $open && $inscription->balance() > 0 && auth()->user()->can('create', \App\Models\Paiement::class);
+                    $canPay = $open && $inscription->payableNow() > 0 && auth()->user()->can('create', \App\Models\Paiement::class);
+                    $pendingPayment = $open ? $inscription->pendingPayment() : null;
                     $canValidate = auth()->user()->can('validate', $inscription);
                     $money = fn (int $amount) => \App\Models\Formule::money($amount);
                 @endphp
@@ -104,8 +105,12 @@
                     <div class="card border-primary">
                         <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-bulb me-2'></i>QUE FAIRE MAINTENANT ?</h6></div>
                         <div class="card-body">
-                            @if ($canPay)
-                                <p class="mb-3">{{ $inscription->amount_paid > 0 ? 'Il reste '.$money($inscription->balance()).' à payer.' : 'L\'apprenant n\'a pas encore payé.' }} Quand il paie, cliquez sur « Encaisser » : le reçu est créé et l'inscription est validée toute seule.</p>
+                            @if ($pendingPayment && auth()->user()->can('paiements.verify'))
+                                {{-- Payé en ligne : vérifier d'abord ; ce montant ne s'encaisse pas une seconde fois. --}}
+                                <p class="mb-3">L'apprenant a payé <strong>{{ $pendingPayment->money() }}</strong> par {{ $pendingPayment->method->label() }} (référence <strong>{{ $pendingPayment->reference }}</strong>). Vérifiez-le sur le compte du centre puis confirmez : l'inscription est validée et l'apprenant reçoit son reçu.@if ($inscription->payableNow() > 0) Il restera {{ $money($inscription->payableNow()) }} à encaisser ensuite.@endif</p>
+                                <a href="{{ route('paiements.show', $pendingPayment) }}" class="btn btn-warning btn-lg"><i class='bx bx-search-alt me-1'></i>Vérifier le paiement déclaré</a>
+                            @elseif ($canPay)
+                                <p class="mb-3">{{ $inscription->amount_paid > 0 ? 'Il reste '.$money($inscription->payableNow()).' à encaisser.' : 'L\'apprenant n\'a pas encore payé.' }} Quand il paie, cliquez sur « Encaisser » : le reçu est créé et l'inscription est validée toute seule.</p>
                                 <button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#pay-inscription"><i class='bx bx-money me-1'></i>Encaisser un paiement</button>
                             @elseif ($status === InscriptionStatus::EnCours && $canValidate)
                                 <p class="mb-3">La formation est payée et en cours. À la fin de la formation, cliquez sur « Terminer ».</p>

@@ -11,7 +11,7 @@
         $count = fn (InscriptionStatus $s) => $inscriptions->where('status', $s)->count();
         $engaged = $inscriptions->filter(fn ($i) => $i->status !== InscriptionStatus::Annulee)->sum('total_amount');
         $canRecord = auth()->user()->can('create', \App\Models\Paiement::class);
-        $payable = fn ($i) => $canRecord && $i->balance() > 0 && in_array($i->status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true);
+        $payable = fn ($i) => $canRecord && $i->payableNow() > 0 && in_array($i->status, [InscriptionStatus::AValider, InscriptionStatus::Validee, InscriptionStatus::EnCours], true);
     @endphp
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
         <div class="breadcrumb-title pe-3">Formations</div>

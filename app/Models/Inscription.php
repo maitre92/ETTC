@@ -7,6 +7,7 @@ use App\Enums\FormationMode;
 use App\Enums\Gender;
 use App\Enums\InscriptionStatus;
 use App\Enums\PaymentChoice;
+use App\Enums\PaymentStatus;
 use App\Models\Concerns\LogsActivity;
 use App\Support\SiteSettings;
 use Database\Factories\InscriptionFactory;
@@ -95,6 +96,7 @@ class Inscription extends Model
     public function paymentState(): string
     {
         return match (true) {
+            $this->amount_paid <= 0 && $this->pendingAmount() > 0 => 'Paiement à vérifier',
             $this->amount_paid <= 0 => 'Non payée',
             $this->balance() > 0 => 'Partiellement payée',
             default => 'Soldée',
@@ -105,6 +107,7 @@ class Inscription extends Model
     {
         return match ($this->paymentState()) {
             'Non payée' => 'bg-danger-subtle',
+            'Paiement à vérifier' => 'bg-warning-subtle',
             'Partiellement payée' => 'bg-warning-subtle',
             default => 'bg-success-subtle',
         };
@@ -115,7 +118,25 @@ class Inscription extends Model
     {
         $unit = $this->billing === Billing::Mensuel ? $this->unit_price : $this->total_amount;
 
-        return min($unit, $this->balance());
+        return min($unit, $this->payableNow());
+    }
+
+    /** Paiements déclarés (en ligne ou par l'apprenant) pas encore vérifiés : ne pas les encaisser une seconde fois. */
+    public function pendingAmount(): int
+    {
+        return (int) $this->hasMany(Paiement::class)->whereIn('status', [PaymentStatus::AVerifier->value, PaymentStatus::EnAttente->value])->sum('amount');
+    }
+
+    /** Ce qui reste à encaisser : le reste à payer moins les paiements déjà déclarés et en vérification (le reliquat). */
+    public function payableNow(): int
+    {
+        return max(0, $this->balance() - $this->pendingAmount());
+    }
+
+    /** Le paiement déclaré le plus récent encore à vérifier, s'il y en a un. */
+    public function pendingPayment(): ?Paiement
+    {
+        return $this->hasMany(Paiement::class)->where('status', PaymentStatus::AVerifier->value)->latest('id')->first();
     }
 
     /** Message WhatsApp prêt à envoyer à l'apprenant, adapté à son dossier (rappel du reste à payer, bienvenue…). */

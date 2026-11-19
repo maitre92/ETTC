@@ -113,11 +113,15 @@
                                         <td class="cell-wrap">{{ $inscription->name }}<div class="small text-muted">{{ $inscription->contactLine() }}</div></td>
                                         <td>{{ $money($inscription->total_amount) }}</td>
                                         <td>{{ $money($inscription->amount_paid) }}</td>
-                                        <td class="fw-bold text-danger">{{ $money($inscription->balance()) }}</td>
+                                        <td class="fw-bold text-danger">{{ $money($inscription->balance()) }}@if ($inscription->pendingAmount() > 0)<div class="small fw-normal text-warning">dont {{ $money($inscription->pendingAmount()) }} en vérification</div>@endif</td>
                                         <td class="text-nowrap">
-                                            @can('create', \App\Models\Paiement::class)
-                                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}"><i class='bx bx-money'></i><span class="ms-1">Encaisser</span></button>
-                                            @endcan
+                                            @if ($inscription->payableNow() > 0)
+                                                @can('create', \App\Models\Paiement::class)
+                                                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#pay-{{ $inscription->id }}"><i class='bx bx-money'></i><span class="ms-1">Encaisser</span></button>
+                                                @endcan
+                                            @elseif ($pending = $inscription->pendingPayment())
+                                                <a href="{{ route('paiements.show', $pending) }}" class="btn btn-warning btn-sm"><i class='bx bx-search-alt'></i><span class="ms-1">Vérifier</span></a>
+                                            @endif
                                             @if ($wa = $inscription->whatsappMessageUrl())<a href="{{ $wa }}" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener" title="Rappel WhatsApp déjà rédigé"><i class='bx bxl-whatsapp'></i><span class="ms-1">Relancer</span></a>@endif
                                             <a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-primary btn-sm" title="Voir l'inscription"><i class='bx bx-show'></i></a>
                                         </td>
@@ -132,7 +136,9 @@
 
         @can('create', \App\Models\Paiement::class)
             @foreach ($unpaid as $inscription)
-                @include('paiements._record-modal', ['inscription' => $inscription, 'modalId' => 'pay-'.$inscription->id, 'owner' => 'paiements', 'back' => 'paiements'])
+                @if ($inscription->payableNow() > 0)
+                    @include('paiements._record-modal', ['inscription' => $inscription, 'modalId' => 'pay-'.$inscription->id, 'owner' => 'paiements', 'back' => 'paiements'])
+                @endif
             @endforeach
         @endcan
 

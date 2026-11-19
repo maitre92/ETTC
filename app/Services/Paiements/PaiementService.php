@@ -172,7 +172,8 @@ class PaiementService
      */
     public function record(Inscription $inscription, array $data, User $actor): Paiement
     {
-        $this->ensurePayable($inscription, (int) $data['amount']);
+        // Un paiement déclaré et en vérification n'est pas encaissé une seconde fois : seul le reliquat peut l'être.
+        $this->ensurePayable($inscription, (int) $data['amount'], pending: true);
 
         $paiement = DB::transaction(function () use ($inscription, $data, $actor) {
             $paiement = Paiement::create($this->attributes($inscription, $data) + [

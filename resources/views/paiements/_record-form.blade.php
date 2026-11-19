@@ -5,11 +5,14 @@
     @csrf
     <input type="hidden" name="back" value="{{ $back ?? 'inscription' }}">
     <div class="col-12">
-        <p class="mb-0 small">Total {{ \App\Models\Formule::money($inscription->total_amount) }} · déjà payé {{ \App\Models\Formule::money($inscription->amount_paid) }} · <strong>reste {{ \App\Models\Formule::money($inscription->balance()) }}</strong></p>
+        <p class="mb-0 small">Total {{ \App\Models\Formule::money($inscription->total_amount) }} · déjà payé {{ \App\Models\Formule::money($inscription->amount_paid) }}@if ($inscription->pendingAmount() > 0) · en vérification {{ \App\Models\Formule::money($inscription->pendingAmount()) }}@endif · <strong>à encaisser {{ \App\Models\Formule::money($inscription->payableNow()) }}</strong></p>
+        @if ($inscription->pendingAmount() > 0)
+            <div class="alert alert-warning small py-2 mt-2 mb-0"><i class='bx bx-info-circle'></i> {{ \App\Models\Formule::money($inscription->pendingAmount()) }} déjà payé en ligne par l'apprenant, en cours de vérification : ne l'encaissez pas une seconde fois. Seul le reliquat est proposé.</div>
+        @endif
     </div>
     <div class="col-sm-6">
         <label class="form-label fw-semibold" for="{{ $formId }}-amount">Montant reçu (FCFA)</label>
-        <input class="form-control form-control-lg {{ $field('amount') }}" id="{{ $formId }}-amount" name="amount" type="number" min="1" max="{{ $inscription->balance() }}" step="1" required value="{{ old('amount', $inscription->nextInstallment()) }}">
+        <input class="form-control form-control-lg {{ $field('amount') }}" id="{{ $formId }}-amount" name="amount" type="number" min="1" max="{{ $inscription->payableNow() }}" step="1" required value="{{ old('amount', $inscription->nextInstallment()) }}">
         @error('amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-sm-6">
