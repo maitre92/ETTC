@@ -46,6 +46,7 @@ class InscriptionRequest extends FormRequest
             'pay_method' => ['nullable', 'required_with:pay_reference', Rule::enum(PaymentMethod::class)],
             'pay_amount' => ['nullable', 'required_with:pay_reference', 'integer', 'min:1', 'max:100000000'],
             'pay_phone' => ['nullable', 'string', 'max:30'],
+            'pay_proof' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ];
     }
 
@@ -87,7 +88,7 @@ class InscriptionRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'pay_reference' => 'référence de la transaction', 'pay_method' => 'moyen utilisé', 'pay_amount' => 'montant envoyé', 'pay_phone' => 'numéro qui a payé',
+            'pay_reference' => 'référence de la transaction', 'pay_method' => 'moyen utilisé', 'pay_amount' => 'montant envoyé', 'pay_phone' => 'numéro qui a payé', 'pay_proof' => 'capture du paiement',
             'niveau_id' => 'niveau', 'formule_id' => 'formule', 'mode' => 'mode de formation', 'payment_choice' => 'mode de paiement',
             'name' => 'nom complet', 'birth_date' => 'date de naissance', 'gender' => 'sexe', 'phone' => 'téléphone', 'email' => 'e-mail',
             'address' => 'adresse', 'city' => 'ville', 'message' => 'message',

@@ -313,4 +313,38 @@ class InscriptionsTest extends TestCase
         $this->assertNotEmpty(array_filter($sent->getAttachments(), fn ($part) => $part->getDisposition() === 'inline'), 'Le QR est joint à l\'e-mail (image intégrée), pas un simple lien.');
         $this->assertStringContainsString('cid:', $sent->getHtmlBody());
     }
+
+    public function test_a_payment_screenshot_can_be_sent_and_reaches_the_verifier(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01']);
+        $formule = $this->formule();
+
+        $this->post('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'name' => 'Awa', 'phone' => '75 22 91 25',
+            'pay_method' => 'wave', 'pay_amount' => 50000, 'pay_reference' => 'WV777777', 'pay_proof' => UploadedFile::fake()->image('capture.jpg', 400, 800)]), ['Accept' => 'application/json'])->assertOk();
+
+        $paiement = Paiement::firstOrFail();
+        $this->assertNotNull($paiement->proof_path);
+        Storage::disk('local')->assertExists($paiement->proof_path);
+        Mail::assertSent(InscriptionRecue::class, fn ($m) => count($m->attachments()) === 1 && str_contains($m->render(), 'Capture du paiement jointe'));
+
+        $this->actingAs(User::factory()->administrateur()->create());
+        $this->get("/admin/paiements/{$paiement->id}")->assertOk()->assertSee('Voir la capture envoyée');
+        $this->get("/admin/paiements/{$paiement->id}/capture")->assertOk();
+        $this->post('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'name' => 'Moussa', 'phone' => '76 00 00 00',
+            'pay_method' => 'wave', 'pay_amount' => 50000, 'pay_reference' => 'WV888888', 'pay_proof' => UploadedFile::fake()->create('virus.exe', 10)]), ['Accept' => 'application/json'])
+            ->assertUnprocessable()->assertJsonValidationErrors('pay_proof');
+    }
+
+    public function test_emails_show_the_logo_instead_of_big_text(): void
+    {
+        config(['mail.default' => 'array']);
+        $inscription = Inscription::factory()->create(['email' => 'awa@exemple.ml']);
+        Mail::to('awa@exemple.ml')->send(new InscriptionRecapitulatif($inscription));
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+        $this->assertStringContainsString('cid:', $sent->getHtmlBody(), 'Le logo est joint à l\'e-mail.');
+        $this->assertNotEmpty(array_filter($sent->getAttachments(), fn ($part) => $part->getDisposition() === 'inline'));
+        $this->assertSame('Confirmée', InscriptionStatus::EnCours->label());
+    }
 }

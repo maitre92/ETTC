@@ -41,6 +41,7 @@
                             <dt>Nature</dt><dd>{{ $paiement->nature->label() }}@if ($paiement->period) — {{ $paiement->period }}@endif</dd>
                             <dt>Moyen</dt><dd>{{ $paiement->method->label() }}</dd>
                             @if ($paiement->reference)<dt>Transaction</dt><dd class="font-monospace">{{ $paiement->reference }}</dd>@endif
+                            @if ($paiement->proof_path)<dt>Capture</dt><dd><a href="{{ route('paiements.proof', $paiement) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class='bx bx-image'></i> Voir la capture envoyée</a></dd>@endif
                             @if ($paiement->payer_phone)<dt>Payé depuis</dt><dd>{{ $paiement->payer_phone }}</dd>@endif
                             <dt>Date</dt><dd>{{ $paiement->paid_at->format('d/m/Y') }}</dd>
                             <dt>Origine</dt><dd>{{ $paiement->source === 'apprenant' ? 'Déclaré par l\'apprenant (paiement en ligne)' : 'Enregistré au centre'.($paiement->recorder ? ' par '.$paiement->recorder->displayName() : '') }}</dd>

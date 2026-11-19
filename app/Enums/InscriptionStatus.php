@@ -4,7 +4,8 @@ namespace App\Enums;
 
 /**
  * Étapes d'une inscription (cahier §3.5, §3.8 B, §5) : à valider (dossier reçu) → validée (en attente du paiement) →
- * en cours (paiement reçu ou formation commencée) → terminée ; ou annulée. Un paiement confirmé fait passer « En cours ».
+ * confirmée (paiement reçu, en formation ; libellé « Confirmée », valeur technique en_cours) → terminée ; ou annulée. Un
+ * paiement confirmé valide l'inscription automatiquement.
  */
 enum InscriptionStatus: string
 {
@@ -19,7 +20,7 @@ enum InscriptionStatus: string
         return match ($this) {
             self::AValider => 'À valider',
             self::Validee => 'En attente de paiement',
-            self::EnCours => 'En cours',
+            self::EnCours => 'Confirmée',
             self::Terminee => 'Terminée',
             self::Annulee => 'Annulée',
         };

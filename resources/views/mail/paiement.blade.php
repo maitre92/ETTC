@@ -24,12 +24,12 @@
 <body style="margin:0;padding:24px;background:#f4f8fc;font-family:Arial,Helvetica,sans-serif;color:#10183f">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden">
         <tr><td style="background:#045eb5;color:#ffffff;padding:20px 24px">
-            <div style="font-size:22px;font-weight:bold">{{ $site->get('company.short_name') }}<span style="color:#f9d232">.</span></div>
+            @include('mail._logo')
             <div style="font-size:15px;margin-top:6px">{{ $kind === 'recu' ? 'Reçu de paiement' : 'Paiement mobile money à vérifier' }} — {{ $paiement->number }}</div>
         </td></tr>
         <tr><td style="padding:24px;font-size:15px;line-height:1.6">
             @if ($kind === 'equipe')
-                <p style="margin-top:0"><strong>{{ $inscription->name }}</strong> déclare avoir payé {{ $paiement->money() }} par {{ $paiement->method->label() }}. Vérifiez la transaction sur le compte marchand avant de confirmer.</p>
+                <p style="margin-top:0"><strong>{{ $inscription->name }}</strong> déclare avoir payé {{ $paiement->money() }} par {{ $paiement->method->label() }}. Vérifiez la transaction sur le compte marchand avant de confirmer.@if ($paiement->proof_path) <strong>Capture du paiement jointe à cet e-mail.</strong>@endif</p>
             @else
                 <p style="margin-top:0">Bonjour {{ $inscription->name }},</p>
                 <p>Nous confirmons la réception de votre paiement : <strong>votre inscription est confirmée</strong>. Merci ! Votre reçu est joint à cet e-mail (PDF) ; il reste aussi disponible dans votre espace apprenant.</p>

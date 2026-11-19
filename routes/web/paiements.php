@@ -9,6 +9,7 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/paiements/moyens', [PaiementController::class, 'settings'])->middleware('permission:paiements.configure')->name('paiements.settings');
     Route::post('/inscriptions/{inscription}/paiements', [PaiementController::class, 'store'])->middleware('permission:paiements.record')->name('paiements.store');
     Route::get('/paiements/{paiement}', [PaiementController::class, 'show'])->middleware('permission:paiements.view')->name('paiements.show');
+    Route::get('/paiements/{paiement}/capture', [PaiementController::class, 'proof'])->middleware('permission:paiements.view')->name('paiements.proof');
     Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'receipt'])->middleware('permission:paiements.view')->name('paiements.receipt');
     Route::put('/paiements/{paiement}/confirmation', [PaiementController::class, 'confirm'])->middleware('permission:paiements.verify')->name('paiements.confirm');
     Route::put('/paiements/{paiement}/rejet', [PaiementController::class, 'reject'])->middleware('permission:paiements.verify')->name('paiements.reject');

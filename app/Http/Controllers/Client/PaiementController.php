@@ -56,12 +56,13 @@ class PaiementController extends Controller
             'reference' => ['required', 'string', 'min:4', 'max:100'],
             'payer_phone' => ['nullable', 'string', 'max:30'],
             'period' => ['nullable', 'string', 'max:100'],
-        ], [], ['payment_method' => 'moyen de paiement', 'amount' => 'montant', 'reference' => 'référence de la transaction', 'payer_phone' => 'numéro utilisé', 'period' => 'période']);
+            'proof' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [], ['proof' => 'capture du paiement', 'payment_method' => 'moyen de paiement', 'amount' => 'montant', 'reference' => 'référence de la transaction', 'payer_phone' => 'numéro utilisé', 'period' => 'période']);
 
         $inscription = Inscription::forClient($client)->whereKey($data['inscription_id'])->firstOrFail();
         abort_unless(self::paysOnline($inscription), 404);
         // Champ « payment_method » : un champ nommé « method » masquerait form.method dans les scripts du formulaire.
-        $paiement = $this->service->declare($inscription, ['method' => $data['payment_method']] + $data, $client, $request);
+        $paiement = $this->service->declare($inscription, ['method' => $data['payment_method'], 'proof' => $request->file('proof')] + $data, $client, $request);
 
         $message = "Merci ! Votre paiement de {$paiement->money()} ({$paiement->method->label()}, transaction {$paiement->reference}) est enregistré sous la référence {$paiement->number}. Le centre le vérifie, puis votre reçu apparaît ici et vous est envoyé par e-mail.";
 

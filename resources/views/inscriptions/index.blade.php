@@ -30,7 +30,7 @@
         <span data-crud-status hidden>{{ session('status') }}</span>
         @include('paiements._last-receipt')
         <div class="row g-3 mb-3">
-            @foreach ([['À valider', $count(InscriptionStatus::AValider), 'bx-folder-open', 'danger'], ['En attente de paiement', $count(InscriptionStatus::Validee), 'bx-time-five', 'warning'], ['En cours', $count(InscriptionStatus::EnCours), 'bx-book-reader', 'primary'], ['Montant des inscriptions', \App\Models\Formule::money($engaged), 'bx-purchase-tag', 'success']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
+            @foreach ([['À valider', $count(InscriptionStatus::AValider), 'bx-folder-open', 'danger'], ['En attente de paiement', $count(InscriptionStatus::Validee), 'bx-time-five', 'warning'], ['Confirmées', $count(InscriptionStatus::EnCours), 'bx-book-reader', 'primary'], ['Montant des inscriptions', \App\Models\Formule::money($engaged), 'bx-purchase-tag', 'success']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])
                 <div class="col-6 col-xl-3">
                     <div class="card radius-10 mb-0 h-100">
                         <div class="card-body d-flex align-items-center gap-3">

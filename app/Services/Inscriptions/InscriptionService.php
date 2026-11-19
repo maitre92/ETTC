@@ -94,6 +94,7 @@ class InscriptionService
             if ($declared) {
                 $paiement = $payments->declareAtInscription($inscription, [
                     'method' => $data['pay_method'], 'amount' => (int) $data['pay_amount'], 'reference' => $data['pay_reference'], 'payer_phone' => $data['pay_phone'] ?? $data['phone'] ?? null,
+                    'proof' => $request->file('pay_proof'),
                 ], $request);
             }
 

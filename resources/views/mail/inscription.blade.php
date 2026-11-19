@@ -19,7 +19,7 @@
 <body style="margin:0;padding:24px;background:#f4f8fc;font-family:Arial,Helvetica,sans-serif;color:#10183f">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden">
         <tr><td style="background:#045eb5;color:#ffffff;padding:20px 24px">
-            <div style="font-size:22px;font-weight:bold">{{ $site->get('company.short_name') }}<span style="color:#f9d232">.</span></div>
+            @include('mail._logo')
             <div style="font-size:15px;margin-top:6px">{{ $kind === 'equipe' ? 'Nouvelle inscription' : 'Récapitulatif de votre inscription' }} — {{ $inscription->number }}</div>
         </td></tr>
         <tr><td style="padding:24px;font-size:15px;line-height:1.6">
@@ -29,7 +29,7 @@
                     {{-- Paiement déclaré à l'inscription : à vérifier sur le compte marchand, puis « Confirmer ». --}}
                     <div style="margin:16px 0;padding:16px;border-radius:10px;background:#fdf3d1">
                         <p style="margin:0 0 8px;font-weight:bold;font-size:16px">Paiement déclaré à vérifier</p>
-                        <p style="margin:0">Montant : <strong>{{ $declared->money() }}</strong> · {{ $declared->method->label() }}<br>Référence de la transaction : <strong>{{ $declared->reference }}</strong>@if ($declared->payer_phone)<br>Payé depuis : {{ $declared->payer_phone }}@endif</p>
+                        <p style="margin:0">Montant : <strong>{{ $declared->money() }}</strong> · {{ $declared->method->label() }}<br>Référence de la transaction : <strong>{{ $declared->reference }}</strong>@if ($declared->payer_phone)<br>Payé depuis : {{ $declared->payer_phone }}@endif @if ($declared->proof_path)<br><strong>Capture du paiement jointe à cet e-mail.</strong>@endif</p>
                         <p style="margin:12px 0 0;font-size:14px">Vérifiez que cette transaction est bien arrivée sur le compte {{ $declared->method->label() }} du centre, puis cliquez sur « Confirmer » : l'apprenant reçoit alors son reçu par e-mail.</p>
                         <p style="margin:14px 0 0"><a href="{{ route('paiements.show', $declared) }}" style="display:inline-block;background:#257e34;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Vérifier le paiement</a></p>
                     </div>

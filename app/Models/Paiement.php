@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * `REC-AAAA-NNNN` = numéro du reçu. Jamais supprimé : une erreur s'annule avec un motif (suivi financier vérifiable).
  */
 #[Fillable([
-    'number', 'inscription_id', 'client_id', 'nature', 'amount', 'commission_rate', 'commission_amount', 'method', 'reference', 'payer_phone', 'period', 'status',
+    'number', 'inscription_id', 'client_id', 'nature', 'amount', 'proof_path', 'proof_name', 'commission_rate', 'commission_amount', 'method', 'reference', 'payer_phone', 'period', 'status',
     'source', 'gateway', 'gateway_transaction_id', 'gateway_status', 'gateway_checked_at', 'paid_at', 'recorded_by', 'confirmed_at', 'confirmed_by', 'notes', 'cancel_reason', 'cancelled_at',
     'cancelled_by', 'ip_address',
 ])]

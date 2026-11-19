@@ -17,8 +17,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Paiements (cahier §3.8, §5 « Gestion financière ») : liste et recettes, paiements mobile money à vérifier, impayés,
@@ -93,6 +95,15 @@ class PaiementController extends Controller
         $pdf = $receipts->pdf($paiement, $format);
 
         return $request->boolean('imprimer') ? $pdf->stream($receipts->filename($paiement, $format)) : $pdf->download($receipts->filename($paiement, $format));
+    }
+
+    /** Capture du paiement envoyée par l'apprenant (fichier privé), affichée dans le navigateur. */
+    public function proof(Paiement $paiement): StreamedResponse
+    {
+        Gate::authorize('view', $paiement);
+        abort_unless($paiement->proof_path && Storage::disk('local')->exists($paiement->proof_path), 404);
+
+        return Storage::disk('local')->response($paiement->proof_path, $paiement->proof_name);
     }
 
     public function confirm(Request $request, Paiement $paiement): RedirectResponse

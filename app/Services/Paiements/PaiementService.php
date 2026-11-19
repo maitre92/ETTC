@@ -25,6 +25,7 @@ use App\Services\Paiements\Gateway\PaymentGateway;
 use App\Support\PhoneNumber;
 use App\Support\SiteSettings;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -396,7 +397,7 @@ class PaiementService
         return $paiement;
     }
 
-    /** Montant payé recalculé ; un dossier à valider ou en attente de paiement passe « En cours » (cahier §3.8 A, B). */
+    /** Montant payé recalculé ; un dossier à valider ou en attente de paiement passe « Confirmée » (validée automatiquement) (cahier §3.8 A, B). */
     private function afterConfirmation(Inscription $inscription, ?User $actor): void
     {
         $this->syncAmountPaid($inscription);
@@ -456,10 +457,28 @@ class PaiementService
             'amount' => (int) $data['amount'],
             'method' => PaymentMethod::from($data['method']),
             'reference' => isset($data['reference']) && trim($data['reference']) !== '' ? Str::upper(trim($data['reference'])) : null,
+            ...$this->storeProof($data['proof'] ?? null),
             'payer_phone' => $phone !== '' ? (PhoneNumber::normalize($phone) ?? $phone) : null,
             'period' => isset($data['period']) && trim($data['period']) !== '' ? trim($data['period']) : null,
             'paid_at' => ! empty($data['paid_at']) ? $data['paid_at'] : now(),
             'notes' => isset($data['notes']) && trim($data['notes']) !== '' ? trim($data['notes']) : null,
+        ];
+    }
+
+    /**
+     * Capture du paiement (facultative) : fichier privé (disque local), jamais public.
+     *
+     * @return array{proof_path?: string, proof_name?: string}
+     */
+    private function storeProof(mixed $file): array
+    {
+        if (! $file instanceof UploadedFile) {
+            return [];
+        }
+
+        return [
+            'proof_path' => $file->storeAs('paiements/preuves/'.now()->format('Y/m'), Str::uuid().'.'.$file->extension(), 'local'),
+            'proof_name' => Str::limit($file->getClientOriginalName(), 250, ''),
         ];
     }
 

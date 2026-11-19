@@ -26,7 +26,7 @@
             @elseif ($formules->isEmpty())
                 <div class="form-success"><h2 class="h4">Inscriptions bientôt ouvertes</h2><p class="mb-0">Les formules seront publiées très prochainement. Contactez-nous pour en savoir plus.</p></div>
             @else
-                <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" data-ajax-form data-ettc-wizard novalidate>
+                <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" enctype="multipart/form-data" data-ajax-form data-ettc-wizard novalidate>
                     @csrf
                     <ol class="ettc-wizard-steps" aria-hidden="true">
                         @foreach ($steps as $stepLabel)
@@ -145,6 +145,12 @@
                                         </div>
                                         <div class="col-md-6">@include('site.demandes._field', ['name' => 'pay_reference', 'label' => 'Référence de la transaction (SMS)', 'max' => 100, 'placeholder' => 'Ex. MP241118.1530.A12345'])</div>
                                         <div class="col-md-6">@include('site.demandes._field', ['name' => 'pay_phone', 'label' => 'Numéro qui a payé', 'type' => 'tel', 'max' => 30])</div>
+                                        <div class="col-12">
+                                            <label for="f-pay_proof" class="form-label">Capture du paiement (facultatif)</label>
+                                            <input type="file" class="form-control @error('pay_proof') is-invalid @enderror" id="f-pay_proof" name="pay_proof" accept="image/png,image/jpeg,image/webp,application/pdf">
+                                            @error('pay_proof')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                            <div class="form-text">Capture d'écran du SMS ou de l'application (photo ou PDF, 5 Mo au plus) : elle aide le centre à vérifier plus vite.</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

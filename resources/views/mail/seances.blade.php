@@ -5,7 +5,7 @@
 <body style="margin:0;padding:24px;background:#f4f8fc;font-family:Arial,Helvetica,sans-serif;color:#10183f">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden">
         <tr><td style="background:#045eb5;color:#ffffff;padding:20px 24px">
-            <div style="font-size:22px;font-weight:bold">{{ $site->get('company.short_name') }}<span style="color:#f9d232">.</span></div>
+            @include('mail._logo')
             <div style="font-size:15px;margin-top:6px">{{ $kind === 'annulee' ? 'Séance annulée' : 'Vos séances' }} — {{ $groupe->name }}</div>
         </td></tr>
         <tr><td style="padding:24px;font-size:15px;line-height:1.6">
