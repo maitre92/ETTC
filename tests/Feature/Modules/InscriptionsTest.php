@@ -250,4 +250,12 @@ class InscriptionsTest extends TestCase
             'name' => 'Moussa', 'phone' => '76 00 00 00']))->assertOk()->assertJsonPath('payment.methods.0.number', '75 22 91 25');
         $this->assertStringContainsString('payer au centre', $presentiel->json('payment.instructions'));
     }
+
+    public function test_the_wizard_shows_the_numbers_when_online_payment_is_chosen(): void
+    {
+        $this->formule();
+        $this->get('/inscription')->assertOk()->assertDontSee('data-online-pay', false);
+        app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01']);
+        $this->get('/inscription')->assertOk()->assertSee('data-online-pay', false)->assertSee('Payer en ligne par mobile money')->assertSee('70 00 00 01');
+    }
 }

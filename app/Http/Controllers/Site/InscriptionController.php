@@ -33,6 +33,9 @@ class InscriptionController extends Controller
         return view('site.inscriptions.create', [
             'niveaux' => $niveaux,
             'formules' => $formules,
+            // Numéros et QR mobile money du centre, montrés dès que « Payer en ligne » est choisi (étape 4).
+            'mobileMoney' => app(PaiementService::class)->merchantNumbers(),
+            'mobileMoneyQr' => app(PaiementService::class)->merchantQrCodes(),
             'preset' => [
                 'niveau' => $niveaux->firstWhere('slug', (string) $request->query('niveau'))?->id,
                 'formule' => $formules->firstWhere('slug', (string) $request->query('formule'))?->id ?? ($formules->count() === 1 ? $formules->first()->id : null),

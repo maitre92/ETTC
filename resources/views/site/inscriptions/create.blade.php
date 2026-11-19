@@ -115,6 +115,25 @@
                                 </label>
                             @endforeach
                         </div>
+                        {{-- « Payer en ligne » coché : numéros et QR du centre tout de suite, montant de la 1re échéance en direct. --}}
+                        @if (! empty($mobileMoney))
+                            <div class="pay-now mt-3" data-online-pay @if (old('payment_choice') !== 'en_ligne') hidden @endif>
+                                <h3 class="h5">Payer en ligne par mobile money</h3>
+                                <p class="mb-2">Montant de la première échéance : <strong data-online-amount>—</strong>. Envoyez-le au numéro ou au QR du centre ; après « Confirmer mon inscription », votre référence s'affiche : indiquez-la avec la référence du SMS reçu.</p>
+                                <div class="pay-now-methods">
+                                    @foreach ($mobileMoney as $method => $number)
+                                        <div class="pay-now-method">
+                                            <strong>{{ \App\Enums\PaymentMethod::from($method)->label() }}</strong>
+                                            @if ($number !== '')<div class="pay-now-number">{{ $number }}</div>@endif
+                                            @if (isset($mobileMoneyQr[$method]))
+                                                <img src="{{ $mobileMoneyQr[$method] }}" alt="QR marchand {{ \App\Enums\PaymentMethod::from($method)->label() }} à scanner" width="150" height="150" loading="lazy">
+                                                <small class="text-muted d-block">Scannez avec votre application</small>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                         <div class="ettc-recap" data-recap hidden>
                             <h2 class="h5 text-ink">Récapitulatif</h2>
                             <dl></dl>

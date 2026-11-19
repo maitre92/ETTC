@@ -82,7 +82,18 @@
                 : '<span>' + money(q.unit) + (q.monthly ? ' / mois × ' + q.months + ' mois' : ' (paiement unique)') + '</span><strong>Total : ' + money(q.total) + '</strong>';
             live.classList.remove('is-pop'); void live.offsetWidth; live.classList.add('is-pop');
         }
+        // « Payer en ligne » : bloc des numéros et QR ouvert, montant de la première échéance à jour.
+        function renderOnlinePay() {
+            var block = form.querySelector('[data-online-pay]');
+            if (!block) { return; }
+            var pay = checked('payment_choice');
+            block.hidden = !(pay && pay.value === 'en_ligne');
+            var q = quote();
+            var amount = block.querySelector('[data-online-amount]');
+            if (amount) { amount.textContent = q && !q.missing ? money(q.monthly ? q.unit : q.total) : '—'; }
+        }
         function renderRecap() {
+            renderOnlinePay();
             var q = quote();
             var niveau = checked('niveau_id');
             var pay = checked('payment_choice');
