@@ -185,7 +185,7 @@ composer test                   # base db_ettc_test, jamais la base de développ
 php artisan db:seed --class=DonneesTestSeeder   # facultatif : données FICTIVES (jamais en production)
 ```
 
-Dans `.env` (jamais dans Git) : `SUPERADMIN_PASSWORD`, `SUPERADMIN_1_NAME` / `_PHONE` ; `ADMIN_PATH` ; `SITE_NOTIFICATION_EMAIL` et la configuration SMTP (`MAIL_*`) ; `PAYMENT_GATEWAY` (`cinetpay`, ou `simulation` en développement), `CINETPAY_API_KEY`, `CINETPAY_SITE_ID` pour le paiement automatique (vides = désactivé).
+**Tester les e-mails** : `php artisan site:test-email adresse@exemple.com` (SMTP du `.env` ; en local, Gmail : `smtp.gmail.com:587` + mot de passe d'application). Dans `.env` (jamais dans Git) : `SUPERADMIN_PASSWORD`, `SUPERADMIN_1_NAME` / `_PHONE` ; `ADMIN_PATH` ; `SITE_NOTIFICATION_EMAIL` et la configuration SMTP (`MAIL_*`) ; `PAYMENT_GATEWAY` (`cinetpay`, ou `simulation` en développement), `CINETPAY_API_KEY`, `CINETPAY_SITE_ID` pour le paiement automatique (vides = désactivé).
 
 ## 4. Architecture
 
