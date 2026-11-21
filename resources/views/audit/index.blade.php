@@ -1,15 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Audit')
+@section('title', $team ? 'Journal d\'activité' : 'Audit')
 
 @section('content')
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
-        <div class="breadcrumb-title pe-3">Paramètres</div>
+        <div class="breadcrumb-title pe-3">{{ $team ? 'Administration' : 'Paramètres' }}</div>
         <div class="ps-3">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0 p-0">
                     <li class="breadcrumb-item"><a href="{{ route('home') }}"><i class="bx bx-home-alt"></i></a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Audit</li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ $team ? 'Journal d\'activité' : 'Audit' }}</li>
                 </ol>
             </nav>
         </div>
@@ -17,17 +17,22 @@
     <hr />
 
     <div class="row">
-        <div class="col-12 col-lg-3">
-            @include('configuration._menu')
-        </div>
+        @unless ($team)
+            <div class="col-12 col-lg-3">
+                @include('configuration._menu')
+            </div>
+        @endunless
 
-        <div class="col-12 col-lg-9">
+        <div class="col-12 {{ $team ? '' : 'col-lg-9' }}">
+        @if ($team && ! auth()->user()->isSuperadmin())
+            <div class="alert alert-info small"><i class='bx bx-info-circle'></i> Chaque action de votre équipe (secrétaire, gestionnaire, formateurs) et les vôtres : inscriptions, paiements, caisse, groupes, contenus… Lecture seule.</div>
+        @endif
     <div class="card">
         <div class="card-header card-header-brand">
             <h6 class="mb-0 text-white"><i class='bx bx-filter-alt me-2'></i>FILTRES</h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('audit.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route($route) }}" class="row g-3 align-items-end">
                 <div class="col-12 col-md-6 col-xl-3">
                     <label class="form-label" for="author">Auteur</label>
                     <input type="text" class="form-control @error('author') is-invalid @enderror" id="author" name="author" value="{{ $filters['author'] ?? '' }}" placeholder="Nom de l'auteur">
@@ -68,15 +73,17 @@
                     <input type="date" class="form-control @error('to') is-invalid @enderror" id="to" name="to" value="{{ $filters['to'] ?? '' }}">
                     @error('to')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="superadmin" name="superadmin" value="1" @checked($filters['superadmin'])>
-                        <label class="form-check-label" for="superadmin">Actions du superadmin seulement</label>
+                @unless ($team)
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="superadmin" name="superadmin" value="1" @checked($filters['superadmin'])>
+                            <label class="form-check-label" for="superadmin">Actions du superadmin seulement</label>
+                        </div>
                     </div>
-                </div>
+                @endunless
                 <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
                     <button type="submit" class="btn btn-primary d-flex align-items-center gap-1"><i class='bx bx-search'></i>Filtrer</button>
-                    <a href="{{ route('audit.index') }}" class="btn btn-light">Réinitialiser</a>
+                    <a href="{{ route($route) }}" class="btn btn-light">Réinitialiser</a>
                 </div>
             </form>
         </div>
@@ -84,7 +91,7 @@
 
     <div class="card">
         <div class="card-header card-header-brand d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="mb-0 text-white"><i class='bx bx-list-check me-2'></i>JOURNAL D'AUDIT</h6>
+            <h6 class="mb-0 text-white"><i class='bx bx-list-check me-2'></i>@if ($team)ACTIONS DE L'ÉQUIPE @else JOURNAL D'AUDIT @endif</h6>
             <span class="badge bg-light text-dark">{{ $logs->total() }} entrée(s)</span>
         </div>
         <div class="card-body">

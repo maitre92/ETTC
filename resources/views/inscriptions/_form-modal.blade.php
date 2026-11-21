@@ -88,9 +88,9 @@
                             </div>
                             <div class="col-md-4" data-pay-field><label class="form-label fw-semibold" for="{{ $modalId }}-amount">Montant reçu (FCFA)</label><input class="form-control form-control-lg" id="{{ $modalId }}-amount" name="pay_amount" type="number" min="1" step="1" data-pay-amount></div>
                             <div class="col-md-4" data-pay-field><label class="form-label fw-semibold" for="{{ $modalId }}-method">Payé en</label>
-                                <select class="form-select form-select-lg" id="{{ $modalId }}-method" name="pay_method">@foreach (\App\Enums\PaymentMethod::cases() as $method)<option value="{{ $method->value }}">{{ $method->isMobileMoney() ? $method->label() : 'Espèces' }}</option>@endforeach</select>
+                                @include('paiements._method-select', ['id' => $modalId.'-method', 'name' => 'pay_method', 'selected' => 'especes'])
                             </div>
-                            <div class="col-md-4" data-pay-field data-show-when="pay_method:orange_money,wave,moov_money"><label class="form-label fw-semibold" for="{{ $modalId }}-ref">Référence (SMS)</label><input class="form-control form-control-lg" id="{{ $modalId }}-ref" name="pay_reference" maxlength="100"></div>
+                            <div class="col-md-4" data-pay-field data-show-when="pay_method:orange_money,wave,moov_money,banque"><label class="form-label fw-semibold" for="{{ $modalId }}-ref">Référence (SMS, virement, chèque)</label><input class="form-control form-control-lg" id="{{ $modalId }}-ref" name="pay_reference" maxlength="100"></div>
                         @endif
                     </div>
                 </div>

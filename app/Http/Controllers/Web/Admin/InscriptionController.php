@@ -146,8 +146,8 @@ class InscriptionController extends Controller
         $quote = $this->service->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']), $data['promo_code'] ?? null, ! $data['waive_fee']);
         if ($request->boolean('pay_now')) {
             $method = PaymentMethod::from($data['pay_method']);
-            if ($method->isMobileMoney() && blank($data['pay_reference'] ?? null)) {
-                throw ValidationException::withMessages(['pay_reference' => 'Indiquez la référence de la transaction mobile money.']);
+            if ($method->referenceLabel() && blank($data['pay_reference'] ?? null)) {
+                throw ValidationException::withMessages(['pay_reference' => 'Indiquez la référence : '.mb_strtolower($method->referenceLabel()).'.']);
             }
             if ((int) $data['pay_amount'] > $quote['total_amount']) {
                 throw ValidationException::withMessages(['pay_amount' => 'Le montant dépasse le total de la formation ('.Formule::money($quote['total_amount']).').']);

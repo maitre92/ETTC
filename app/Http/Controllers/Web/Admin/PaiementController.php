@@ -60,7 +60,7 @@ class PaiementController extends Controller
             'period' => ['nullable', 'string', 'max:100'],
             'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
             'notes' => ['nullable', 'string', 'max:1000'],
-        ], ['reference.required' => 'Indiquez la référence de la transaction mobile money.'], [
+        ], ['reference.required' => 'Indiquez la référence (SMS du mobile money, ou n° de virement, de bordereau ou de chèque).'], [
             'amount' => 'montant', 'method' => 'moyen de paiement', 'reference' => 'référence', 'payer_phone' => 'numéro du payeur',
             'period' => 'période', 'paid_at' => 'date du paiement', 'notes' => 'remarque',
         ]);

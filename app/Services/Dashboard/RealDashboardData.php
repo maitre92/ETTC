@@ -432,6 +432,7 @@ class RealDashboardData
             ['paiements.record', 'paiements.index', '#impayes', 'Encaisser un paiement', 'Les apprenants qui doivent encore payer', 'bx bx-money', 'success'],
             ['tests.create', 'tests.index', '#create-test', 'Inscrire au test de niveau', 'Le test est gratuit', 'bx bx-target-lock', 'warning'],
             ['seances.view', 'groupes.index', '', 'Séances du jour', 'Ouvrir Google Meet, voir les groupes', 'bx bx-calendar', 'info'],
+            ['caisse.record', 'caisse.index', '#mvt-sortie', 'Caisse', 'Revenus, dépenses, soldes du jour', 'bx bx-transfer', 'danger'],
         ];
         $actions = [];
         foreach ($candidates as [$permission, $route, $anchor, $label, $hint, $icon, $color]) {

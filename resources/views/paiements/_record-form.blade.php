@@ -18,16 +18,12 @@
     </div>
     <div class="col-sm-6">
         <label class="form-label fw-semibold" for="{{ $formId }}-method">Payé en</label>
-        <select class="form-select form-select-lg {{ $field('method') }}" id="{{ $formId }}-method" name="method" required>
-            @foreach (\App\Enums\PaymentMethod::cases() as $method)
-                <option value="{{ $method->value }}" @selected(old('method', $inscription->mode === \App\Enums\FormationMode::EnLigne ? 'orange_money' : 'especes') === $method->value)>{{ $method->isMobileMoney() ? $method->label() : 'Espèces' }}</option>
-            @endforeach
-        </select>
+        @include('paiements._method-select', ['id' => $formId.'-method', 'name' => 'method', 'class' => 'form-select form-select-lg '.$field('method'), 'selected' => old('method', $inscription->mode === \App\Enums\FormationMode::EnLigne ? 'orange_money' : 'especes')])
         @error('method')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
-    <div class="col-12" data-show-when="method:orange_money,wave,moov_money">
-        <label class="form-label fw-semibold" for="{{ $formId }}-reference">Référence de la transaction (SMS reçu)</label>
-        <input class="form-control {{ $field('reference') }}" id="{{ $formId }}-reference" name="reference" maxlength="100" value="{{ old('reference') }}" placeholder="Ex. MP241118.1530.A12345">
+    <div class="col-12" data-show-when="method:orange_money,wave,moov_money,banque">
+        <label class="form-label fw-semibold" for="{{ $formId }}-reference">Référence (SMS mobile money, ou n° de virement / bordereau / chèque)</label>
+        <input class="form-control {{ $field('reference') }}" id="{{ $formId }}-reference" name="reference" maxlength="100" value="{{ old('reference') }}" placeholder="Ex. MP241118.1530.A12345 ou CHQ 0012345">
         @error('reference')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-12">

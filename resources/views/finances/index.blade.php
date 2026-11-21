@@ -143,7 +143,7 @@
                     <div class="card-body">
                         @forelse ($payouts as $payout)
                             <div class="d-flex flex-wrap justify-content-between gap-2 py-2 border-bottom small">
-                                <span>{{ $payout->paid_on->format('d/m/Y') }} · {{ ucfirst(\Carbon\CarbonImmutable::parse($payout->period.'-01')->translatedFormat('F Y')) }}@if ($payout->reference) · {{ $payout->reference }}@endif</span>
+                                <span>{{ $payout->paid_on->format('d/m/Y') }} · {{ ucfirst(\Carbon\CarbonImmutable::parse($payout->period.'-01')->translatedFormat('F Y')) }} · {{ \App\Services\Caisse\CaisseService::payoutMethod($payout->method)->shortLabel() }}@if ($payout->reference) · {{ $payout->reference }}@endif</span>
                                 <strong>{{ $money($payout->amount) }}</strong>
                             </div>
                         @empty
@@ -183,7 +183,7 @@
                                     <div class="row g-3">
                                         <div class="col-6"><label class="form-label fw-semibold" for="po-amount-{{ $row['period'] }}">Montant (FCFA)</label><input type="number" class="form-control form-control-lg" id="po-amount-{{ $row['period'] }}" name="amount" min="1" step="1" required value="{{ $row['due'] }}"></div>
                                         <div class="col-6"><label class="form-label fw-semibold" for="po-date-{{ $row['period'] }}">Versé le</label><input type="date" class="form-control form-control-lg" id="po-date-{{ $row['period'] }}" name="paid_on" max="{{ now()->format('Y-m-d') }}" value="{{ now()->format('Y-m-d') }}" required></div>
-                                        <div class="col-6"><label class="form-label small" for="po-method-{{ $row['period'] }}">Moyen</label><input class="form-control" id="po-method-{{ $row['period'] }}" name="method" maxlength="60" placeholder="Virement, Orange Money…"></div>
+                                        <div class="col-6"><label class="form-label small" for="po-method-{{ $row['period'] }}">Moyen</label>@include('paiements._method-select', ['id' => 'po-method-'.$row['period'], 'name' => 'method', 'class' => 'form-select', 'selected' => 'banque'])</div>
                                         <div class="col-6"><label class="form-label small" for="po-ref-{{ $row['period'] }}">Référence</label><input class="form-control" id="po-ref-{{ $row['period'] }}" name="reference" maxlength="100"></div>
                                     </div>
                                 </div>

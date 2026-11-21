@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Models\CommissionVersement;
 use App\Services\Audit\ActivityLogger;
@@ -14,6 +15,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -51,7 +53,7 @@ class FinanceController extends Controller
             'period' => ['required', 'date_format:Y-m'],
             'amount' => ['required', 'integer', 'min:1', 'max:1000000000'],
             'paid_on' => ['required', 'date', 'before_or_equal:today'],
-            'method' => ['nullable', 'string', 'max:60'],
+            'method' => ['nullable', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
         ], [], ['period' => 'mois', 'amount' => 'montant', 'paid_on' => 'date du versement', 'method' => 'moyen', 'reference' => 'référence']);
