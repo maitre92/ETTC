@@ -18,6 +18,7 @@ return [
         'administrateur' => ['defaults' => ['view'], 'optional' => []],
         'gestionnaire' => ['defaults' => ['view'], 'optional' => []],
         'commercial' => ['defaults' => ['view'], 'optional' => []],
+        'formateur' => ['defaults' => ['view'], 'optional' => []],
     ],
 
     'navigation' => [

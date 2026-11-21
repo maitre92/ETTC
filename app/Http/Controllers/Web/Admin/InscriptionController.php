@@ -15,6 +15,7 @@ use App\Models\Formule;
 use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Niveau;
+use App\Models\Promotion;
 use App\Models\TestNiveau;
 use App\Services\Inscriptions\InscriptionService;
 use App\Services\Paiements\PaiementService;
@@ -130,18 +131,24 @@ class InscriptionController extends Controller
             'pay_amount' => ['nullable', 'required_if:pay_now,1', 'integer', 'min:1', 'max:100000000'],
             'pay_method' => ['nullable', 'required_if:pay_now,1', Rule::enum(PaymentMethod::class)],
             'pay_reference' => ['nullable', 'string', 'max:100'],
+            'waive_fee' => ['nullable', 'boolean'],
         ];
+        if (is_string($request->input('promo_code'))) {
+            $request->merge(['promo_code' => Promotion::normalizeCode($request->input('promo_code'))]);
+        }
         $request->validate($rules, (new InscriptionRequest)->messages() + [
             'pay_amount.required_if' => 'Indiquez le montant payé maintenant.',
         ], (new InscriptionRequest)->attributes() + ['pay_amount' => 'montant payé', 'pay_method' => 'moyen de paiement', 'pay_reference' => 'référence']);
 
         $data = $request->only(array_keys($rules));
+        $data['waive_fee'] = $request->boolean('waive_fee');
+        // Code promo vérifié AVANT l'enregistrement (erreur sous le champ).
+        $quote = $this->service->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']), $data['promo_code'] ?? null, ! $data['waive_fee']);
         if ($request->boolean('pay_now')) {
             $method = PaymentMethod::from($data['pay_method']);
             if ($method->isMobileMoney() && blank($data['pay_reference'] ?? null)) {
                 throw ValidationException::withMessages(['pay_reference' => 'Indiquez la référence de la transaction mobile money.']);
             }
-            $quote = $this->service->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']));
             if ((int) $data['pay_amount'] > $quote['total_amount']) {
                 throw ValidationException::withMessages(['pay_amount' => 'Le montant dépasse le total de la formation ('.Formule::money($quote['total_amount']).').']);
             }

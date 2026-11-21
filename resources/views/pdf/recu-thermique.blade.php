@@ -32,7 +32,7 @@
     <div class="line"></div>
     <table>
         <tr><td class="big">PAYÉ</td><td class="r big">{{ $money($paiement->amount) }}</td></tr>
-        <tr><td>Total formation</td><td class="r">{{ $money($inscription->total_amount) }}</td></tr>
+        <tr><td>Total{{ $inscription->registration_fee > 0 ? ' (inscr. comprise)' : ' formation' }}</td><td class="r">{{ $money($inscription->total_amount) }}</td></tr>
         <tr><td>Reste à payer</td><td class="r"><strong>{{ $money($inscription->balance()) }}</strong></td></tr>
     </table>
     <div class="line"></div>

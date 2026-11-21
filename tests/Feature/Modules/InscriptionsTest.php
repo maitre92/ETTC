@@ -73,14 +73,17 @@ class InscriptionsTest extends TestCase
         $this->assertMatchesRegularExpression('/^INS-\d{4}-\d{4}$/', $inscription->number);
         $this->assertSame(InscriptionStatus::AValider, $inscription->status);
         $this->assertSame(FormationMode::Presentiel, $inscription->mode);
-        $this->assertSame([20000, 40000, '+22375229125'], [$inscription->unit_price, $inscription->total_amount, $inscription->phone]);
+        // Frais d'inscription (5 000 F par défaut) ajoutés une fois au total figé ; premier paiement = 1er mois + frais.
+        $this->assertSame([20000, 40000, 5000, 45000, '+22375229125'], [$inscription->unit_price, $inscription->formation_amount, $inscription->registration_fee, $inscription->total_amount, $inscription->phone]);
+        $this->assertSame(25000, $inscription->nextInstallment());
         Mail::assertSent(InscriptionRecue::class, fn ($m) => $m->hasTo('equipe@ettc.test') && str_contains($m->render(), 'Awa Diallo'));
         Mail::assertSent(InscriptionRecapitulatif::class, fn ($m) => $m->hasTo('awa@exemple.ml') && str_contains($m->render(), $inscription->number));
         $this->assertTrue(ActivityLog::where('action', 'inscriptions.submitted')->exists());
 
         // Le centre change ses tarifs : l'inscription garde le prix accepté.
         $formule->update(['price_onsite' => 35000]);
-        $this->assertSame(40000, $inscription->fresh()->total_amount);
+        app(SiteSettings::class)->save(['formation.registration_fee' => '10000']);
+        $this->assertSame(45000, $inscription->fresh()->total_amount);
     }
 
     public function test_an_unavailable_formula_or_mode_is_refused(): void
@@ -143,7 +146,7 @@ class InscriptionsTest extends TestCase
         $this->post("/admin/inscriptions/depuis-test/{$test->id}", ['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne'])->assertRedirect();
 
         $inscription = Inscription::firstOrFail();
-        $this->assertSame(['Ibrahim Touré', $niveau->id, $test->id, 'centre', 100000], [$inscription->name, $inscription->niveau_id, $inscription->test_niveau_id, $inscription->source, $inscription->total_amount]);
+        $this->assertSame(['Ibrahim Touré', $niveau->id, $test->id, 'centre', 100000], [$inscription->name, $inscription->niveau_id, $inscription->test_niveau_id, $inscription->source, $inscription->total_amount - $inscription->registration_fee]);
 
         $pending = TestNiveau::factory()->create();
         $this->post("/admin/inscriptions/depuis-test/{$pending->id}", ['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne'])->assertNotFound();
@@ -247,7 +250,7 @@ class InscriptionsTest extends TestCase
         $online = $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne',
             'name' => 'Awa', 'phone' => '75 22 91 25', 'email' => 'awa@exemple.ml']))->assertOk();
         $online->assertJsonPath('payment.methods.0.label', 'Orange Money')->assertJsonPath('payment.methods.0.number', '75 22 91 25')
-            ->assertJsonPath('payment.amount', Formule::money(50000));
+            ->assertJsonPath('payment.amount', Formule::money(55000));
         $this->assertStringContainsString(Inscription::firstOrFail()->number, $online->json('payment.instructions'));
         Mail::assertSent(InscriptionRecapitulatif::class, fn ($m) => str_contains($m->render(), 'Payer maintenant par mobile money') && str_contains($m->render(), '75 22 91 25'));
 

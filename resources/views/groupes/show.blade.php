@@ -40,7 +40,8 @@
                         <dl class="nv-dl mb-0">
                             <dt>Mode</dt><dd>{{ $groupe->mode->label() }}@unless ($groupe->is_active) <span class="badge bg-secondary-subtle">Inactif</span>@endunless</dd>
                             <dt>Niveau</dt><dd>{{ $groupe->niveau?->name ?? 'Tous niveaux' }}</dd>
-                            @if ($groupe->teacher)<dt>Formateur</dt><dd>{{ $groupe->teacher }}</dd>@endif
+                            <dt>Formateur</dt><dd>{!! $groupe->teacherName() ? e($groupe->teacherName()) : '<span class="text-warning">À choisir (Modifier)</span>' !!}</dd>
+                            @if ($groupe->capacity)<dt>Places</dt><dd>{{ $groupe->members->count() }} / {{ $groupe->capacity }}@if ($groupe->placesLeft($groupe->members->count()) === 0) <span class="badge bg-danger-subtle">Complet</span>@endif</dd>@endif
                             @if ($online && $groupe->meet_url)<dt>Google Meet</dt><dd class="text-break"><a href="{{ $groupe->meet_url }}" target="_blank" rel="noopener">{{ $groupe->meet_url }}</a></dd>@endif
                             @if (! $online && $groupe->location)<dt>Salle</dt><dd>{{ $groupe->location }}</dd>@endif
                             @if ($groupe->schedule)<dt>Horaire</dt><dd>{{ $groupe->schedule }}</dd>@endif
@@ -172,6 +173,12 @@
                         @endif
                     </div>
                 </div>
+
+                @include('groupes._discussion', [
+                    'groupe' => $groupe,
+                    'postUrl' => $canManage ? route('groupes.messages.store', $groupe) : null,
+                    'deleteUrl' => $canManage ? fn ($msg) => route('groupes.messages.destroy', [$groupe, $msg]) : null,
+                ])
 
                 <div class="card">
                     <details>

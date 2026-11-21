@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'number', 'status', 'source', 'client_id', 'test_niveau_id', 'demande_id', 'name', 'birth_date', 'gender', 'phone', 'email',
     'address', 'city', 'message', 'niveau_id', 'formule_id', 'mode', 'payment_choice', 'formule_name',
-    'duration_months', 'billing', 'unit_price', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'validated_at', 'validated_by',
+    'duration_months', 'billing', 'unit_price', 'formation_amount', 'discount_amount', 'promotion_id', 'promo_code', 'registration_fee', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'validated_at', 'validated_by',
     'started_at', 'finished_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
     'notified_at', 'notification_error',
 ])]
@@ -40,7 +40,7 @@ class Inscription extends Model
         return [
             'status' => InscriptionStatus::class, 'mode' => FormationMode::class, 'payment_choice' => PaymentChoice::class,
             'billing' => Billing::class, 'gender' => Gender::class, 'birth_date' => 'date',
-            'duration_months' => 'integer', 'unit_price' => 'integer', 'total_amount' => 'integer', 'amount_paid' => 'integer',
+            'duration_months' => 'integer', 'unit_price' => 'integer', 'formation_amount' => 'integer', 'discount_amount' => 'integer', 'registration_fee' => 'integer', 'total_amount' => 'integer', 'amount_paid' => 'integer',
             'validated_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime',
             'consent_at' => 'datetime', 'notified_at' => 'datetime',
         ];
@@ -81,6 +81,11 @@ class Inscription extends Model
         return $this->belongsTo(Groupe::class)->withTrashed();
     }
 
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class)->withTrashed();
+    }
+
     public function paiements(): HasMany
     {
         return $this->hasMany(Paiement::class)->latest('paid_at')->latest('id');
@@ -113,12 +118,50 @@ class Inscription extends Model
         };
     }
 
-    /** Montant proposé pour le prochain paiement : une mensualité (formule au mois) sans dépasser le reste. */
+    /** Frais de formation après réduction (sans les frais d'inscription). */
+    public function formationDue(): int
+    {
+        return max(0, $this->total_amount - $this->registration_fee);
+    }
+
+    /** Une échéance de formation : formation réduite ÷ durée (formule au mois), ou tout (paiement unique). */
+    public function installment(): int
+    {
+        $formation = $this->formationDue();
+
+        return $this->billing === Billing::Mensuel && $this->duration_months > 1 ? (int) ceil($formation / $this->duration_months) : $formation;
+    }
+
+    /**
+     * Montant proposé pour le prochain paiement : les frais d'inscription restants (payés en premier) + une échéance,
+     * sans dépasser ce qui reste à encaisser.
+     */
     public function nextInstallment(): int
     {
-        $unit = $this->billing === Billing::Mensuel ? $this->unit_price : $this->total_amount;
+        $covered = $this->amount_paid + $this->pendingAmount();
+        $feeDue = max(0, $this->registration_fee - $covered);
 
-        return min($unit, $this->payableNow());
+        return min($feeDue + $this->installment(), $this->payableNow());
+    }
+
+    /**
+     * Détail du tarif figé : [libellé, montant, style] (formation, promotion, frais d'inscription, total).
+     *
+     * @return list<array{0: string, 1: int, 2: string}>
+     */
+    public function priceLines(): array
+    {
+        $formation = $this->formation_amount ?: $this->total_amount - $this->registration_fee + $this->discount_amount;
+        $lines = [['Frais de formation ('.$this->formule_name.($this->billing === Billing::Mensuel ? ', '.Formule::money($this->unit_price).' × '.$this->duration_months.' mois' : '').')', $formation, '']];
+        if ($this->discount_amount > 0) {
+            $lines[] = ['Promotion'.($this->promotion ? ' « '.$this->promotion->name.' »' : '').($this->promo_code ? ' (code '.$this->promo_code.')' : ''), -$this->discount_amount, 'promo'];
+        }
+        if ($this->registration_fee > 0) {
+            $lines[] = ["Frais d'inscription (une seule fois)", $this->registration_fee, ''];
+        }
+        $lines[] = ['Total à payer', $this->total_amount, 'total'];
+
+        return $lines;
     }
 
     /** Paiements déclarés (en ligne ou par l'apprenant) pas encore vérifiés : ne pas les encaisser une seconde fois. */
@@ -144,10 +187,11 @@ class Inscription extends Model
     {
         $site = app(SiteSettings::class);
         $hello = 'Bonjour '.$this->name.', ici '.$site->get('company.short_name').'. ';
+        $payLink = route('client.paiements');
         $message = match (true) {
             $this->status === InscriptionStatus::Annulee => $hello.'Nous revenons vers vous au sujet de votre inscription '.$this->number.'.',
-            $this->balance() > 0 && $this->amount_paid === 0 => $hello.'Votre inscription '.$this->number.' ('.$this->formule_name.') est enregistrée. Il reste à régler '.Formule::money($this->balance()).($this->mode === FormationMode::EnLigne ? ' par mobile money, depuis votre espace apprenant.' : ' au centre.').' Merci !',
-            $this->balance() > 0 => $hello.'Petit rappel : il reste '.Formule::money($this->balance()).' à régler pour votre formation ('.$this->number.'). Merci !',
+            $this->balance() > 0 && $this->amount_paid === 0 => $hello.'Votre inscription '.$this->number.' ('.$this->formule_name.') est enregistrée. Pour la confirmer, réglez '.Formule::money($this->nextInstallment()).' (total '.Formule::money($this->balance()).'), au centre ou par mobile money : '.$payLink.' Merci !',
+            $this->balance() > 0 => $hello.'Petit rappel : il reste '.Formule::money($this->balance()).' à régler pour votre formation ('.$this->number.'), prochaine échéance '.Formule::money($this->nextInstallment()).'. Au centre ou par mobile money : '.$payLink.' Merci !',
             default => $hello.'Votre formation est entièrement réglée. Merci et bonne formation !',
         };
 

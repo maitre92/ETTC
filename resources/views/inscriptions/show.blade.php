@@ -79,7 +79,10 @@
                             <dt>Formule</dt><dd>{{ $inscription->formule_name }} — {{ $inscription->duration_months }} mois</dd>
                             <dt>Mode</dt><dd>{{ $inscription->mode->label() }}</dd>
                             <dt>Tarif figé</dt><dd>{{ $inscription->priceLabel() }}</dd>
-                            <dt>Total</dt><dd class="fs-5 fw-bold text-primary">{{ \App\Models\Formule::money($inscription->total_amount) }}</dd>
+                            @foreach ($inscription->priceLines() as [$lineLabel, $lineAmount, $lineStyle])
+                                <dt class="{{ $lineStyle === 'promo' ? 'text-success' : '' }}">{{ $lineStyle === 'total' ? 'Total' : $lineLabel }}</dt>
+                                <dd class="{{ $lineStyle === 'total' ? 'fs-5 fw-bold text-primary' : ($lineStyle === 'promo' ? 'text-success' : '') }}">{{ $lineAmount < 0 ? '-' : '' }}{{ \App\Models\Formule::money(abs($lineAmount)) }}</dd>
+                            @endforeach
                             <dt>Paiement choisi</dt><dd>{{ $inscription->payment_choice->label() }}</dd>
                             @if ($inscription->session)<dt>Session</dt><dd>{{ $inscription->session }}</dd>@endif
                             @if ($inscription->validated_at)<dt>Validé le</dt><dd>{{ $inscription->validated_at->format('d/m/Y') }}@if ($inscription->validator) par {{ $inscription->validator->displayName() }}@endif</dd>@endif

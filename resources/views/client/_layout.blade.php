@@ -4,6 +4,7 @@
     $nav = collect([
         ['client.home', 'Tableau de bord', 'bx-grid-alt'],
         ['client.calendrier', 'Mon calendrier', 'bx-calendar'],
+        ['client.groupes', 'Mes groupes', 'bx-conversation'],
         ['client.inscriptions', 'Mes inscriptions', 'bx-book-reader'],
         ['client.paiements', 'Mes paiements', 'bx-wallet'],
         ['client.tests', 'Mes tests de niveau', 'bx-target-lock'],
@@ -11,6 +12,9 @@
         ['client.documents', 'Mes documents', 'bx-folder'],
         ['client.profile', 'Mon profil', 'bx-user'],
     ])->filter(fn ($item) => Route::has($item[0]));
+    // Nouveaux messages dans la discussion de ses groupes (formateur, autres apprenants).
+    $unreadGroups = \App\Http\Controllers\Client\GroupeController::groupesOf($client)
+        ->sum(fn ($g) => \App\Models\GroupeMessage::unreadCount('client:'.$client->id, $g->id));
 @endphp
 <section class="page-hero client-hero">
     <div class="container">
@@ -41,7 +45,7 @@
             <aside class="col-lg-3">
                 <nav class="client-nav" aria-label="Espace client">
                     @foreach ($nav as [$route, $label, $icon])
-                        <a href="{{ route($route) }}" class="{{ request()->routeIs($route.'*') ? 'active' : '' }}" @if (request()->routeIs($route.'*')) aria-current="page" @endif><i class='bx {{ $icon }}' aria-hidden="true"></i>{{ $label }}</a>
+                        <a href="{{ route($route) }}" class="{{ request()->routeIs($route.'*') ? 'active' : '' }}" @if (request()->routeIs($route.'*')) aria-current="page" @endif><i class='bx {{ $icon }}' aria-hidden="true"></i>{{ $label }}@if ($route === 'client.groupes' && $unreadGroups > 0) <span class="badge rounded-pill bg-danger ms-1">{{ $unreadGroups }}<span class="visually-hidden"> nouveau(x) message(s)</span></span>@endif</a>
                     @endforeach
                     <form method="POST" action="{{ route('client.logout') }}">
                         @csrf

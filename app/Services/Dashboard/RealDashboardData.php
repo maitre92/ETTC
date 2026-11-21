@@ -12,6 +12,8 @@ use App\Models\ActivityLog;
 use App\Models\Article;
 use App\Models\Demande;
 use App\Models\Formule;
+use App\Models\Groupe;
+use App\Models\GroupeMessage;
 use App\Models\Inscription;
 use App\Models\Media;
 use App\Models\Paiement;
@@ -97,7 +99,15 @@ class RealDashboardData
             'inscriptions' => $user->can('inscriptions.view') ? Inscription::where('status', InscriptionStatus::AValider->value)->count() : 0,
             'tests' => $user->can('tests.view') ? TestNiveau::where('status', TestStatus::Demande->value)->count() : 0,
             'paiements' => $user->can('paiements.verify') ? Paiement::where('status', PaymentStatus::AVerifier->value)->count() : 0,
+            // Formateur : messages de ses apprenants pas encore lus.
+            'formateur' => $user->can('formateurs.space') ? $this->unreadForTeacher($user) : 0,
         ]);
+    }
+
+    private function unreadForTeacher(User $user): int
+    {
+        return Groupe::where('formateur_id', $user->id)->pluck('id')
+            ->sum(fn (int $id) => GroupeMessage::unreadCount('user:'.$user->id, $id));
     }
 
     /**
@@ -117,6 +127,13 @@ class RealDashboardData
             $failed = Demande::whereNotNull('notification_error')->where('created_at', '>=', now()->subDays(7))->count();
             if ($failed > 0) {
                 $items[] = ['icon' => 'bx-error', 'class' => 'text-warning', 'text' => "{$failed} notification(s) e-mail non envoyée(s) cette semaine.", 'link' => route('demandes.index')];
+            }
+        }
+
+        if ($user->can('formateurs.space') && Route::has('formateur.index')) {
+            $unread = $this->unreadForTeacher($user);
+            if ($unread > 0) {
+                $items[] = ['icon' => 'bx-message-rounded-dots', 'class' => 'text-primary', 'text' => "{$unread} nouveau(x) message(s) de vos apprenants.", 'link' => route('formateur.index')];
             }
         }
 

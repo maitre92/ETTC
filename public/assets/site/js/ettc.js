@@ -9,6 +9,21 @@
 
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // Montants en un clic (paiements/_amount-chips) : « Prochaine échéance », « Tout le reste » → champ du montant.
+    if (!window.__fillAmountReady) {
+        window.__fillAmountReady = true;
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-fill-amount]');
+            if (!button) { return; }
+            var input = document.getElementById(button.getAttribute('data-target'));
+            if (!input) { return; }
+            input.value = button.getAttribute('data-fill-amount');
+            input.dataset.touched = '1';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+        });
+    }
+
     /*
      * Menu « Formations » : ouvert au survol à la souris (ordinateur, menu déplié à partir de 992 px), avec un court
      * délai à la sortie pour glisser du bouton vers la liste ; au doigt et au clavier, le clic l'ouvre comme avant.
@@ -72,28 +87,63 @@
             var monthly = formule.getAttribute('data-billing') === 'mois';
             return { formule: formule, mode: mode, unit: unit, months: months, monthly: monthly, total: monthly ? unit * months : unit };
         }
+        // Tarif détaillé calculé par le serveur (frais de formation, promotion, code promo, frais d'inscription) : le
+        // même calcul que l'enregistrement. En attendant la réponse (ou sans réseau), calcul local sans promotion.
+        var tarif = null;
+        var tarifUrl = form.getAttribute('data-tarif-url');
+        var promoInput = form.querySelector('[data-promo-input]');
+        var promoFeedback = form.querySelector('[data-promo-feedback]');
+        var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+        function fetchTarif(showCode) {
+            var q = quote();
+            if (!tarifUrl || !q || q.missing) { tarif = null; renderPrice(); return; }
+            var params = 'formule_id=' + encodeURIComponent(q.formule.value) + '&mode=' + encodeURIComponent(q.mode.value)
+                + '&promo_code=' + encodeURIComponent(promoInput ? promoInput.value : '');
+            fetch(tarifUrl + '?' + params, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    tarif = data && data.ok ? data : null;
+                    if (promoFeedback && tarif && (showCode || tarif.code_error)) {
+                        promoFeedback.innerHTML = tarif.code_error
+                            ? '<span class="text-danger">' + esc(tarif.code_error) + '</span>'
+                            : (tarif.code_ok ? '<span class="text-success"><i class="bx bx-check-circle"></i> Code appliqué : ' + esc(tarif.promo.name) + ' (' + esc(tarif.promo.badge) + ')</span>'
+                                : (tarif.promo ? '<span class="text-muted">La promotion en cours est plus avantageuse : elle est gardée.</span>' : ''));
+                    }
+                    renderPrice();
+                    if (current === steps.length - 1) { renderRecap(); }
+                })
+                .catch(function () { tarif = null; renderPrice(); });
+        }
         function renderPrice() {
             var q = quote();
             if (!q) { live.hidden = true; return; }
             live.hidden = false;
             live.classList.toggle('is-warning', !!q.missing);
-            live.innerHTML = q.missing
-                ? '<i class="bx bx-error-circle" aria-hidden="true"></i> Cette formule n\'est pas proposée ' + q.mode.getAttribute('data-label').toLowerCase() + ' : choisissez l\'autre mode ou une autre formule.'
-                : '<span>' + money(q.unit) + (q.monthly ? ' / mois × ' + q.months + ' mois' : ' (paiement unique)') + '</span><strong>Total : ' + money(q.total) + '</strong>';
+            if (q.missing) {
+                live.innerHTML = '<i class="bx bx-error-circle" aria-hidden="true"></i> Cette formule n\'est pas proposée ' + q.mode.getAttribute('data-label').toLowerCase() + ' : choisissez l\'autre mode ou une autre formule.';
+            } else if (tarif) {
+                live.innerHTML = '<table class="ettc-price-lines">' + tarif.lines.map(function (l) {
+                    return '<tr class="' + esc(l[2]) + '"><th scope="row">' + esc(l[0]) + '</th><td>' + esc(l[1]) + '</td></tr>';
+                }).join('') + '</table><p class="ettc-price-first">Premier paiement : <b>' + esc(tarif.first_label) + '</b></p>';
+            } else {
+                live.innerHTML = '<span>' + money(q.unit) + (q.monthly ? ' / mois × ' + q.months + ' mois' : ' (paiement unique)') + '</span><strong>Total : ' + money(q.total) + '</strong>';
+            }
             live.classList.remove('is-pop'); void live.offsetWidth; live.classList.add('is-pop');
+            renderOnlinePay();
         }
-        // « Payer en ligne » : bloc des numéros et QR ouvert, montant de la première échéance à jour.
+        // « Payer en ligne » : bloc des numéros et QR ouvert, montant du premier paiement à jour.
         function renderOnlinePay() {
             var block = form.querySelector('[data-online-pay]');
             if (!block) { return; }
             var pay = checked('payment_choice');
             block.hidden = !(pay && pay.value === 'en_ligne');
             var q = quote();
+            var first = tarif ? tarif.first : (q && !q.missing ? (q.monthly ? q.unit : q.total) : null);
             var amount = block.querySelector('[data-online-amount]');
-            if (amount) { amount.textContent = q && !q.missing ? money(q.monthly ? q.unit : q.total) : '—'; }
-            // Montant envoyé prérempli (première échéance), sauf si l'apprenant l'a déjà changé.
+            if (amount) { amount.textContent = tarif ? tarif.first_label : (first ? money(first) : '—'); }
+            // Montant envoyé prérempli (premier paiement), sauf si l'apprenant l'a déjà changé.
             var input = block.querySelector('[data-online-amount-input]');
-            if (input && q && !q.missing && !input.dataset.touched) { input.value = q.monthly ? q.unit : q.total; }
+            if (input && first && !input.dataset.touched) { input.value = first; }
             if (input && !input.dataset.watch) { input.dataset.watch = '1'; input.addEventListener('input', function () { input.dataset.touched = '1'; }); }
             // Champs du paiement déclaré ignorés quand on choisit « Payer au centre ».
             block.querySelectorAll('input, select').forEach(function (field) { field.disabled = block.hidden; });
@@ -107,11 +157,16 @@
                 ['Niveau', niveau ? niveau.getAttribute('data-label') : '—'],
                 ['Formule', q ? q.formule.getAttribute('data-label') : '—'],
                 ['Mode', q ? q.mode.getAttribute('data-label') : '—'],
-                ['Tarif', q && !q.missing ? money(q.unit) + (q.monthly ? ' / mois' : ' (paiement unique)') : '—'],
-                ['Total', q && !q.missing ? money(q.total) : '—'],
-                ['Paiement', pay ? pay.getAttribute('data-label') : '—'],
-                ['Nom', (form.querySelector('[name="name"]') || {}).value || '—'],
             ];
+            if (tarif) {
+                tarif.lines.forEach(function (l) { rows.push([l[0], l[1]]); });
+                rows.push(['Premier paiement', tarif.first_label]);
+            } else {
+                rows.push(['Tarif', q && !q.missing ? money(q.unit) + (q.monthly ? ' / mois' : ' (paiement unique)') : '—']);
+                rows.push(['Total', q && !q.missing ? money(q.total) : '—']);
+            }
+            rows.push(['Paiement', pay ? pay.getAttribute('data-label') : '—']);
+            rows.push(['Nom', (form.querySelector('[name="name"]') || {}).value || '—']);
             var dl = recap.querySelector('dl');
             dl.innerHTML = '';
             rows.forEach(function (row) {
@@ -166,7 +221,8 @@
         prev.addEventListener('click', function () { show(current - 1); });
         marks.forEach(function (m, k) { m.addEventListener('click', function () { if (k < current) { show(k); } }); });
         form.addEventListener('change', function (e) {
-            if (e.target.name === 'formule_id' || e.target.name === 'mode') { renderPrice(); }
+            if (e.target.name === 'formule_id' || e.target.name === 'mode') { renderPrice(); fetchTarif(false); }
+            if (e.target.name === 'payment_choice') { renderOnlinePay(); }
             // Paiement présélectionné d'après le mode : présentiel → au centre, en ligne → mobile money (modifiable).
             if (e.target.name === 'mode') {
                 var pay = form.querySelector('input[name="payment_choice"][data-payment-for="' + e.target.value + '"]');
@@ -183,7 +239,15 @@
             if (index !== -1 && index !== current) { show(index); }
         }).observe(form, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
+        // Code promo : bouton « Appliquer » ou touche Entrée (sans envoyer le formulaire).
+        var promoApply = form.querySelector('[data-promo-apply]');
+        if (promoApply) { promoApply.addEventListener('click', function () { fetchTarif(true); }); }
+        if (promoInput) {
+            promoInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); fetchTarif(true); } });
+        }
+
         renderPrice();
+        fetchTarif(!!(promoInput && promoInput.value));
         show(0);
     });
 

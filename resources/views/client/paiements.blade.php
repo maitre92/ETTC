@@ -16,7 +16,7 @@
                 $pending = (int) $inscription->paiements->where('status', PaymentStatus::AVerifier)->sum('amount');
                 $payable = max(0, $inscription->balance() - $pending);
             @endphp
-            <div class="detail-panel mb-4">
+            <div class="detail-panel mb-4" id="inscription-{{ $inscription->id }}">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                     <div>
                         <h2 class="h5 mb-1">{{ $inscription->niveau?->name ?? 'Formation' }} — {{ $inscription->formule_name }}</h2>
@@ -29,6 +29,27 @@
                     <div class="col-4"><div class="small text-muted">Payé</div><strong class="text-success">{{ $money($inscription->amount_paid) }}</strong></div>
                     <div class="col-4"><div class="small text-muted">Reste</div><strong class="{{ $inscription->balance() > 0 ? 'text-danger' : '' }}">{{ $money($inscription->balance()) }}</strong></div>
                 </div>
+
+                <details class="small mb-3">
+                    <summary class="text-primary" style="cursor:pointer">Détail du tarif</summary>
+                    <table class="table table-sm mb-0 mt-2">
+                        @foreach ($inscription->priceLines() as [$lineLabel, $lineAmount, $lineStyle])
+                            <tr class="{{ $lineStyle === 'total' ? 'fw-bold' : ($lineStyle === 'promo' ? 'text-success' : '') }}"><td>{{ $lineLabel }}</td><td class="text-end text-nowrap">{{ $lineAmount < 0 ? '-' : '' }}{{ $money(abs($lineAmount)) }}</td></tr>
+                        @endforeach
+                    </table>
+                </details>
+
+                @if ($payable > 0)
+                    {{-- Le reliquat, en gros : ce qu'il faut payer maintenant, et où. --}}
+                    <div class="pay-due mb-3">
+                        <div>
+                            <div class="small text-muted">À payer maintenant</div>
+                            <strong class="fs-4">{{ $money(min($inscription->nextInstallment(), $payable)) }}</strong>
+                            @if ($inscription->nextInstallment() < $payable)<span class="small text-muted"> · reste total {{ $money($payable) }}</span>@endif
+                        </div>
+                        <span class="small"><i class='bx bx-store' aria-hidden="true"></i> Au centre, ou <i class='bx bx-mobile-alt' aria-hidden="true"></i> en ligne ci-dessous</span>
+                    </div>
+                @endif
 
                 @if ($pending > 0)
                     <p class="alert alert-info small mb-3"><i class='bx bx-time-five' aria-hidden="true"></i> {{ $money($pending) }} en cours de vérification par le centre.</p>
@@ -56,6 +77,7 @@
                                     <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
                                     <div class="col-sm-5">
                                         <label for="o-amount-{{ $inscription->id }}" class="form-label required">Montant (FCFA)</label>
+                                        @include('paiements._amount-chips', ['inscription' => $inscription, 'target' => 'o-amount-'.$inscription->id, 'payable' => $payable])
                                         <input type="number" class="form-control @error('amount') is-invalid @enderror" id="o-amount-{{ $inscription->id }}" name="amount" min="100" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
                                         @error('amount')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     </div>

@@ -7,11 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Annonce;
 use App\Models\Groupe;
+use App\Models\GroupeMessage;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Seance;
 use App\Models\Support;
 use App\Services\Seances\AnnonceService;
+use App\Services\Seances\DiscussionService;
 use App\Services\Seances\SeanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +41,39 @@ class GroupeController extends Controller
             'niveaux' => Niveau::ordered()->get(),
             'withoutGroup' => Inscription::whereNull('groupe_id')->whereIn('status', ['validee', 'en_cours'])->count(),
             'annonces' => Annonce::with('groupe')->latest('id')->limit(10)->get(),
+            'plan' => $this->service->distributionPlan(15),
         ]);
+    }
+
+    /** Répartition automatique des apprenants sans groupe (par niveau et mode, capacité au plus). */
+    public function distribute(Request $request): RedirectResponse
+    {
+        Gate::authorize('create', Groupe::class);
+        $capacity = (int) $request->validate(['capacity' => ['required', 'integer', 'between:2,200']], [], ['capacity' => 'apprenants par groupe'])['capacity'];
+        $result = $this->service->distribute($capacity, null, $request->user());
+        $created = collect($result['created'])->pluck('name');
+
+        return redirect()->route('groupes.index')->with('status', "{$result['placed']} apprenant(s) répartis."
+            .($created->isNotEmpty() ? ' Nouveaux groupes : '.$created->implode(', ').' — choisissez leur formateur et programmez leurs séances.' : ''));
+    }
+
+    /** Message de l'équipe dans la discussion du groupe (lue par les apprenants et le formateur). */
+    public function storeMessage(Request $request, Groupe $groupe, DiscussionService $discussion): RedirectResponse
+    {
+        Gate::authorize('update', $groupe);
+        $body = $request->validate(['body' => ['required', 'string', 'max:3000']], [], ['body' => 'message'])['body'];
+        $sent = $discussion->postFromTeam($groupe, $body, $request->user(), $request->boolean('email'));
+
+        return redirect()->to(route('groupes.show', $groupe).'#discussion')->with('status', 'Message envoyé au groupe'.($sent ? " et par e-mail à {$sent} apprenant(s)." : '.'));
+    }
+
+    public function destroyMessage(Request $request, Groupe $groupe, GroupeMessage $message, DiscussionService $discussion): RedirectResponse
+    {
+        Gate::authorize('update', $groupe);
+        abort_unless($message->groupe_id === $groupe->id, 404);
+        $discussion->delete($message, $request->user());
+
+        return redirect()->to(route('groupes.show', $groupe).'#discussion')->with('status', 'Message retiré.');
     }
 
     public function store(Request $request): RedirectResponse
@@ -53,7 +87,8 @@ class GroupeController extends Controller
     public function show(Groupe $groupe): View
     {
         Gate::authorize('view', $groupe);
-        $groupe->load(['niveau', 'members', 'supports']);
+        $groupe->load(['niveau', 'members', 'supports', 'formateur', 'messages.user', 'messages.client']);
+        GroupeMessage::markSeen('user:'.auth()->id(), $groupe->id);
 
         return view('groupes.show', [
             'groupe' => $groupe,
@@ -210,6 +245,8 @@ class GroupeController extends Controller
             'niveau_id' => ['nullable', 'exists:niveaux,id'],
             'mode' => ['required', Rule::enum(FormationMode::class)],
             'teacher' => ['nullable', 'string', 'max:120'],
+            'formateur_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'capacity' => ['nullable', 'integer', 'between:1,500'],
             'meet_url' => [...SeanceService::meetRule(), Rule::requiredIf($online)],
             'location' => ['nullable', 'string', 'max:200'],
             'schedule' => ['nullable', 'string', 'max:200'],
@@ -218,7 +255,7 @@ class GroupeController extends Controller
             'notes' => ['nullable', 'string', 'max:3000'],
             'is_active' => ['nullable', 'boolean'],
         ], ['meet_url.required' => 'Un groupe en ligne a besoin de son lien Google Meet (vous pourrez le changer).', 'meet_url.url' => 'Collez l\'adresse complète du lien (meet.google.com/…).'], [
-            'name' => 'nom du groupe', 'teacher' => 'formateur', 'meet_url' => 'lien Google Meet', 'location' => 'salle', 'schedule' => 'horaire', 'starts_on' => 'début', 'ends_on' => 'fin',
+            'name' => 'nom du groupe', 'teacher' => 'formateur', 'formateur_id' => 'formateur', 'capacity' => 'places', 'meet_url' => 'lien Google Meet', 'location' => 'salle', 'schedule' => 'horaire', 'starts_on' => 'début', 'ends_on' => 'fin',
         ]) + ['is_active' => $request->boolean('is_active', true)];
     }
 

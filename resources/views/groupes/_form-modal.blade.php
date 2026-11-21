@@ -1,6 +1,10 @@
 {{-- Création ou modification d'un groupe ($groupe ou null, $modalId, $action, $method, $niveaux). Le lien Google Meet est
      demandé pour un groupe en ligne, la salle pour un groupe en présentiel (data-show-when). --}}
-@php $g = $groupe; @endphp
+@php
+    $g = $groupe;
+    // Formateurs : comptes actifs au rôle « Formateur » (Utilisateurs) ; le groupe apparaît dans leur espace.
+    $formateurs = \App\Models\User::role(\App\Enums\RoleName::Formateur->value)->active()->orderBy('name')->get();
+@endphp
 <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ $modalId }}-title">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
@@ -26,7 +30,26 @@
                         <div class="col-12" data-show-when="mode:en_ligne"><label class="form-label fw-semibold" for="{{ $modalId }}-meet">Lien Google Meet <span class="text-danger">*</span></label><input class="form-control" id="{{ $modalId }}-meet" name="meet_url" maxlength="300" value="{{ $g?->meet_url }}" placeholder="meet.google.com/abc-defg-hij"><div class="form-text">Le même lien sert à toutes les séances du groupe (modifiable pour une séance).</div></div>
                         <div class="col-12" data-show-when="mode:presentiel"><label class="form-label fw-semibold" for="{{ $modalId }}-loc">Salle</label><input class="form-control" id="{{ $modalId }}-loc" name="location" maxlength="200" value="{{ $g?->location }}" placeholder="Salle 1"></div>
                         <div class="col-md-6"><label class="form-label fw-semibold" for="{{ $modalId }}-niveau">Niveau</label><select class="form-select" id="{{ $modalId }}-niveau" name="niveau_id"><option value="">Tous niveaux</option>@foreach ($niveaux as $niveau)<option value="{{ $niveau->id }}" @selected($g?->niveau_id === $niveau->id)>{{ $niveau->name }}</option>@endforeach</select></div>
-                        <div class="col-md-6"><label class="form-label fw-semibold" for="{{ $modalId }}-teacher">Formateur</label><input class="form-control" id="{{ $modalId }}-teacher" name="teacher" maxlength="120" value="{{ $g?->teacher }}"></div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="{{ $modalId }}-capacity">Places (capacité)</label>
+                            <input type="number" class="form-control" id="{{ $modalId }}-capacity" name="capacity" min="1" max="500" step="1" value="{{ $g?->capacity }}" placeholder="15">
+                            <div class="form-text">Vide : sans limite. Un groupe plein n'accepte plus d'apprenants.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="{{ $modalId }}-formateur">Formateur</label>
+                            @if ($formateurs->isNotEmpty())
+                                <select class="form-select" id="{{ $modalId }}-formateur" name="formateur_id">
+                                    <option value="">— À choisir —</option>
+                                    @foreach ($formateurs as $formateur)
+                                        <option value="{{ $formateur->id }}" @selected($g?->formateur_id === $formateur->id)>{{ $formateur->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Il retrouve ce groupe dans son espace (séances, supports, discussion).</div>
+                            @else
+                                <input class="form-control" id="{{ $modalId }}-teacher" name="teacher" maxlength="120" value="{{ $g?->teacher }}">
+                                <div class="form-text">Pour lui donner son espace : Utilisateurs → nouveau compte, rôle « Formateur ».</div>
+                            @endif
+                        </div>
                         <div class="col-12">
                             <details @if ($g?->schedule || $g?->notes) open @endif>
                                 <summary class="small text-primary" style="cursor:pointer">Plus d'informations (horaire, dates, notes) — facultatif</summary>

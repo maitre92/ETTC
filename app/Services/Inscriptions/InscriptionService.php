@@ -2,7 +2,6 @@
 
 namespace App\Services\Inscriptions;
 
-use App\Enums\Billing;
 use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
 use App\Enums\PaymentChoice;
@@ -11,9 +10,11 @@ use App\Mail\InscriptionRecue;
 use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Paiement;
+use App\Models\Promotion;
 use App\Models\TestNiveau;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
+use App\Services\Formations\Tarification;
 use App\Services\Numbering\SequenceService;
 use App\Services\Paiements\PaiementService;
 use App\Support\PhoneNumber;
@@ -44,24 +45,17 @@ class InscriptionService
     ) {}
 
     /**
-     * Tarif applicable à une formule dans un mode, figé sur l'inscription.
+     * Tarif applicable à une formule dans un mode, figé sur l'inscription : frais de formation, promotion (automatique ou
+     * code promo), frais d'inscription (Tarification).
      *
-     * @return array{formule_name: string, duration_months: int, billing: Billing, unit_price: int, total_amount: int}
+     * @return array<string, mixed>
      */
-    public function quote(Formule $formule, FormationMode $mode): array
+    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true): array
     {
-        $price = $formule->{$mode->priceColumn()};
-        if (! $formule->is_published || $price === null) {
-            throw ValidationException::withMessages(['mode' => "La formule « {$formule->name} » n'est pas proposée ".mb_strtolower($mode->label()).'.']);
-        }
+        $quote = app(Tarification::class)->quote($formule, $mode, $code, $withFee);
+        unset($quote['promotion']);
 
-        return [
-            'formule_name' => $formule->name,
-            'duration_months' => $formule->duration_months,
-            'billing' => $formule->billing,
-            'unit_price' => (int) $price,
-            'total_amount' => (int) $formule->total($mode->priceColumn()),
-        ];
+        return $quote;
     }
 
     /**
@@ -75,7 +69,7 @@ class InscriptionService
         $payments = app(PaiementService::class);
         $declared = ($data['payment_choice'] ?? null) === PaymentChoice::EnLigne->value && filled($data['pay_reference'] ?? null);
         if ($declared) {
-            $quote = $this->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']));
+            $quote = $this->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']), $data['promo_code'] ?? null);
             $payments->assertDeclarable((string) $data['pay_method'], (string) $data['pay_reference'], (int) $data['pay_amount'], $quote['total_amount']);
         }
 
@@ -90,6 +84,7 @@ class InscriptionService
                 'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
                 'client_id' => $request->user('client')?->id,
             ]);
+            $this->countPromotion($inscription);
             $this->logger->log('inscriptions.submitted', 'inscriptions', "Inscription reçue — {$inscription->number} ({$inscription->name}) : {$inscription->summary()}", $inscription);
             if ($declared) {
                 $paiement = $payments->declareAtInscription($inscription, [
@@ -127,6 +122,7 @@ class InscriptionService
                 'test_niveau_id' => $test?->id,
                 'client_id' => $data['client_id'] ?? $test?->client_id,
             ]);
+            $this->countPromotion($inscription);
             $this->logger->log('inscriptions.created', 'inscriptions', "Inscription enregistrée au centre — {$inscription->number} ({$inscription->name}) : {$inscription->summary()}", $inscription, actor: $actor);
 
             return $inscription;
@@ -188,7 +184,7 @@ class InscriptionService
         $formule = Formule::findOrFail($data['formule_id']);
         $mode = FormationMode::from($data['mode']);
 
-        return $this->quote($formule, $mode) + [
+        return $this->quote($formule, $mode, $data['promo_code'] ?? null, ! ($data['waive_fee'] ?? false)) + [
             'formule_id' => $formule->id,
             'mode' => $mode,
             'niveau_id' => $data['niveau_id'] ?? null,
@@ -202,6 +198,14 @@ class InscriptionService
             'city' => $data['city'] ?? null,
             'message' => $data['message'] ?? null,
         ];
+    }
+
+    /** Une utilisation de plus pour la promotion appliquée (limite « nombre d'inscriptions »). */
+    private function countPromotion(Inscription $inscription): void
+    {
+        if ($inscription->promotion_id) {
+            Promotion::whereKey($inscription->promotion_id)->increment('uses_count');
+        }
     }
 
     /** @param  array<string, mixed>  $extra */

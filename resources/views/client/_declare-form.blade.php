@@ -21,8 +21,9 @@
     @csrf
     <input type="hidden" name="inscription_id" value="{{ $inscription->id }}">
     <div class="col-md-6">@include('site.demandes._field', ['name' => 'payment_method', 'label' => 'Moyen utilisé', 'type' => 'select', 'required' => true, 'options' => collect($numbers)->mapWithKeys(fn ($n, $m) => [$m => PaymentMethod::from($m)->label()])->all(), 'value' => count($numbers) === 1 ? array_key_first($numbers) : null])</div>
-    <div class="col-md-6">
+    <div class="col-12">
         <label for="f-amount-{{ $inscription->id }}" class="form-label required">Montant envoyé (FCFA)</label>
+        @include('paiements._amount-chips', ['inscription' => $inscription, 'target' => 'f-amount-'.$inscription->id, 'payable' => $payable])
         <input type="number" class="form-control" id="f-amount-{{ $inscription->id }}" name="amount" min="1" max="{{ $payable }}" step="1" required value="{{ min($inscription->nextInstallment(), $payable) }}">
         <div class="form-text">Reste à payer : {{ $money($payable) }}</div>
     </div>

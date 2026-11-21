@@ -27,6 +27,8 @@ Route::name('site.')->group(function () {
     // Inscription en ligne à une formation (cahier §3.5) : assistant en étapes, tarif figé à l'inscription.
     Route::get('/inscription', [InscriptionController::class, 'create'])->name('inscription.create');
     Route::post('/inscription', [InscriptionController::class, 'store'])->middleware('throttle:demandes')->name('inscription.store');
+    // Tarif détaillé en direct (frais de formation, promotion, code promo, frais d'inscription) : assistant et accueil.
+    Route::get('/inscription/tarif', [InscriptionController::class, 'tarif'])->middleware('throttle:120,1')->name('inscription.tarif');
     // Test de niveau (cahier §3.4) : présentation et demande / réservation (anti-spam, débit limité).
     Route::get('/test-de-niveau', [TestNiveauController::class, 'show'])->name('tests.show');
     Route::post('/test-de-niveau', [TestNiveauController::class, 'store'])->middleware('throttle:demandes')->name('tests.store');

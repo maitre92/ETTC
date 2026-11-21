@@ -24,7 +24,12 @@
         @if ($withoutGroup > 0)
             <div class="alert alert-info d-flex flex-wrap align-items-center gap-2">
                 <i class='bx bx-bulb fs-4'></i>
-                <span class="flex-grow-1"><strong>{{ $withoutGroup }} apprenant(s)</strong> inscrit(s) n'ont pas encore de groupe. Ouvrez un groupe : ils vous y seront proposés automatiquement.</span>
+                <span class="flex-grow-1"><strong>{{ $withoutGroup }} apprenant(s)</strong> inscrit(s) n'ont pas encore de groupe. Répartissez-les en un clic, ou ouvrez un groupe : ils vous y seront proposés.</span>
+                @can('create', \App\Models\Groupe::class)
+                    @if ($plan['total'] > 0)
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#repartir"><i class='bx bx-shuffle me-1'></i>Répartir automatiquement</button>
+                    @endif
+                @endcan
             </div>
         @endif
 
@@ -64,8 +69,8 @@
                                             <h6 class="mb-1">{{ $groupe->name }}</h6>
                                             <span class="badge {{ $groupe->mode === \App\Enums\FormationMode::EnLigne ? 'bg-primary-subtle' : 'bg-success-subtle' }} align-self-start">{{ $groupe->mode->label() }}</span>
                                         </div>
-                                        <p class="small text-muted mb-2">{{ $groupe->niveau?->name ?? 'Tous niveaux' }}@if ($groupe->teacher) · {{ $groupe->teacher }}@endif</p>
-                                        <p class="mb-1"><i class='bx bx-user'></i> {{ $groupe->members_count }} apprenant(s)</p>
+                                        <p class="small text-muted mb-2">{{ $groupe->niveau?->name ?? 'Tous niveaux' }}@if ($groupe->teacherName()) · {{ $groupe->teacherName() }}@else · <span class="text-warning">formateur à choisir</span>@endif</p>
+                                        <p class="mb-1"><i class='bx bx-user'></i> {{ $groupe->members_count }}{{ $groupe->capacity ? ' / '.$groupe->capacity : '' }} apprenant(s)@if ($groupe->capacity && $groupe->members_count >= $groupe->capacity) <span class="badge bg-danger-subtle">Complet</span>@endif</p>
                                         <p class="small mb-0 {{ $next ? '' : 'text-danger' }}"><i class='bx bx-calendar'></i> {{ $next ? 'Prochaine séance : '.$next->when() : 'Aucune séance programmée' }}</p>
                                         @unless ($groupe->is_active)<span class="badge bg-secondary-subtle mt-2">Inactif</span>@endunless
                                     </div>
@@ -103,6 +108,7 @@
 
         @can('create', \App\Models\Groupe::class)
             @include('groupes._annonce-modal', ['modalId' => 'annonce', 'groupes' => $groupes->where('is_active', true), 'groupe' => null])
+            @include('groupes._distribute-modal', ['plan' => $plan])
             @include('groupes._form-modal', ['groupe' => null, 'modalId' => 'create-groupe', 'action' => route('groupes.store'), 'method' => 'POST', 'niveaux' => $niveaux])
         @endcan
     </div>

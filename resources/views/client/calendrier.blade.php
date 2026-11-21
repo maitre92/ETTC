@@ -25,7 +25,7 @@
                 <div class="detail-panel mb-4 border-start border-4 border-warning">
                     <p class="small text-muted mb-1">Prochaine séance</p>
                     <h2 class="h4 mb-1">{{ ucfirst($next->when()) }}</h2>
-                    <p class="mb-3">{{ $next->groupe->name }}@if ($next->title) — {{ $next->title }}@endif @if ($next->groupe->teacher)· avec {{ $next->groupe->teacher }}@endif</p>
+                    <p class="mb-3">{{ $next->groupe->name }}@if ($next->title) — {{ $next->title }}@endif @if ($next->groupe->teacherName())· avec {{ $next->groupe->teacherName() }}@endif</p>
                     @if ($next->joinUrl())
                         @if ($next->isJoinable())
                             <a href="{{ $next->joinUrl() }}" class="btn btn-accent btn-lg" target="_blank" rel="noopener"><i class='bx bx-video' aria-hidden="true"></i> Rejoindre la séance</a>
@@ -74,7 +74,7 @@
 
             @foreach ($groupes->filter(fn ($g) => $g->notes || $g->schedule) as $groupe)
                 <div class="detail-panel mb-4">
-                    <h2 class="h6">{{ $groupe->name }} — informations pratiques</h2>
+                    <h2 class="h6">{{ $groupe->name }} — informations pratiques <a href="{{ route('client.groupes.show', $groupe) }}" class="small fw-normal ms-2">Discussion du groupe</a></h2>
                     @if ($groupe->schedule)<p class="mb-1"><i class='bx bx-time' aria-hidden="true"></i> {{ $groupe->schedule }}</p>@endif
                     @if ($groupe->notes)<p class="mb-0">{!! nl2br(e($groupe->notes)) !!}</p>@endif
                 </div>

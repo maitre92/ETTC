@@ -113,6 +113,7 @@ class PropositionService
                 'billing' => Billing::Unique,
                 'unit_price' => $demande->proposal_amount,
                 'total_amount' => $demande->proposal_amount,
+                'formation_amount' => $demande->proposal_amount,
                 'mode' => $mode,
                 'payment_choice' => $mode === FormationMode::EnLigne ? PaymentChoice::EnLigne : PaymentChoice::AuCentre,
                 'message' => Str::limit((string) $demande->proposal_text, 2000, ''),

@@ -164,6 +164,15 @@ Les noms des rôles `gestionnaire` et `commercial` sont hérités ; leur libell�
 - **Flèche « Retour »** partout : administration (`partials/back-button`, posée devant le fil d'Ariane, sauf tableau de bord), site (`site.partials.page-hero`) et espace apprenant (`client._layout`, sauf son accueil) ; clic = page précédente si l'on vient du site, sinon la page parente.
 - **Témoignages** : page reliée au pied de page et à l'accueil (vidéos sans texte comprises, invitation à partager s'il n'y en a pas) ; **aperçu muet en boucle** (8 premières secondes) de la première vidéo hébergée sur `/temoignages`, seulement à l'écran, jamais avec « moins d'animations » ni l'économie de données (`[data-video-preview]`, `site.js`).
 
+**Fait — frais d'inscription, promotions, groupes, espace formateur, reliquat** (2026-11-21, demande du centre) :
+- **Frais d'inscription** (5 000 F par défaut, réglage `formation.registration_fee`, carte sous Formules et tarifs, audité `formations.fee_updated` ; 0 = aucun) : **figés** sur l'inscription (`inscriptions.registration_fee`), visibles sur les cartes des formules, dans l'assistant, la fenêtre « Inscrire au centre » (case « Sans frais d'inscription »), les e-mails, la fiche et « Mes paiements ». `total_amount` reste le total à payer = `formation_amount` − `discount_amount` + `registration_fee`. Payés en premier : `Inscription::nextInstallment()` = frais restants + une échéance (`installment()` = formation réduite ÷ durée). **Hors commission** (`CommissionCalculator` retire la part des frais encore due).
+- **Promotions** (table `promotions`, onglet Formations → Promotions, `PromotionPolicy` = permissions `formations.*`) : pourcentage ou montant sur le total de la formation, formule et mode facultatifs, période, nombre d'utilisations ; **sans code = automatique**, avec code = saisi à l'inscription (site et accueil). Non cumulables : la meilleure l'emporte. Calcul unique `App\Services\Formations\Tarification` ; tarif détaillé en direct par `GET /inscription/tarif` (`site.inscription.tarif`, assistant et fenêtre de l'accueil) ; réduction figée (`discount_amount`, `promotion_id`, `promo_code`, `uses_count`).
+- **Groupes** : `groupes.capacity` (groupe plein = refus d'y ajouter) et `formateur_id` (compte au rôle Formateur ; `teacherName()`). **« Répartir automatiquement »** (Séances et groupes) : apprenants validés / confirmés sans groupe, par niveau et mode, d'abord dans les groupes qui ont de la place, puis dans de nouveaux groupes équilibrés (« Débutant — En ligne A », B…) ; sans niveau = non répartis (`SeanceService::distributionPlan()` / `distribute()`).
+- **Rôle `formateur`** (niveau 30, créé par l'administrateur) et manifeste `formateurs` (`space`) : **espace formateur** `/admin/mon-espace-formateur` (`FormateurController`, ses groupes seulement, 404 sinon ; l'accueil `/admin` l'y redirige) : séances du jour (Meet), ses groupes, apprenants (appel, WhatsApp), ajout / annulation de séance, supports, discussion. Pastille du menu et cloche : messages non lus.
+- **Discussion du groupe** (table `groupe_messages`, `DiscussionService`, partiel `groupes._discussion`) : le formateur (ou l'équipe, fiche du groupe) écrit, avec « Prévenir par e-mail » (`MessageGroupe`, variable `$groupeMessage`) ; l'apprenant répond depuis **Mes groupes** (`/espace-client/groupes`, `Client\GroupeController`). « Non lu » : dernier message vu en cache (`GroupeMessage::markSeen()`, entier).
+- **Reliquat facile** : bandeau « À payer maintenant » (tableau de bord et Mes paiements, bouton « Payer »), boutons **« Prochaine échéance » / « Tout le reste »** qui remplissent le montant (`paiements._amount-chips`, `data-fill-amount` dans `ettc.js` et `crud-ajax.js`, aussi à l'encaissement au centre), bouton « Payer la suite en ligne » dans l'e-mail du reçu, lien direct vers Mes paiements dans le rappel WhatsApp.
+- À VALIDER AVEC LE CENTRE : frais d'inscription hors commission ; e-mail au formateur (les comptes de l'équipe n'ont pas d'e-mail : il voit ses messages dans son espace). Après déploiement : `php artisan migrate --force && php artisan permissions:sync`.
+
 **État au 2026-11-20** : les phases 0 à 8 sont faites et tout le cahier est couvert (formations, tests, inscriptions, paiements et reçus, séances, services, finances et commission, annonces, espace apprenant). 352 tests verts, Pint propre ; contrôle complet dans Chrome (25 pages du site, 8 de l'espace apprenant, 25 de l'administration, en 1366 px et 390 px) : aucune erreur, aucun débordement.
 
 **Reste à faire avec le centre** (phases 9 et 10) :
@@ -241,9 +250,10 @@ Tables à concevoir (PROPOSITION TECHNIQUE — À VALIDER), dans l'ordre du plan
 | Rôle | Niveau | Gère les comptes |
 |---|---|---|
 | `superadmin` | 100 | tous |
-| `administrateur` | 80 | `gestionnaire`, `commercial` |
+| `administrateur` | 80 | `gestionnaire`, `commercial`, `formateur` |
 | `gestionnaire` | 50 | aucun |
 | `commercial` (libellé « Secrétaire ») | 60 | aucun |
+| `formateur` | 30 | aucun (son espace seulement) |
 
 Source unique : `config/role_hierarchy.php` et `App\Enums\RoleName`.
 

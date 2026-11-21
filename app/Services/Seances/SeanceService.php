@@ -36,6 +36,11 @@ class SeanceService
     /** @param  array<string, mixed>  $data */
     public function saveGroupe(?Groupe $groupe, array $data, User $actor): Groupe
     {
+        // Formateur choisi parmi les comptes : son nom est repris (affichage, e-mails).
+        if (! empty($data['formateur_id'])) {
+            $data['teacher'] = User::find($data['formateur_id'])?->name ?? ($data['teacher'] ?? null);
+        }
+
         return DB::transaction(function () use ($groupe, $data) {
             $groupe ??= new Groupe;
             $renamed = $groupe->exists && $groupe->name !== $data['name'];
@@ -67,6 +72,12 @@ class SeanceService
     {
         return DB::transaction(function () use ($groupe, $inscriptionIds, $actor) {
             $inscriptions = Inscription::whereIn('id', $inscriptionIds)->where('status', '!=', 'annulee')->get();
+            $left = $groupe->placesLeft();
+            if ($left !== null && $inscriptions->count() > $left) {
+                throw ValidationException::withMessages(['inscriptions' => $left === 0
+                    ? "Le groupe {$groupe->name} est plein ({$groupe->capacity} places) : augmentez sa capacité ou utilisez « Répartir automatiquement »."
+                    : "Il ne reste que {$left} place(s) dans le groupe {$groupe->name} : cochez moins d'apprenants ou augmentez sa capacité."]);
+            }
             foreach ($inscriptions as $inscription) {
                 Inscription::withoutActivityLog(fn () => $inscription->update(['groupe_id' => $groupe->id, 'session' => $groupe->name]));
             }
@@ -84,6 +95,91 @@ class SeanceService
         DB::transaction(function () use ($groupe, $inscription, $actor) {
             Inscription::withoutActivityLog(fn () => $inscription->update(['groupe_id' => null, 'session' => null]));
             $this->logger->log('seances.member_removed', 'seances', "{$inscription->name} retiré(e) du groupe {$groupe->name}", $groupe, actor: $actor);
+        });
+    }
+
+    /** Dossiers à répartir : confirmés ou validés, sans groupe, niveau connu. */
+    private function unassigned(?FormationMode $mode)
+    {
+        return Inscription::with('niveau')->whereNull('groupe_id')->whereIn('status', ['validee', 'en_cours'])
+            ->when($mode, fn ($q) => $q->where('mode', $mode->value))->orderBy('created_at')->get();
+    }
+
+    /**
+     * Répartition automatique prévue (sans rien enregistrer) : par niveau et par mode, d'abord dans les groupes actifs
+     * qui ont encore de la place, puis dans de nouveaux groupes équilibrés de `capacity` apprenants au plus.
+     *
+     * @return array{buckets: list<array{label: string, count: int, existing: list<array{groupe: Groupe, take: int}>, new: list<int>}>, waiting_test: int, total: int}
+     */
+    public function distributionPlan(int $capacity, ?FormationMode $mode = null): array
+    {
+        $capacity = max(2, $capacity);
+        $all = $this->unassigned($mode);
+        $buckets = [];
+        foreach ($all->whereNotNull('niveau_id')->groupBy(fn (Inscription $i) => $i->mode->value.'|'.$i->niveau_id) as $key => $items) {
+            [$modeValue, $niveauId] = explode('|', $key);
+            $count = $items->count();
+            $existing = [];
+            $groupes = Groupe::active()->where('mode', $modeValue)->where('niveau_id', (int) $niveauId)->withCount('members')->orderBy('name')->get();
+            foreach ($groupes as $groupe) {
+                $room = max(0, ($groupe->capacity ?: $capacity) - $groupe->members_count);
+                $take = min($room, $count);
+                if ($take > 0) {
+                    $existing[] = ['groupe' => $groupe, 'take' => $take];
+                    $count -= $take;
+                }
+            }
+            $new = [];
+            if ($count > 0) {
+                $n = (int) ceil($count / $capacity);
+                $base = intdiv($count, $n);
+                for ($k = 0; $k < $n; $k++) {
+                    $new[] = $base + ($k < $count % $n ? 1 : 0);
+                }
+            }
+            $buckets[] = [
+                'label' => $items->first()->niveau?->name.' — '.FormationMode::from($modeValue)->label(),
+                'mode' => $modeValue, 'niveau_id' => (int) $niveauId, 'count' => $items->count(), 'existing' => $existing, 'new' => $new,
+                'ids' => $items->pluck('id')->all(),
+            ];
+        }
+
+        return ['buckets' => $buckets, 'waiting_test' => $all->whereNull('niveau_id')->count(), 'total' => $all->whereNotNull('niveau_id')->count()];
+    }
+
+    /**
+     * Applique la répartition : remplit les groupes existants, crée les nouveaux (« Débutant — En ligne B »), même
+     * capacité. Les groupes créés reprennent le lien Meet et le formateur à renseigner ensuite.
+     *
+     * @return array{placed: int, created: list<Groupe>}
+     */
+    public function distribute(int $capacity, ?FormationMode $mode, User $actor): array
+    {
+        $plan = $this->distributionPlan($capacity, $mode);
+        $capacity = max(2, $capacity);
+
+        return DB::transaction(function () use ($plan, $capacity, $actor) {
+            $placed = 0;
+            $created = [];
+            foreach ($plan['buckets'] as $bucket) {
+                $ids = $bucket['ids'];
+                foreach ($bucket['existing'] as ['groupe' => $groupe, 'take' => $take]) {
+                    $placed += $this->addMembers($groupe, array_splice($ids, 0, $take), $actor);
+                }
+                $base = $bucket['label'];
+                $taken = Groupe::withTrashed()->where('name', 'like', $base.'%')->count();
+                foreach ($bucket['new'] as $k => $size) {
+                    $groupe = $this->saveGroupe(null, [
+                        'name' => $base.' '.(($taken + $k) < 26 ? chr(65 + $taken + $k) : (string) ($taken + $k + 1)), 'niveau_id' => $bucket['niveau_id'], 'mode' => $bucket['mode'],
+                        'capacity' => $capacity, 'is_active' => true,
+                    ], $actor);
+                    $this->logger->log('seances.group_created', 'seances', "Groupe créé par la répartition automatique : {$groupe->name}", $groupe, actor: $actor);
+                    $placed += $this->addMembers($groupe, array_splice($ids, 0, $size), $actor);
+                    $created[] = $groupe;
+                }
+            }
+
+            return ['placed' => $placed, 'created' => $created];
         });
     }
 

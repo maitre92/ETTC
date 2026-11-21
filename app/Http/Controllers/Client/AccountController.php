@@ -38,6 +38,8 @@ class AccountController extends Controller
                 'documents' => $client->documents()->count(),
             ],
             'extras' => app(ClientAreaSections::class)->for($client),
+            // Reliquat : ce qui reste à payer, en tête du tableau de bord, avec le bouton « Payer ».
+            'dues' => Inscription::forClient($client)->unpaid()->get()->filter(fn ($i) => $i->payableNow() > 0)->values(),
             'seo' => Seo::make('Mon espace client')->noIndex(),
         ]);
     }

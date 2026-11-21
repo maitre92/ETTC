@@ -10,8 +10,9 @@
             <div class="alert alert-warning small py-2 mt-2 mb-0"><i class='bx bx-info-circle'></i> {{ \App\Models\Formule::money($inscription->pendingAmount()) }} déjà payé en ligne par l'apprenant, en cours de vérification : ne l'encaissez pas une seconde fois. Seul le reliquat est proposé.</div>
         @endif
     </div>
-    <div class="col-sm-6">
+    <div class="col-12">
         <label class="form-label fw-semibold" for="{{ $formId }}-amount">Montant reçu (FCFA)</label>
+        @include('paiements._amount-chips', ['inscription' => $inscription, 'target' => $formId.'-amount', 'payable' => $inscription->payableNow()])
         <input class="form-control form-control-lg {{ $field('amount') }}" id="{{ $formId }}-amount" name="amount" type="number" min="1" max="{{ $inscription->payableNow() }}" step="1" required value="{{ old('amount', $inscription->nextInstallment()) }}">
         @error('amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>

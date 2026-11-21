@@ -4,6 +4,9 @@
         <a class="nav-link {{ request()->routeIs('formations.formules.*') ? 'active' : '' }}" href="{{ route('formations.formules.index') }}"><i class='bx bx-purchase-tag me-1'></i>Formules et tarifs</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link {{ request()->routeIs('formations.promotions.*') ? 'active' : '' }}" href="{{ route('formations.promotions.index') }}"><i class='bx bxs-offer me-1'></i>Promotions</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link {{ request()->routeIs('formations.niveaux.*') ? 'active' : '' }}" href="{{ route('formations.niveaux.index') }}"><i class='bx bx-book-open me-1'></i>Niveaux</a>
     </li>
     @if (Route::has('site.formations.index'))

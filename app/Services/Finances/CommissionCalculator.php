@@ -7,7 +7,7 @@ use App\Support\SiteSettings;
 
 /**
  * Commission du développeur (cahier §8) : un pourcentage (20 % par défaut, réglable) des FRAIS DE FORMATION
- * effectivement encaissés ; jamais sur le test de niveau. Les formations personnalisées n'y entrent que si le centre
+ * effectivement encaissés ; jamais sur le test de niveau ni sur les frais d'inscription (payés en premier). Les formations personnalisées n'y entrent que si le centre
  * l'a convenu (réglage, désactivé par défaut). Calculée à la confirmation du paiement et figée sur lui.
  */
 class CommissionCalculator
@@ -40,7 +40,9 @@ class CommissionCalculator
             return ['commission_rate' => null, 'commission_amount' => 0];
         }
         $rate = $this->rate();
+        // Frais d'inscription : payés en premier, hors commission (frais de formation seulement, cahier §8).
+        $feePart = min($amount, max(0, $inscription->registration_fee - $inscription->amount_paid));
 
-        return ['commission_rate' => $rate, 'commission_amount' => (int) round($amount * $rate / 100)];
+        return ['commission_rate' => $rate, 'commission_amount' => (int) round(($amount - $feePart) * $rate / 100)];
     }
 }

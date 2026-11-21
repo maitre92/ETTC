@@ -3,7 +3,8 @@
  *  - téléphone tapé → recherche de la personne déjà connue (compte, test, inscription) : fiche remplie toute seule ;
  *  - total de la formation affiché en direct (formule × mode) ;
  *  - paiement déduit du mode : présentiel → au centre (paiement immédiat coché), en ligne → mobile money ;
- *  - montant proposé = une mensualité ; libellé du bouton adapté (« Inscrire et encaisser » / « Inscrire »).
+ *  - total détaillé par le serveur (promotion, code promo, frais d'inscription) ; montant proposé = le premier
+ *    paiement (frais d'inscription + premier mois) ; libellé du bouton adapté (« Inscrire et encaisser » / « Inscrire »).
  * Délégation sur document : les fenêtres sont déplacées dans <body> par crud-ajax.js.
  */
 (function () {
@@ -26,6 +27,41 @@
         return { unit: unit, months: months, monthly: monthly, total: monthly ? unit * months : unit, online: mode.value === 'en_ligne' };
     }
 
+    function esc(text) { var d = document.createElement('div'); d.textContent = text == null ? '' : String(text); return d.innerHTML; }
+
+    // Tarif détaillé calculé par le serveur (promotion, code promo, frais d'inscription) : affichage et montant du
+    // premier paiement. Calcul local en attendant la réponse.
+    function fetchTarif(form) {
+        var url = form.getAttribute('data-tarif-url');
+        var select = form.querySelector('[name="formule_id"]');
+        var mode = checked(form, 'mode');
+        if (!url || !select || !mode) { return; }
+        var promo = form.querySelector('[data-promo-input]');
+        var waive = form.querySelector('[data-waive-fee]');
+        var params = 'formule_id=' + encodeURIComponent(select.value) + '&mode=' + encodeURIComponent(mode.value)
+            + '&promo_code=' + encodeURIComponent(promo ? promo.value : '') + (waive && waive.checked ? '&sans_frais=1' : '');
+        fetch(url + '?' + params, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                var box = form.querySelector('[data-total]');
+                if (!data || !data.ok || !box) { return; }
+                form._tarif = data;
+                box.classList.remove('alert-warning');
+                box.innerHTML = '<table class="w-100 small">' + data.lines.map(function (l) {
+                    var cls = l[2] === 'total' ? 'fw-bold fs-6 border-top' : (l[2] === 'promo' ? 'text-success' : '');
+                    return '<tr class="' + cls + '"><td>' + esc(l[0]) + '</td><td class="text-end text-nowrap">' + esc(l[1]) + '</td></tr>';
+                }).join('') + '</table><div class="mt-1">Premier paiement : <strong>' + esc(data.first_label) + '</strong></div>'
+                    + (data.code_error ? '<div class="text-danger small mt-1"><i class="bx bx-error-circle"></i> ' + esc(data.code_error) + '</div>' : '')
+                    + (data.code_ok ? '<div class="text-success small mt-1"><i class="bx bx-check-circle"></i> Code promo appliqué.</div>' : '');
+                var amount = form.querySelector('[data-pay-amount]');
+                if (amount) {
+                    amount.max = data.total;
+                    if (!amount.dataset.touched) { amount.value = data.first; }
+                }
+            })
+            .catch(function () {});
+    }
+
     function refresh(form, modeChanged) {
         var q = quote(form);
         var box = form.querySelector('[data-total]');
@@ -36,6 +72,7 @@
                 : 'Total : <strong class="fs-5">' + money(q.total) + '</strong>' + (q.monthly ? ' <span class="text-muted">(' + money(q.unit) + ' par mois × ' + q.months + ' mois)</span>' : '');
         }
         if (!q || q.missing) { return; }
+        fetchTarif(form);
 
         var choice = form.querySelector('input[name="payment_choice"]');
         if (choice) { choice.value = q.online ? 'en_ligne' : 'au_centre'; }
@@ -101,6 +138,10 @@
             timers.set(form, setTimeout(function () { lookup(form, event.target); }, 450));
         }
         if (event.target.matches('[data-pay-amount]')) { event.target.dataset.touched = '1'; }
+        if (event.target.matches('[data-promo-input]')) {
+            clearTimeout(timers.get(event.target));
+            timers.set(event.target, setTimeout(function () { fetchTarif(form); }, 500));
+        }
     });
     document.addEventListener('change', function (event) {
         var form = event.target.closest('form[data-inscription-form]');

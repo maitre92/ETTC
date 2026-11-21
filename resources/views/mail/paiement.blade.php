@@ -6,7 +6,7 @@
         ['Apprenant', $inscription->name],
         ['Inscription', $inscription->number.' — '.$inscription->formule_name.', '.mb_strtolower($inscription->mode->label())],
         ['Niveau', $inscription->niveau?->name ?? 'À déterminer par le test de niveau (gratuit)'],
-        ['Total de la formation', \App\Models\Formule::money($inscription->total_amount)],
+        ['Total à payer'.($inscription->registration_fee > 0 ? ' (frais d\'inscription compris)' : ''), \App\Models\Formule::money($inscription->total_amount)],
         ['Nature', $paiement->nature->label()],
         ['Montant', $paiement->money()],
         ['Moyen', $paiement->method->label()],
@@ -43,6 +43,11 @@
             @if ($kind === 'equipe')
                 <p style="margin:24px 0 0"><a href="{{ route('paiements.show', $paiement) }}" style="display:inline-block;background:#f96809;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Vérifier le paiement</a></p>
             @else
+                @if ($inscription->balance() > 0)
+                    {{-- Reliquat : un bouton pour payer la suite, sans chercher où. --}}
+                    <p style="margin:24px 0 8px">Prochaine échéance : <strong>{{ \App\Models\Formule::money($inscription->nextInstallment()) }}</strong> (reste {{ \App\Models\Formule::money($inscription->balance()) }}). Payez-la au centre ou en ligne par mobile money, quand vous voulez :</p>
+                    <p style="margin:0"><a href="{{ route('client.paiements') }}#inscription-{{ $inscription->id }}" style="display:inline-block;background:#f96809;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Payer la suite en ligne</a></p>
+                @endif
                 <p style="margin:24px 0 0;font-size:12px;color:#66748a">Reçu délivré par {{ $site->get('company.name') }}. Conservez-le : il fait foi de votre paiement.</p>
             @endif
         </td></tr>

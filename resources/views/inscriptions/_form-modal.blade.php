@@ -7,7 +7,7 @@
 <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ $modalId }}-title">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
-            <form method="POST" action="{{ $action }}" data-crud-form data-no-guard data-inscription-form data-lookup="{{ $test ? '' : route('inscriptions.lookup') }}">
+            <form method="POST" action="{{ $action }}" data-crud-form data-no-guard data-inscription-form data-tarif-url="{{ route('site.inscription.tarif') }}" data-lookup="{{ $test ? '' : route('inscriptions.lookup') }}">
                 @csrf
                 <input type="hidden" name="payment_choice" value="au_centre">
                 <div class="modal-header">
@@ -62,6 +62,18 @@
                                     <label class="btn btn-outline-primary" for="{{ $modalId }}-mode-{{ $mode->value }}">{{ $mode->label() }}</label>
                                 @endforeach
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="{{ $modalId }}-promo">Code promo <span class="text-muted small fw-normal">(facultatif)</span></label>
+                            <input class="form-control text-uppercase" id="{{ $modalId }}-promo" name="promo_code" maxlength="40" autocomplete="off" data-promo-input>
+                            <div class="form-text">Les promotions automatiques en cours s'appliquent toutes seules.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-md-4 pt-md-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="{{ $modalId }}-waive" name="waive_fee" value="1" data-waive-fee>
+                                <label class="form-check-label" for="{{ $modalId }}-waive">Sans frais d'inscription</label>
+                            </div>
+                            <div class="form-text">Ex. un ancien apprenant qui se réinscrit.</div>
                         </div>
                         <div class="col-12"><div class="alert alert-light border mb-0 py-2" data-total aria-live="polite"></div></div>
 

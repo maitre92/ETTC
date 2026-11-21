@@ -13,6 +13,8 @@ enum RoleName: string
     // Libellé « Secrétaire » (demande du centre, 2026-11-18) ; nom technique inchangé : `commercial`.
     case Commercial = 'commercial';
     case Gestionnaire = 'gestionnaire';
+    // Formateur (demande du centre, 2026-11-21) : son espace seulement — ses groupes, séances, supports, discussion.
+    case Formateur = 'formateur';
 
     public function label(): string
     {
@@ -21,6 +23,7 @@ enum RoleName: string
             self::Administrateur => 'Administrateur',
             self::Gestionnaire => 'Gestionnaire de contenu',
             self::Commercial => 'Secrétaire',
+            self::Formateur => 'Formateur',
         };
     }
 

@@ -455,3 +455,22 @@ body { color: #26304a; }
 .pay-now-method { background: #fff; border-radius: 12px; padding: .75rem; min-width: 150px; box-shadow: 0 4px 14px rgba(16, 24, 63, .08); }
 .pay-now-method img { display: block; margin: .4rem auto 0; object-fit: contain; }
 .pay-now-number { font-size: 1.1rem; font-weight: 700; }
+
+/* Tarif détaillé de l'assistant d'inscription (frais de formation, promotion, frais d'inscription, total). */
+.ettc-price-live:has(.ettc-price-lines) { display: block; }
+.ettc-price-lines { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.ettc-price-lines th { font-weight: 500; padding: .2rem 0; text-align: left; }
+.ettc-price-lines td { padding: .2rem 0 .2rem 1rem; text-align: right; white-space: nowrap; font-weight: 600; }
+.ettc-price-lines tr.promo th, .ettc-price-lines tr.promo td { color: #0f7a3d; }
+.ettc-price-lines tr.total th, .ettc-price-lines tr.total td { border-top: 1px solid rgba(0, 0, 0, .15); padding-top: .45rem; font-size: 1.1rem; font-weight: 700; color: var(--ettc-red); }
+.ettc-price-first { margin: .5rem 0 0; font-size: .92rem; }
+.ettc-promo-tag { display: inline-flex; align-items: center; gap: .25rem; margin-top: .35rem; padding: .15rem .5rem; border-radius: 999px; background: #e6f6ec; color: #0f7a3d; font-weight: 600; }
+
+/* Discussion du groupe dans l'espace apprenant : formateur à gauche (bleu pâle), mes messages à droite. */
+.client-thread { display: flex; flex-direction: column; gap: .6rem; max-height: 480px; overflow-y: auto; }
+.client-thread-item { max-width: 88%; padding: .55rem .8rem; border-radius: 12px; background: #f4f6fa; border: 1px solid #e6eaf2; align-self: flex-start; overflow-wrap: anywhere; }
+.client-thread-item.is-team { background: #e9f1ff; border-color: #cfe0ff; }
+.client-thread-item.is-mine { align-self: flex-end; background: #fff4e8; border-color: #fbd9b4; }
+
+/* Reliquat : « À payer maintenant », en évidence (tableau de bord, Mes paiements). */
+.pay-due { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .85rem 1rem; border-radius: 12px; background: #fff4e8; border: 1px solid #fbd9b4; }

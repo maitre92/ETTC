@@ -3,6 +3,10 @@
      (présélectionné dans l'inscription). --}}
 @php
     $prices = $formule->prices();
+    // Promotions automatiques en cours et frais d'inscription (Formules et tarifs), affichés sous les prix.
+    $tarification = app(\App\Services\Formations\Tarification::class);
+    $promos = $tarification->automaticDiscounts([$formule])[$formule->id] ?? [];
+    $fee = $tarification->registrationFee();
 @endphp
 <article class="ettc-formula">
     <h3><i class='bx bx-calendar' aria-hidden="true"></i> {{ $formule->name }}</h3>
@@ -31,6 +35,12 @@
         @if ($formule->billing === \App\Enums\Billing::Unique)
             <p class="ettc-price-note">(paiement unique)</p>
         @endif
+    @endif
+    @foreach ($promos as $promoMode => $promo)
+        <p class="ettc-promo-tag mb-1"><i class='bx bxs-offer' aria-hidden="true"></i> {{ $promo['label'] }} — {{ mb_strtolower(\App\Enums\FormationMode::from($promoMode)->label()) }}</p>
+    @endforeach
+    @if ($fee > 0)
+        <p class="ettc-price-note">+ {{ \App\Models\Formule::money($fee) }} de frais d'inscription (une seule fois)</p>
     @endif
     <a href="{{ route('site.inscription.create', array_filter(['formule' => $formule->slug, 'niveau' => isset($niveau) ? $niveau->slug : null])) }}" class="ettc-formula-cta">Choisir cette formule <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
 </article>

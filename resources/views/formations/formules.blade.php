@@ -34,4 +34,26 @@
         'statusLabels' => ['Publiée', 'Masquée'],
     ])
 
+    {{-- Frais d'inscription : payés une fois, avec le premier paiement, au centre comme en ligne. --}}
+    <div class="card mt-3">
+        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-id-card me-2'></i>FRAIS D'INSCRIPTION</h6></div>
+        <div class="card-body">
+            <p class="text-muted small">Ajoutés une seule fois à chaque nouvelle inscription (site et centre) et payés avec le premier mois. Mettez 0 pour ne pas en demander. Une inscription déjà faite garde ses frais.</p>
+            @can('formations.update')
+                <form method="POST" action="{{ route('formations.fee.update') }}" class="row g-2 align-items-end">
+                    @csrf
+                    @method('PUT')
+                    <div class="col-sm-5 col-md-4">
+                        <label for="registration_fee" class="form-label fw-semibold">Montant (FCFA)</label>
+                        <input type="number" min="0" step="1" class="form-control form-control-lg @error('registration_fee') is-invalid @enderror" id="registration_fee" name="registration_fee" value="{{ old('registration_fee', $fee) }}" required>
+                        @error('registration_fee')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-auto"><button type="submit" class="btn btn-primary btn-lg"><i class='bx bx-save me-1'></i>Enregistrer</button></div>
+                </form>
+            @else
+                <p class="fs-5 fw-bold mb-0">{{ \App\Models\Formule::money($fee) }}</p>
+            @endcan
+        </div>
+    </div>
+
 @endsection

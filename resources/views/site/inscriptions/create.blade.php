@@ -26,7 +26,7 @@
             @elseif ($formules->isEmpty())
                 <div class="form-success"><h2 class="h4">Inscriptions bientôt ouvertes</h2><p class="mb-0">Les formules seront publiées très prochainement. Contactez-nous pour en savoir plus.</p></div>
             @else
-                <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" enctype="multipart/form-data" data-ajax-form data-ettc-wizard novalidate>
+                <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" enctype="multipart/form-data" data-ajax-form data-ettc-wizard data-tarif-url="{{ route('site.inscription.tarif') }}" novalidate>
                     @csrf
                     <ol class="ettc-wizard-steps" aria-hidden="true">
                         @foreach ($steps as $stepLabel)
@@ -71,6 +71,9 @@
                                     @foreach ($formule->prices() as [$modeLabel, $amount])
                                         <small>{{ $modeLabel }} : <b>{{ \App\Models\Formule::money($amount) }}</b> {{ $formule->billing->suffix() }}</small>
                                     @endforeach
+                                    @foreach ($promos[$formule->id] ?? [] as $promoMode => $promo)
+                                        <small class="ettc-promo-tag"><i class='bx bxs-offer' aria-hidden="true"></i> {{ $promo['label'] }}{{ count($promos[$formule->id]) < 2 ? ' — '.mb_strtolower(\App\Enums\FormationMode::from($promoMode)->label()) : '' }}</small>
+                                    @endforeach
                                 </label>
                             @endforeach
                         </div>
@@ -84,7 +87,18 @@
                                 </label>
                             @endforeach
                         </div>
+                        @if ($fee > 0)
+                            <p class="small text-muted mt-3 mb-0"><i class='bx bx-info-circle' aria-hidden="true"></i> À ajouter une seule fois : <strong>{{ \App\Models\Formule::money($fee) }} de frais d'inscription</strong>, payés avec le premier mois, au centre comme en ligne.</p>
+                        @endif
                         <div class="ettc-price-live" data-price-live aria-live="polite" hidden></div>
+                        <div class="ettc-promo-code mt-3">
+                            <label for="f-promo_code" class="form-label mb-1">Vous avez un code promo ? <span class="text-muted small">(facultatif)</span></label>
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control text-uppercase @error('promo_code') is-invalid @enderror" id="f-promo_code" name="promo_code" maxlength="40" value="{{ old('promo_code') }}" autocomplete="off" placeholder="Ex. RENTREE2027" aria-describedby="f-promo_code-feedback" data-promo-input>
+                                <button type="button" class="ettc-btn ettc-btn-light" data-promo-apply>Appliquer</button>
+                            </div>
+                            <div id="f-promo_code-feedback" class="small mt-1" data-promo-feedback aria-live="polite">@error('promo_code')<span class="text-danger">{{ $message }}</span>@enderror</div>
+                        </div>
                     </fieldset>
 
                     {{-- 3. Informations personnelles --}}
@@ -119,7 +133,7 @@
                         @if (! empty($mobileMoney))
                             <div class="pay-now mt-3" data-online-pay @if (old('payment_choice') !== 'en_ligne') hidden @endif>
                                 <h3 class="h5">Payer en ligne par mobile money</h3>
-                                <p class="mb-2">Montant de la première échéance : <strong data-online-amount>—</strong>. Envoyez-le au numéro ou au QR du centre, puis indiquez ci-dessous la référence du SMS reçu — ou payez plus tard.</p>
+                                <p class="mb-2">Premier paiement : <strong data-online-amount>—</strong>. Envoyez-le au numéro ou au QR du centre, puis indiquez ci-dessous la référence du SMS reçu — ou payez plus tard.</p>
                                 <div class="pay-now-methods">
                                     @foreach ($mobileMoney as $method => $number)
                                         <div class="pay-now-method">

@@ -6,7 +6,7 @@
        paramètre), heading, icon, intro (facultatif), items, model (classe), routePrefix, idField
        (champ caché qui distingue les modales en cas d'erreur), deleteTitle, newLabel, labelOf (closure : libellé d'un
        élément), modalSize ('' ou 'modal-lg'), statusField (booléen de statut), statusLabels ([vrai, faux]),
-       fields : name, label, type (text|textarea|markdown|number|select|icon|switch), required, max, placeholder,
+       fields : name, label, type (text|textarea|markdown|number|date|select|icon|switch), required, max, placeholder,
                 options (select/icon : valeur => libellé), help, col (classe de colonne, défaut col-12), default
        columns : label, value (closure qui renvoie du HTML déjà échappé). --}}
 @php
@@ -145,6 +145,7 @@
                                     $id = $name.$sfx;
                                     $value = $failed ? old($name) : ($item ? $item->{$name} : ($field['default'] ?? null));
                                     $value = $value instanceof \BackedEnum ? $value->value : $value;
+                                    $value = $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value;
                                     $invalid = $failed && $errors->has($name);
                                 @endphp
                                 <div class="{{ $field['col'] ?? 'col-12' }}">
@@ -168,7 +169,7 @@
                                                 @endforeach
                                             </select>
                                         @else
-                                            <input type="{{ $type === 'number' ? 'number' : 'text' }}" class="form-control @if ($invalid) is-invalid @endif" id="{{ $id }}" name="{{ $name }}"
+                                            <input type="{{ in_array($type, ['number', 'date'], true) ? $type : 'text' }}" class="form-control @if ($invalid) is-invalid @endif" id="{{ $id }}" name="{{ $name }}"
                                                    value="{{ $value }}" @if ($type === 'number') min="0" step="1" @else maxlength="{{ $field['max'] ?? 255 }}" @endif placeholder="{{ $field['placeholder'] ?? '' }}" @required($field['required'] ?? false)>
                                         @endif
                                         @if ($invalid)<div class="{{ in_array($type, ['select', 'icon'], true) ? 'text-danger small mt-1' : 'invalid-feedback' }}">{{ $errors->first($name) }}</div>@endif

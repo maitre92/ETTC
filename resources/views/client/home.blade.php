@@ -2,6 +2,15 @@
 
 @section('content')
     @component('client._layout', ['title' => 'Bonjour '.\Illuminate\Support\Str::before($client->name, ' ')])
+        @foreach ($dues as $due)
+            <div class="pay-due mb-3">
+                <div>
+                    <div class="small text-muted">{{ $due->niveau?->name ?? 'Formation' }} — {{ $due->formule_name }} · reste {{ \App\Models\Formule::money($due->payableNow()) }}</div>
+                    À payer maintenant : <strong class="fs-5">{{ \App\Models\Formule::money($due->nextInstallment()) }}</strong>
+                </div>
+                <a href="{{ route('client.paiements') }}#inscription-{{ $due->id }}" class="btn btn-accent"><i class='bx bx-wallet' aria-hidden="true"></i> Payer</a>
+            </div>
+        @endforeach
         <div class="row g-3 mb-4">
             <div class="col-sm-6 col-xl-3"><a href="{{ route('client.demandes') }}" class="client-stat"><i class='bx bx-envelope' aria-hidden="true"></i><strong>{{ $counts['demandes'] }}</strong><span>Demandes · {{ $counts['ouvertes'] }} en cours</span></a></div>
             @foreach ($extras as $extra)

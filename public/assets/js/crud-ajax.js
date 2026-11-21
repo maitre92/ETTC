@@ -15,6 +15,21 @@
 
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // Montants en un clic (paiements/_amount-chips) : « Prochaine échéance », « Tout le reste » → champ du montant.
+    if (!window.__fillAmountReady) {
+        window.__fillAmountReady = true;
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('[data-fill-amount]');
+            if (!button) { return; }
+            var input = document.getElementById(button.getAttribute('data-target'));
+            if (!input) { return; }
+            input.value = button.getAttribute('data-fill-amount');
+            input.dataset.touched = '1';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+        });
+    }
+
     // Animation discrète de la liste actualisée et du formulaire en cours d'envoi (sans toucher au thème du socle).
     if (!document.getElementById('crud-ajax-style')) {
         var style = document.createElement('style');

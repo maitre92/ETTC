@@ -6,6 +6,7 @@ use App\Enums\FormationMode;
 use App\Enums\Gender;
 use App\Enums\PaymentChoice;
 use App\Enums\PaymentMethod;
+use App\Models\Promotion;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,6 +31,9 @@ class InscriptionRequest extends FormRequest
                 $value = trim(str_replace("\r\n", "\n", $value));
                 $data[$field] = $value === '' ? null : $value;
             }
+        }
+        if (is_string($this->input('promo_code'))) {
+            $data['promo_code'] = Promotion::normalizeCode($this->input('promo_code'));
         }
         $this->merge($data);
     }
@@ -70,6 +74,8 @@ class InscriptionRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:300'],
             'city' => ['nullable', 'string', 'max:100'],
             'message' => ['nullable', 'string', 'max:2000'],
+            // Code promo (facultatif) : vérifié au calcul du tarif (Tarification).
+            'promo_code' => ['nullable', 'string', 'max:40'],
         ];
     }
 

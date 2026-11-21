@@ -9,9 +9,13 @@
         ['Formule', $inscription->formule_name.' ('.$inscription->duration_months.' mois)'],
         ['Mode', $inscription->mode->label()],
         ['Tarif', $inscription->priceLabel()],
-        ['Total de la formation', \App\Models\Formule::money($inscription->total_amount)],
-        ['Paiement', $inscription->payment_choice->label()],
     ];
+    // Détail figé : formation, promotion, frais d'inscription, total ; puis le premier paiement attendu.
+    foreach ($inscription->priceLines() as [$lineLabel, $lineAmount]) {
+        $rows[] = [$lineLabel, ($lineAmount < 0 ? '-' : '').\App\Models\Formule::money(abs($lineAmount))];
+    }
+    $rows[] = ['Premier paiement', \App\Models\Formule::money($inscription->nextInstallment())];
+    $rows[] = ['Paiement', $inscription->payment_choice->label()];
 @endphp
 <!DOCTYPE html>
 <html lang="fr">

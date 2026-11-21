@@ -20,14 +20,16 @@ return [
         // Secrétaire (`commercial`) juste après l'administrateur (demande du centre, 2026-11-18).
         'commercial' => 60,
         'gestionnaire' => 50,
+        'formateur' => 30,
     ],
 
     // Plafond de rôle : rôles qu'un rôle peut créer et gérer.
     'manages' => [
-        'superadmin' => ['superadmin', 'administrateur', 'gestionnaire', 'commercial'],
-        'administrateur' => ['gestionnaire', 'commercial'],
+        'superadmin' => ['superadmin', 'administrateur', 'gestionnaire', 'commercial', 'formateur'],
+        'administrateur' => ['gestionnaire', 'commercial', 'formateur'],
         'gestionnaire' => [],
         'commercial' => [],
+        'formateur' => [],
     ],
 
 ];

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Client\AccountController;
 use App\Http\Controllers\Client\AuthController;
 use App\Http\Controllers\Client\CalendrierController;
+use App\Http\Controllers\Client\GroupeController;
 use App\Http\Controllers\Client\PaiementController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,9 @@ Route::prefix('espace-client')->name('client.')->group(function () {
         Route::get('/', [AccountController::class, 'home'])->name('home');
         Route::get('/calendrier', [CalendrierController::class, 'index'])->name('calendrier');
         Route::get('/calendrier/supports/{support}', [CalendrierController::class, 'download'])->name('calendrier.support');
+        Route::get('/groupes', [GroupeController::class, 'index'])->name('groupes');
+        Route::get('/groupes/{groupe}', [GroupeController::class, 'show'])->name('groupes.show');
+        Route::post('/groupes/{groupe}/messages', [GroupeController::class, 'storeMessage'])->middleware('throttle:30,1')->name('groupes.messages.store');
         Route::get('/inscriptions', [AccountController::class, 'inscriptions'])->name('inscriptions');
         Route::get('/paiements', [PaiementController::class, 'index'])->name('paiements');
         Route::post('/paiements', [PaiementController::class, 'store'])->middleware('throttle:demandes')->name('paiements.store');
