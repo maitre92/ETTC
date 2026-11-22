@@ -220,4 +220,27 @@ class PromotionsGroupesFormateursTest extends TestCase
         $this->assertStringContainsString('code=RENTREE', $url);
         $this->get($url)->assertOk()->assertSee('value="RENTREE"', false);
     }
+
+    public function test_an_upcoming_promotion_is_announced_as_coming_soon(): void
+    {
+        $formule = $this->formule();
+        Promotion::create(['name' => 'Fin d\'année', 'kind' => 'percent', 'value' => 50, 'formule_id' => $formule->id, 'starts_on' => now()->addDays(9), 'ends_on' => now()->addDays(39), 'max_uses' => 15, 'is_active' => true, 'show_on_site' => true]);
+        Promotion::create(['name' => 'Trop loin', 'kind' => 'percent', 'value' => 10, 'starts_on' => now()->addDays(90), 'is_active' => true, 'show_on_site' => true]);
+
+        $this->get('/')->assertOk()->assertSee('data-promo-ticker', false)->assertSee('Bientôt')->assertSee('Fin d&#039;année', false)
+            ->assertSee('15 places')->assertSee('Je réserve ma place')->assertDontSee('Trop loin');
+        $promo = Promotion::where('name', 'Fin d\'année')->first();
+
+        // Pas appliquée d'office avant son début ; appliquée (réservée) pour le visiteur venu de la promotion.
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne')->assertJsonPath('total', 105000);
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_id='.$promo->id)->assertJsonPath('total', 55000)
+            ->assertJsonPath('lines.1.0', fn ($label) => str_contains($label, 'réservée'));
+        $this->get($promo->signupUrl())->assertOk()->assertSee('name="promo_id" value="'.$promo->id.'"', false);
+
+        $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'promo_id' => $promo->id, 'name' => 'Awa', 'phone' => '75 22 91 25']))->assertOk();
+        $inscription = Inscription::firstOrFail();
+        $this->assertSame([50000, $promo->id, 55000], [$inscription->discount_amount, $inscription->promotion_id, $inscription->total_amount]);
+        $this->assertSame(1, $promo->fresh()->uses_count);
+        $this->get('/')->assertSee('14 places');
+    }
 }

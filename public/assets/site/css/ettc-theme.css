@@ -542,3 +542,5 @@ body { color: #26304a; }
     .promo-ticker-item[aria-hidden="true"] { display: none; }
     .promo-slide, .promo-slide-badge, .promo-progress.is-running { animation: none; }
 }
+.promo-ticker-soon { font-style: normal; font-weight: 800; text-transform: uppercase; font-size: .78rem; letter-spacing: .06em; background: rgba(0, 0, 0, .2); border-radius: 4px; padding: .05rem .4rem; }
+.promo-slide-link { color: #fff; text-decoration: underline; font-weight: 600; } .promo-slide-link:hover { color: var(--ettc-yellow); }

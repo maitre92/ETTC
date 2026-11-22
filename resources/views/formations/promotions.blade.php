@@ -38,7 +38,7 @@
             ['label' => 'PROMOTION', 'value' => fn ($p) => '<div class="d-flex align-items-center gap-2">'.($p->media ? '<img src="'.e($p->media->thumbUrl()).'" alt="" style="height:40px;border-radius:4px">' : '').'<div><div class="fw-semibold">'.e($p->name).'</div><div class="small text-muted">'.e($p->targetLabel()).($p->show_on_site ? '' : ' · <span class="text-warning">non affichée sur le site</span>').'</div></div></div>'],
             ['label' => 'RÉDUCTION', 'value' => fn ($p) => '<span class="badge bg-success-subtle fs-6">'.e($p->badge()).'</span>'],
             ['label' => 'CODE', 'value' => fn ($p) => $p->code ? '<code class="fs-6">'.e($p->code).'</code>' : '<span class="small text-muted">Automatique</span>'],
-            ['label' => 'UTILISÉE', 'value' => fn ($p) => e($p->uses_count).($p->max_uses ? ' / '.e($p->max_uses) : '').' fois'.($p->is_active && ! $p->isRunning() ? '<div class="small text-warning">Hors période ou épuisée</div>' : '')],
+            ['label' => 'UTILISÉE', 'value' => fn ($p) => e($p->uses_count).($p->max_uses ? ' / '.e($p->max_uses) : '').' fois'.($p->isUpcoming() ? '<div class="small text-info">À venir : annoncée « Bientôt » sur le site</div>' : ($p->is_active && ! $p->isRunning() ? '<div class="small text-warning">Terminée ou épuisée</div>' : ''))],
         ],
     ])
 @endsection

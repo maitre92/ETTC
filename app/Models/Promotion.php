@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\FormationMode;
 use App\Models\Concerns\LogsActivity;
+use App\Support\SiteSettings;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -50,19 +51,37 @@ class Promotion extends Model
     }
 
     /**
-     * Promotions à montrer sur le site : en cours et « Afficher sur le site », les plus fortes d'abord.
+     * Promotions à montrer sur le site (« Afficher sur le site ») : en cours, les plus fortes d'abord, puis celles qui
+     * commencent dans les 60 jours, annoncées « Bientôt ».
      *
      * @return Collection<int, self>
      */
     public static function forSite(): Collection
     {
-        return self::running()->where('show_on_site', true)->with(['formule', 'media'])->latest('id')->get()
-            ->sortByDesc(fn (self $p) => $p->kind === 'percent' ? $p->value * 1000 : $p->value)->values();
+        $strength = fn (self $p) => $p->kind === 'percent' ? $p->value * 1000 : $p->value;
+        $running = self::running()->where('show_on_site', true)->with(['formule', 'media'])->get()->sortByDesc($strength);
+        $upcoming = self::query()->where('is_active', true)->where('show_on_site', true)
+            ->whereDate('starts_on', '>', today())->whereDate('starts_on', '<=', today()->addDays(60))
+            ->where(fn (Builder $q) => $q->whereNull('max_uses')->orWhereColumn('uses_count', '<', 'max_uses'))
+            ->with(['formule', 'media'])->orderBy('starts_on')->get();
+
+        return $running->concat($upcoming)->values();
     }
 
-    /** « jusqu'au 31 janvier · plus que 5 jours », « dernier jour ! » ou null (sans date de fin). */
+    /** Annoncée mais pas encore commencée. */
+    public function isUpcoming(): bool
+    {
+        return $this->is_active && $this->starts_on !== null && $this->starts_on->gt(today());
+    }
+
+    /** « jusqu'au 31 janvier · plus que 5 jours », « dernier jour ! », « du 1er au 31 décembre » (à venir) ou null. */
     public function deadline(): ?string
     {
+        if ($this->isUpcoming()) {
+            $from = $this->starts_on->translatedFormat($this->starts_on->day === 1 ? 'j\e\r F' : 'j F');
+
+            return $this->ends_on ? 'Du '.$from.' au '.$this->ends_on->translatedFormat('j F') : 'À partir du '.$from;
+        }
         if (! $this->ends_on) {
             return null;
         }
@@ -75,6 +94,18 @@ class Promotion extends Model
         };
     }
 
+    /** Places restantes (nombre d'inscriptions limité), sinon null. */
+    public function placesLeft(): ?int
+    {
+        return $this->max_uses ? max(0, $this->max_uses - $this->uses_count) : null;
+    }
+
+    /** Annonce WhatsApp d'une promotion à venir : « prévenez-moi ». */
+    public function remindUrl(): ?string
+    {
+        return app(SiteSettings::class)->whatsappLink('Bonjour, je suis intéressé(e) par la promotion « '.$this->name.' » ('.$this->badge().'). Prévenez-moi dès qu\'elle commence, merci.');
+    }
+
     /** Lien « J'en profite » : l'inscription, formule et code promo déjà choisis. */
     public function signupUrl(): string
     {
@@ -82,6 +113,7 @@ class Promotion extends Model
             'formule' => $this->formule?->slug,
             'mode' => $this->mode?->value,
             'code' => $this->code,
+            'promo' => $this->code ? null : $this->id,
         ]));
     }
 
@@ -97,6 +129,19 @@ class Promotion extends Model
             ->where(fn (Builder $q) => $q->whereNull('starts_on')->orWhereDate('starts_on', '<=', today()))
             ->where(fn (Builder $q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', today()))
             ->where(fn (Builder $q) => $q->whereNull('max_uses')->orWhereColumn('uses_count', '<', 'max_uses'));
+    }
+
+    /**
+     * Réservable à l'inscription : en cours, ou annoncée sur le site et commençant dans les 60 jours (le visiteur qui
+     * vient de la promotion s'inscrit tout de suite, la réduction lui est garantie).
+     */
+    public function scopeBookable(Builder $query): Builder
+    {
+        return $query->where('is_active', true)
+            ->where(fn (Builder $q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', today()))
+            ->where(fn (Builder $q) => $q->whereNull('max_uses')->orWhereColumn('uses_count', '<', 'max_uses'))
+            ->where(fn (Builder $q) => $q->whereNull('starts_on')->orWhereDate('starts_on', '<=', today())
+                ->orWhere(fn (Builder $q) => $q->where('show_on_site', true)->whereDate('starts_on', '<=', today()->addDays(60))));
     }
 
     /** Valable pour cette formule et ce mode. */

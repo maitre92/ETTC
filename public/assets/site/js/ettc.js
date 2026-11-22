@@ -98,7 +98,8 @@
             var q = quote();
             if (!tarifUrl || !q || q.missing) { tarif = null; renderPrice(); return; }
             var params = 'formule_id=' + encodeURIComponent(q.formule.value) + '&mode=' + encodeURIComponent(q.mode.value)
-                + '&promo_code=' + encodeURIComponent(promoInput ? promoInput.value : '');
+                + '&promo_code=' + encodeURIComponent(promoInput ? promoInput.value : '')
+                + (form.querySelector('[data-promo-id]') ? '&promo_id=' + encodeURIComponent(form.querySelector('[data-promo-id]').value) : '');
             fetch(tarifUrl + '?' + params, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (data) {

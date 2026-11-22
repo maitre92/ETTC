@@ -38,13 +38,13 @@ class Tarification
     {
         $code = Promotion::normalizeCode($code);
 
-        return $code ? Promotion::running()->where('code', $code)->for($formule, $mode)->first() : null;
+        return $code ? Promotion::bookable()->where('code', $code)->for($formule, $mode)->first() : null;
     }
 
     /**
      * @return array{formule_name: string, duration_months: int, billing: Billing, unit_price: int, formation_amount: int, discount_amount: int, promotion_id: ?int, promo_code: ?string, registration_fee: int, total_amount: int, promotion: ?Promotion}
      */
-    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true): array
+    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true, ?int $promoId = null): array
     {
         $price = $formule->{$mode->priceColumn()};
         if (! $formule->is_published || $price === null) {
@@ -53,6 +53,11 @@ class Tarification
         $formation = (int) $formule->total($mode->priceColumn());
 
         $promotion = $this->automaticPromotion($formule, $mode);
+        // Venu d'une promotion annoncée (« Je réserve ») : elle s'applique si elle vaut pour cette formule et ce mode.
+        if ($promoId && ($chosen = Promotion::bookable()->whereNull('code')->whereKey($promoId)->for($formule, $mode)->first())
+            && (! $promotion || $chosen->discountOn($formation) >= $promotion->discountOn($formation))) {
+            $promotion = $chosen;
+        }
         if (Promotion::normalizeCode($code)) {
             $byCode = $this->codePromotion($code, $formule, $mode);
             if (! $byCode) {

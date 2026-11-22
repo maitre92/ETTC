@@ -76,6 +76,8 @@ class InscriptionRequest extends FormRequest
             'message' => ['nullable', 'string', 'max:2000'],
             // Code promo (facultatif) : vérifié au calcul du tarif (Tarification).
             'promo_code' => ['nullable', 'string', 'max:40'],
+            // Venu d'une promotion annoncée sur le site (« Je réserve ») : vérifiée au calcul du tarif.
+            'promo_id' => ['nullable', 'integer'],
         ];
     }
 

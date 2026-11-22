@@ -50,9 +50,9 @@ class InscriptionService
      *
      * @return array<string, mixed>
      */
-    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true): array
+    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true, ?int $promoId = null): array
     {
-        $quote = app(Tarification::class)->quote($formule, $mode, $code, $withFee);
+        $quote = app(Tarification::class)->quote($formule, $mode, $code, $withFee, $promoId);
         unset($quote['promotion']);
 
         return $quote;
@@ -69,7 +69,7 @@ class InscriptionService
         $payments = app(PaiementService::class);
         $declared = ($data['payment_choice'] ?? null) === PaymentChoice::EnLigne->value && filled($data['pay_reference'] ?? null);
         if ($declared) {
-            $quote = $this->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']), $data['promo_code'] ?? null);
+            $quote = $this->quote(Formule::findOrFail($data['formule_id']), FormationMode::from($data['mode']), $data['promo_code'] ?? null, true, isset($data['promo_id']) ? (int) $data['promo_id'] : null);
             $payments->assertDeclarable((string) $data['pay_method'], (string) $data['pay_reference'], (int) $data['pay_amount'], $quote['total_amount']);
         }
 
@@ -184,7 +184,7 @@ class InscriptionService
         $formule = Formule::findOrFail($data['formule_id']);
         $mode = FormationMode::from($data['mode']);
 
-        return $this->quote($formule, $mode, $data['promo_code'] ?? null, ! ($data['waive_fee'] ?? false)) + [
+        return $this->quote($formule, $mode, $data['promo_code'] ?? null, ! ($data['waive_fee'] ?? false), isset($data['promo_id']) ? (int) $data['promo_id'] : null) + [
             'formule_id' => $formule->id,
             'mode' => $mode,
             'niveau_id' => $data['niveau_id'] ?? null,

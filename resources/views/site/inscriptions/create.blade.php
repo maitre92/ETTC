@@ -29,6 +29,7 @@
             @else
                 <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" enctype="multipart/form-data" data-ajax-form data-ettc-wizard data-tarif-url="{{ route('site.inscription.tarif') }}" novalidate>
                     @csrf
+                    @if (! empty($preset['promo']))<input type="hidden" name="promo_id" value="{{ $preset['promo'] }}" data-promo-id>@endif
                     <ol class="ettc-wizard-steps" aria-hidden="true">
                         @foreach ($steps as $stepLabel)
                             <li class="{{ $loop->first ? 'is-current' : '' }}"><span>{{ $loop->iteration }}</span>{{ $stepLabel }}</li>

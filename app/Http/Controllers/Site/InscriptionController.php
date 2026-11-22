@@ -50,6 +50,7 @@ class InscriptionController extends Controller
                 'mode' => FormationMode::tryFrom((string) $request->query('mode'))?->value,
                 // « J'en profite » d'une promotion : son code déjà saisi.
                 'code' => Promotion::normalizeCode((string) $request->query('code')),
+                'promo' => ctype_digit((string) $request->query('promo')) ? (int) $request->query('promo') : null,
             ],
             'seo' => Seo::make('Inscription à une formation', 'Inscrivez-vous en ligne à une formation d\'anglais : choisissez votre niveau, votre formule et votre mode, puis réglez en ligne ou au centre.')->noIndex(),
         ]);
@@ -68,19 +69,20 @@ class InscriptionController extends Controller
         }
         $code = Promotion::normalizeCode((string) $request->query('promo_code'));
         $withFee = ! $request->boolean('sans_frais');
+        $promoId = ctype_digit((string) $request->query('promo_id')) ? (int) $request->query('promo_id') : null;
         $codeError = null;
         try {
-            $q = $tarification->quote($formule, $mode, $code, $withFee);
+            $q = $tarification->quote($formule, $mode, $code, $withFee, $promoId);
         } catch (ValidationException $e) {
             $codeError = collect($e->errors())->flatten()->first();
-            $q = $tarification->quote($formule, $mode, null, $withFee);
+            $q = $tarification->quote($formule, $mode, null, $withFee, $promoId);
         }
         $monthly = $q['billing'] === Billing::Mensuel && $q['duration_months'] > 1;
         $formation = $q['formation_amount'] - $q['discount_amount'];
         $installment = $monthly ? (int) ceil($formation / $q['duration_months']) : $formation;
         $lines = [['Frais de formation'.($monthly ? ' ('.Formule::money($q['unit_price']).' × '.$q['duration_months'].' mois)' : ''), Formule::money($q['formation_amount']), '']];
         if ($q['discount_amount'] > 0) {
-            $lines[] = ['Promotion « '.$q['promotion']->name.' » '.$q['promotion']->badge(), '-'.Formule::money($q['discount_amount']), 'promo'];
+            $lines[] = ['Promotion « '.$q['promotion']->name.' » '.$q['promotion']->badge().($q['promotion']->isUpcoming() ? ' — réservée' : ''), '-'.Formule::money($q['discount_amount']), 'promo'];
         }
         if ($q['registration_fee'] > 0) {
             $lines[] = ["Frais d'inscription (une seule fois)", Formule::money($q['registration_fee']), ''];
