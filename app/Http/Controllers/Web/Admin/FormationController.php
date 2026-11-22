@@ -11,6 +11,7 @@ use App\Models\Niveau;
 use App\Models\Promotion;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Formations\Tarification;
+use App\Services\Medias\MediaService;
 use App\Support\SiteSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,23 +53,36 @@ class FormationController extends Controller
         Gate::authorize('viewAny', Promotion::class);
 
         return view('formations.promotions', [
-            'promotions' => Promotion::with('formule')->latest('id')->get(),
+            'promotions' => Promotion::with(['formule', 'media'])->latest('id')->get(),
             'formules' => Formule::query()->ordered()->get(),
         ]);
     }
 
-    public function storePromotion(PromotionRequest $request): RedirectResponse
+    public function storePromotion(PromotionRequest $request, MediaService $medias): RedirectResponse
     {
-        $promotion = Promotion::create($request->validated());
+        $promotion = Promotion::create($this->promotionData($request, $medias));
 
         return redirect()->route('formations.promotions.index')->with('status', "Promotion « {$promotion->name} » créée".($promotion->code ? " : code {$promotion->code}." : ' : elle s\'applique toute seule pendant sa période.'));
     }
 
-    public function updatePromotion(PromotionRequest $request, Promotion $promotion): RedirectResponse
+    public function updatePromotion(PromotionRequest $request, Promotion $promotion, MediaService $medias): RedirectResponse
     {
-        $promotion->update($request->validated());
+        $promotion->update($this->promotionData($request, $medias, $promotion));
 
         return redirect()->route('formations.promotions.index')->with('status', "Promotion « {$promotion->name} » modifiée.");
+    }
+
+    /** Données validées ; la fiche (affiche) passe par la bibliothèque de médias (type réel, taille, redimensionnement). @return array<string, mixed> */
+    private function promotionData(PromotionRequest $request, MediaService $medias, ?Promotion $promotion = null): array
+    {
+        $data = collect($request->validated())->except('affiche')->all();
+        if ($request->hasFile('affiche')) {
+            $data['media_id'] = $medias->store($request->file('affiche'), $request->user(), 'Fiche — '.$data['name'], 'Promotions')->id;
+        } elseif ($promotion && $request->boolean('affiche_remove')) {
+            $data['media_id'] = null;
+        }
+
+        return $data;
     }
 
     public function destroyPromotion(Promotion $promotion): RedirectResponse

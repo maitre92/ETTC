@@ -298,7 +298,7 @@
         var button = event.target.closest('[data-copy]');
         if (!button) return;
         var text = button.getAttribute('data-copy');
-        var done = function () { SiteUI.toast('Code copié : collez-le dans le clavier d\'appel.', 'success'); };
+        var done = function () { SiteUI.toast(button.getAttribute('data-copy-message') || 'Code copié : collez-le dans le clavier d\'appel.', 'success'); };
         if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, function () {}); }
         else { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
     });

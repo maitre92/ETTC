@@ -22,12 +22,12 @@ class PromotionRequest extends ContentRequest
 
     protected function nullableFields(): array
     {
-        return ['code', 'formule_id', 'mode', 'starts_on', 'ends_on', 'max_uses'];
+        return ['code', 'formule_id', 'mode', 'starts_on', 'ends_on', 'max_uses', 'description'];
     }
 
     protected function booleanFields(): array
     {
-        return ['is_active'];
+        return ['is_active', 'show_on_site'];
     }
 
     protected function prepareForValidation(): void
@@ -54,6 +54,9 @@ class PromotionRequest extends ContentRequest
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
             'max_uses' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'is_active' => ['boolean'],
+            'show_on_site' => ['boolean'],
+            'description' => ['nullable', 'string', 'max:300'],
+            'affiche' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
 
@@ -80,7 +83,7 @@ class PromotionRequest extends ContentRequest
     {
         return [
             'name' => 'nom de la promotion', 'code' => 'code promo', 'kind' => 'type de réduction', 'value' => 'réduction',
-            'formule_id' => 'formule', 'mode' => 'mode', 'starts_on' => 'début', 'ends_on' => 'fin', 'max_uses' => 'nombre d\'inscriptions',
+            'description' => 'description', 'affiche' => 'fiche (affiche)', 'formule_id' => 'formule', 'mode' => 'mode', 'starts_on' => 'début', 'ends_on' => 'fin', 'max_uses' => 'nombre d\'inscriptions',
         ];
     }
 }

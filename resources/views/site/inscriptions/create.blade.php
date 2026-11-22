@@ -7,6 +7,7 @@
      tout le formulaire est visible et s'envoie normalement. Tarifs lus dans la base (module Formations). --}}
 @section('content')
     @include('site.partials.page-hero', ['title' => 'Inscription à une formation', 'crumb' => 'Inscription', 'intro' => 'Choisissez votre niveau, votre formule et votre mode : le tarif s\'affiche aussitôt. Le test de niveau est gratuit.'])
+    @include('site.partials.promo-slider', ['compact' => true])
 
     @php
         $me = auth('client')->user();
@@ -94,7 +95,7 @@
                         <div class="ettc-promo-code mt-3">
                             <label for="f-promo_code" class="form-label mb-1">Vous avez un code promo ? <span class="text-muted small">(facultatif)</span></label>
                             <div class="d-flex gap-2">
-                                <input type="text" class="form-control text-uppercase @error('promo_code') is-invalid @enderror" id="f-promo_code" name="promo_code" maxlength="40" value="{{ old('promo_code') }}" autocomplete="off" placeholder="Ex. RENTREE2027" aria-describedby="f-promo_code-feedback" data-promo-input>
+                                <input type="text" class="form-control text-uppercase @error('promo_code') is-invalid @enderror" id="f-promo_code" name="promo_code" maxlength="40" value="{{ old('promo_code', $preset['code'] ?? null) }}" autocomplete="off" placeholder="Ex. RENTREE2027" aria-describedby="f-promo_code-feedback" data-promo-input>
                                 <button type="button" class="ettc-btn ettc-btn-light" data-promo-apply>Appliquer</button>
                             </div>
                             <div id="f-promo_code-feedback" class="small mt-1" data-promo-feedback aria-live="polite">@error('promo_code')<span class="text-danger">{{ $message }}</span>@enderror</div>

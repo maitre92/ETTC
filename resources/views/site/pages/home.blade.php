@@ -46,6 +46,9 @@
         </svg>
     </section>
 
+    {{-- Promotions en cours : diaporama animé (Formules et tarifs → Promotions). --}}
+    @include('site.partials.promo-slider')
+
     {{-- ——— Nos services ——— --}}
     <section class="ettc-section" id="services">
         <div class="container">

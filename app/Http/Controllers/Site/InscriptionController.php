@@ -48,6 +48,8 @@ class InscriptionController extends Controller
                 'niveau' => $niveaux->firstWhere('slug', (string) $request->query('niveau'))?->id,
                 'formule' => $formules->firstWhere('slug', (string) $request->query('formule'))?->id ?? ($formules->count() === 1 ? $formules->first()->id : null),
                 'mode' => FormationMode::tryFrom((string) $request->query('mode'))?->value,
+                // « J'en profite » d'une promotion : son code déjà saisi.
+                'code' => Promotion::normalizeCode((string) $request->query('code')),
             ],
             'seo' => Seo::make('Inscription à une formation', 'Inscrivez-vous en ligne à une formation d\'anglais : choisissez votre niveau, votre formule et votre mode, puis réglez en ligne ou au centre.')->noIndex(),
         ]);

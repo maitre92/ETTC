@@ -43,22 +43,29 @@
             @else
                 <div class="row g-3">
                     @foreach ($groupes as $groupe)
-                        @php $next = $groupe->nextSeance(); @endphp
+                        @php $next = $groupe->nextSeance(); $open = route('formateur.groupes.show', $groupe); @endphp
                         <div class="col-md-6 col-xl-4">
-                            <a href="{{ route('formateur.groupes.show', $groupe) }}" class="card h-100 mb-0 text-reset text-decoration-none border {{ $groupe->is_active ? '' : 'opacity-50' }}">
-                                <div class="card-body">
+                            <div class="card h-100 mb-0 border {{ $groupe->is_active ? '' : 'opacity-50' }}">
+                                <div class="card-body d-flex flex-column">
                                     <div class="d-flex justify-content-between gap-2">
-                                        <h6 class="mb-1">{{ $groupe->name }}</h6>
+                                        <h6 class="mb-1"><a href="{{ $open }}" class="text-reset">{{ $groupe->name }}</a></h6>
                                         <span class="badge {{ $groupe->mode === \App\Enums\FormationMode::EnLigne ? 'bg-primary-subtle' : 'bg-success-subtle' }} align-self-start">{{ $groupe->mode->label() }}</span>
                                     </div>
-                                    <p class="small text-muted mb-2">{{ $groupe->niveau?->name ?? 'Tous niveaux' }}</p>
-                                    <p class="mb-1"><i class='bx bx-user'></i> {{ $groupe->members_count }} apprenant(s)</p>
-                                    <p class="small mb-1"><i class='bx bx-calendar'></i> {{ $next ? $next->when() : 'Aucune séance programmée' }}</p>
+                                    <p class="small text-muted mb-2">{{ $groupe->niveau?->name ?? 'Tous niveaux' }} · {{ $groupe->members_count }} apprenant(s)</p>
+                                    <p class="small mb-2"><i class='bx bx-calendar'></i> {{ $next ? $next->when() : 'Aucune séance programmée' }}</p>
                                     @if ($unread[$groupe->id] ?? 0)
-                                        <span class="badge bg-danger"><i class='bx bx-message-rounded-dots'></i> {{ $unread[$groupe->id] }} nouveau(x) message(s)</span>
+                                        <a href="{{ $open }}#discussion" class="badge bg-danger text-decoration-none align-self-start mb-2"><i class='bx bx-message-rounded-dots'></i> {{ $unread[$groupe->id] }} nouveau(x) message(s)</a>
                                     @endif
+                                    <div class="d-grid gap-1 mt-auto">
+                                        <a href="{{ $open }}#supports" class="btn btn-primary btn-sm"><i class='bx bx-upload me-1'></i>Déposer un support de cours</a>
+                                        <div class="d-flex gap-1">
+                                            <a href="{{ $open }}#discussion" class="btn btn-outline-primary btn-sm flex-fill"><i class='bx bx-conversation me-1'></i>Écrire au groupe</a>
+                                            <a href="{{ $open }}#add-seance" class="btn btn-outline-primary btn-sm flex-fill"><i class='bx bx-calendar-plus me-1'></i>Séance</a>
+                                        </div>
+                                        <a href="{{ $open }}" class="btn btn-light btn-sm">Ouvrir le groupe <i class='bx bx-right-arrow-alt'></i></a>
+                                    </div>
                                 </div>
-                            </a>
+                            </div>
                         </div>
                     @endforeach
                 </div>

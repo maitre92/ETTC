@@ -6,6 +6,7 @@
      test de niveau préalable, modalités d'inscription. --}}
 @section('content')
     @include('site.partials.page-hero', ['title' => 'Nos formations d\'anglais', 'crumb' => 'Formations', 'intro' => 'Des formations organisées par niveau, sur deux ou trois mois, en ligne avec un formateur ou en présentiel au centre.'])
+    @include('site.partials.promo-slider')
 
     @php
         $inscription = route('site.inscription.create');

@@ -6,7 +6,8 @@
        paramètre), heading, icon, intro (facultatif), items, model (classe), routePrefix, idField
        (champ caché qui distingue les modales en cas d'erreur), deleteTitle, newLabel, labelOf (closure : libellé d'un
        élément), modalSize ('' ou 'modal-lg'), statusField (booléen de statut), statusLabels ([vrai, faux]),
-       fields : name, label, type (text|textarea|markdown|number|date|select|icon|switch), required, max, placeholder,
+       fields : name, label, type (text|textarea|markdown|number|date|select|icon|switch|image : `relation` = relation
+                vers l'image), required, max, placeholder,
                 options (select/icon : valeur => libellé), help, col (classe de colonne, défaut col-12), default
        columns : label, value (closure qui renvoie du HTML déjà échappé). --}}
 @php
@@ -126,7 +127,7 @@
     <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable {{ $modalSize }}">
             <div class="modal-content">
-                <form method="POST" action="{{ $item ? route($routePrefix.'.update', $item) : ($storeUrl ?? route($routePrefix.'.store')) }}" data-crud-form data-no-guard>
+                <form method="POST" action="{{ $item ? route($routePrefix.'.update', $item) : ($storeUrl ?? route($routePrefix.'.store')) }}" enctype="multipart/form-data" data-crud-form data-no-guard>
                     @csrf
                     @if ($item)
                         @method('PUT')
@@ -159,6 +160,16 @@
                                         @if (in_array($type, ['textarea', 'markdown'], true))
                                             <textarea class="form-control @if ($type === 'markdown') font-monospace small @endif @if ($invalid) is-invalid @endif" id="{{ $id }}" name="{{ $name }}"
                                                       rows="{{ $type === 'markdown' ? 8 : 3 }}" maxlength="{{ $field['max'] ?? 5000 }}" placeholder="{{ $field['placeholder'] ?? '' }}" @required($field['required'] ?? false)>{{ $value }}</textarea>
+                                        @elseif ($type === 'image')
+                                            {{-- Image (bibliothèque de médias) : aperçu de l'actuelle, « Retirer », dépôt d'une nouvelle. --}}
+                                            @php $current = $item ? $item->{$field['relation']} : null; @endphp
+                                            @if ($current)
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <img src="{{ $current->thumbUrl() }}" alt="" style="height:64px;border-radius:6px">
+                                                    <div class="form-check"><input class="form-check-input" type="checkbox" id="{{ $id }}-remove" name="{{ $name }}_remove" value="1"><label class="form-check-label small" for="{{ $id }}-remove">Retirer</label></div>
+                                                </div>
+                                            @endif
+                                            <input type="file" class="form-control @if ($invalid) is-invalid @endif" id="{{ $id }}" name="{{ $name }}" accept="image/png,image/jpeg,image/webp">
                                         @elseif (in_array($type, ['select', 'icon'], true))
                                             <select class="form-select {{ $type === 'icon' ? 'icon-select' : 'single-select' }}" id="{{ $id }}" name="{{ $name }}" @required($field['required'] ?? false)>
                                                 @unless ($field['required'] ?? false)

@@ -38,6 +38,12 @@
                     <a href="{{ $next->joinUrl() }}" class="btn btn-success btn-lg" target="_blank" rel="noopener"><i class='bx bx-video me-1'></i>Ouvrir Google Meet</a>
                 @endif
             </div>
+            {{-- Gestes du formateur, en un clic (support, message, séance). --}}
+            <div class="card-footer bg-transparent d-flex flex-wrap gap-2">
+                <a href="#supports" class="btn btn-primary"><i class='bx bx-upload me-1'></i>Déposer un support de cours</a>
+                <a href="#discussion" class="btn btn-outline-primary"><i class='bx bx-conversation me-1'></i>Écrire au groupe</a>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-seance"><i class='bx bx-calendar-plus me-1'></i>Ajouter une séance</button>
+            </div>
         </div>
 
         <div class="row g-3">
@@ -102,7 +108,7 @@
                     </div>
                 </div>
 
-                <div class="card" id="supports">
+                <div class="card nv-target" id="supports">
                     <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-folder-open me-2'></i>SUPPORTS DE COURS</h6></div>
                     <div class="card-body">
                         @forelse ($groupe->supports as $support)
@@ -121,7 +127,7 @@
                         @endforelse
                         <form method="POST" action="{{ route('formateur.groupes.supports.store', $groupe) }}" enctype="multipart/form-data" class="row g-2 mt-2" data-crud-form data-no-guard>
                             @csrf
-                            <div class="col-12"><label class="form-label small fw-semibold" for="s-title">Titre</label><input class="form-control" id="s-title" name="title" maxlength="200" required placeholder="Leçon 1 — vocabulaire"></div>
+                            <div class="col-12"><p class="small mb-1"><i class='bx bx-info-circle'></i> Un titre, puis un fichier (PDF, Word, PowerPoint, image, audio, vidéo — 20 Mo) <strong>ou</strong> un lien (YouTube, Drive). Vos apprenants le voient aussitôt dans leur espace.</p><label class="form-label small fw-semibold" for="s-title">Titre</label><input class="form-control" id="s-title" name="title" maxlength="200" required placeholder="Leçon 1 — vocabulaire"></div>
                             <div class="col-md-6"><label class="form-label small fw-semibold" for="s-file">Fichier (20 Mo max)</label><input class="form-control" type="file" id="s-file" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.txt,.jpg,.jpeg,.png,.mp3,.m4a,.wav,.ogg,.mp4,.webm"></div>
                             <div class="col-md-6"><label class="form-label small fw-semibold" for="s-url">… ou un lien</label><input class="form-control" id="s-url" name="url" maxlength="500" placeholder="youtu.be/… ou lien Drive"></div>
                             <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-upload me-1'></i>Ajouter le support</button> <span class="small text-muted">Visible aussitôt par vos apprenants.</span></div>

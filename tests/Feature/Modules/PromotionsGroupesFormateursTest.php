@@ -21,8 +21,10 @@ use App\Services\Formations\Tarification;
 use App\Support\SiteSettings;
 use App\Support\SpamGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
 
@@ -188,5 +190,34 @@ class PromotionsGroupesFormateursTest extends TestCase
         $this->get('/espace-client/paiements')->assertOk()
             ->assertSee('data-fill-amount="50000"', false)->assertSee('data-fill-amount="100000"', false)->assertSee('Détail du tarif')->assertSee("Frais d'inscription (une seule fois)");
         $this->assertStringContainsString(urlencode(route('client.paiements')), (string) $inscription->whatsappMessageUrl());
+    }
+
+    public function test_running_promotions_are_showcased_on_the_site_with_their_flyer(): void
+    {
+        Storage::fake('public');
+        $formule = $this->formule();
+        $this->actingAs(User::factory()->administrateur()->create());
+        $this->post('/admin/formations/promotions', [
+            'name' => 'Rentrée 2027', 'description' => 'Économisez sur votre formation !', 'code' => 'RENTREE', 'kind' => 'percent', 'value' => '15',
+            'formule_id' => $formule->id, 'ends_on' => now()->addDays(5)->toDateString(), 'is_active' => '1', 'show_on_site' => '1',
+            'affiche' => UploadedFile::fake()->image('affiche.jpg', 800, 1000),
+        ])->assertRedirect();
+        $this->post('/admin/formations/promotions', ['name' => 'Partenaire secret', 'code' => 'SECRET', 'kind' => 'percent', 'value' => '30', 'is_active' => '1', 'show_on_site' => '0'])->assertRedirect();
+        $this->post('/admin/formations/promotions', ['name' => 'Ancienne promo', 'kind' => 'percent', 'value' => '10', 'ends_on' => now()->subDay()->toDateString(), 'is_active' => '1', 'show_on_site' => '1'])->assertRedirect();
+        $this->assertNotNull(Promotion::where('name', 'Rentrée 2027')->value('media_id'));
+        auth()->logout();
+
+        // Bandeau sur toutes les pages, diaporama sur l'accueil, les formations et l'inscription.
+        foreach (['/', '/formations', '/inscription', '/contact'] as $page) {
+            $response = $this->get($page)->assertOk()->assertSee('data-promo-ticker', false)->assertSee('Rentrée 2027')
+                ->assertDontSee('Partenaire secret')->assertDontSee('Ancienne promo');
+            if ($page !== '/contact') {
+                $response->assertSee('data-promo-slider', false)->assertSee('Économisez sur votre formation !')->assertSee('plus que 5 jours');
+            }
+        }
+        // « J'en profite » : inscription avec la formule et le code déjà choisis.
+        $url = Promotion::where('name', 'Rentrée 2027')->first()->signupUrl();
+        $this->assertStringContainsString('code=RENTREE', $url);
+        $this->get($url)->assertOk()->assertSee('value="RENTREE"', false);
     }
 }

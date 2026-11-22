@@ -956,3 +956,6 @@ html.semi-bleu .topbar {
 .nv-thread-item { max-width: 88%; padding: .55rem .8rem; border-radius: 10px; background: #f3f6fb; border: 1px solid #e3e9f3; }
 .nv-thread-item.is-team { align-self: flex-start; background: #e9f1ff; border-color: #cfe0ff; }
 .nv-thread-item.is-learner { align-self: flex-end; }
+
+/* Bloc atteint par une ancre (#supports, #discussion) : légère mise en évidence. */
+.card:target, .nv-target:target { box-shadow: 0 0 0 3px rgba(13, 110, 253, .45); transition: box-shadow .3s ease; }

@@ -59,6 +59,7 @@
     <a href="#contenu" class="skip-link">Aller au contenu</a>
 
     @include('site.partials.header')
+    @include('site.partials.promo-ticker')
 
     <main id="contenu" tabindex="-1">
         @yield('content')

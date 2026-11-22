@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 /**
  * Promotion sur les FRAIS DE FORMATION (demande du centre, 2026-11-21), jamais sur les frais d'inscription :
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Pourcentage ou montant (sur le total de la formation), sur une formule et un mode, ou sur toutes. Les deux ne se
  * cumulent pas : la meilleure réduction l'emporte. La réduction est figée sur l'inscription.
  */
-#[Fillable(['name', 'code', 'formule_id', 'mode', 'kind', 'value', 'starts_on', 'ends_on', 'max_uses', 'uses_count', 'is_active'])]
+#[Fillable(['name', 'description', 'media_id', 'show_on_site', 'code', 'formule_id', 'mode', 'kind', 'value', 'starts_on', 'ends_on', 'max_uses', 'uses_count', 'is_active'])]
 class Promotion extends Model
 {
     use LogsActivity, SoftDeletes;
@@ -27,7 +28,7 @@ class Promotion extends Model
     protected function casts(): array
     {
         return [
-            'value' => 'integer', 'max_uses' => 'integer', 'uses_count' => 'integer', 'is_active' => 'boolean',
+            'value' => 'integer', 'max_uses' => 'integer', 'uses_count' => 'integer', 'is_active' => 'boolean', 'show_on_site' => 'boolean',
             'starts_on' => 'date', 'ends_on' => 'date', 'mode' => FormationMode::class,
         ];
     }
@@ -40,6 +41,48 @@ class Promotion extends Model
     public function activityLabel(): string
     {
         return (string) $this->name;
+    }
+
+    /** Fiche (affiche) de la promotion, image de la bibliothèque. */
+    public function media(): BelongsTo
+    {
+        return $this->belongsTo(Media::class);
+    }
+
+    /**
+     * Promotions à montrer sur le site : en cours et « Afficher sur le site », les plus fortes d'abord.
+     *
+     * @return Collection<int, self>
+     */
+    public static function forSite(): Collection
+    {
+        return self::running()->where('show_on_site', true)->with(['formule', 'media'])->latest('id')->get()
+            ->sortByDesc(fn (self $p) => $p->kind === 'percent' ? $p->value * 1000 : $p->value)->values();
+    }
+
+    /** « jusqu'au 31 janvier · plus que 5 jours », « dernier jour ! » ou null (sans date de fin). */
+    public function deadline(): ?string
+    {
+        if (! $this->ends_on) {
+            return null;
+        }
+        $days = (int) today()->diffInDays($this->ends_on, false);
+
+        return match (true) {
+            $days <= 0 => 'Dernier jour !',
+            $days === 1 => 'Jusqu\'à demain',
+            default => 'Jusqu\'au '.$this->ends_on->translatedFormat('j F').' · plus que '.$days.' jours',
+        };
+    }
+
+    /** Lien « J'en profite » : l'inscription, formule et code promo déjà choisis. */
+    public function signupUrl(): string
+    {
+        return route('site.inscription.create', array_filter([
+            'formule' => $this->formule?->slug,
+            'mode' => $this->mode?->value,
+            'code' => $this->code,
+        ]));
     }
 
     public function formule(): BelongsTo
