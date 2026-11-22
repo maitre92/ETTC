@@ -15,15 +15,16 @@ return [
         'validate' => 'Valider un dossier, démarrer ou terminer une formation',
         'organize' => 'Affecter une session et annoter un dossier',
         'cancel' => 'Annuler une inscription',
+        'attestation' => 'Délivrer l\'attestation de fin de formation (et un duplicata)',
         'delete' => 'Supprimer une inscription',
     ],
 
     'reserved' => [],
 
     'roles' => [
-        'administrateur' => ['defaults' => ['view', 'create', 'validate', 'organize', 'cancel', 'delete'], 'optional' => []],
-        'gestionnaire' => ['defaults' => ['view', 'create', 'validate', 'organize'], 'optional' => ['cancel', 'delete']],
-        'commercial' => ['defaults' => ['view', 'create', 'validate', 'organize', 'cancel'], 'optional' => []],
+        'administrateur' => ['defaults' => ['view', 'create', 'validate', 'organize', 'cancel', 'delete', 'attestation'], 'optional' => []],
+        'gestionnaire' => ['defaults' => ['view', 'create', 'validate', 'organize'], 'optional' => ['cancel', 'delete', 'attestation']],
+        'commercial' => ['defaults' => ['view', 'create', 'validate', 'organize', 'cancel'], 'optional' => ['attestation']],
     ],
 
     'navigation' => [

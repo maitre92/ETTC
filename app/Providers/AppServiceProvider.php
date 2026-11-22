@@ -28,9 +28,11 @@ use App\Models\User;
 use App\Services\Users\SuperadminBootstrapper;
 use App\Support\SiteSettings;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -71,6 +73,19 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, function (Login $event) {
             if (in_array($event->guard, ['web', 'client'], true) && app()->bound('session.store')) {
                 session()->put('pwa_prompt', $event->guard === 'client' ? 'site' : 'team');
+            }
+        });
+
+        // Présences (écran Connexions) : heure de connexion (apprenants ; l'équipe l'a déjà par CredentialChecker), en
+        // ligne dès la connexion ; déconnexion volontaire = hors ligne aussitôt. Données techniques, sans audit.
+        Event::listen(Login::class, function (Login $event) {
+            if (in_array($event->guard, ['web', 'client'], true) && $event->user instanceof Model) {
+                $event->user->forceFill(['last_login_at' => now(), 'last_seen_at' => now(), 'last_logout_at' => null])->saveQuietly();
+            }
+        });
+        Event::listen(Logout::class, function (Logout $event) {
+            if (in_array($event->guard, ['web', 'client'], true) && $event->user instanceof Model) {
+                $event->user->forceFill(['last_logout_at' => now()])->saveQuietly();
             }
         });
 

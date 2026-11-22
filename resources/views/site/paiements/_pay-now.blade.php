@@ -15,6 +15,9 @@
             </div>
         @endforeach
     </div>
+    @foreach ($payment['methods'] as $method)
+        @if (! empty($method['ussd']))@include('paiements._ussd-steps', ['label' => $method['label'], 'ussd' => $method['ussd']])@endif
+    @endforeach
     <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
         @if ($payment['whatsapp'])<a href="{{ $payment['whatsapp'] }}" class="btn btn-whatsapp" target="_blank" rel="noopener">J'ai payé : envoyer la référence sur WhatsApp</a>@endif
         @if ($payment['account'])<a href="{{ $payment['account'] }}" class="btn btn-outline-primary">Créer mon espace apprenant</a>@endif

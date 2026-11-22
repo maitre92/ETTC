@@ -26,8 +26,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'number', 'status', 'source', 'client_id', 'test_niveau_id', 'demande_id', 'name', 'birth_date', 'gender', 'phone', 'email',
     'address', 'city', 'message', 'niveau_id', 'formule_id', 'mode', 'payment_choice', 'formule_name',
-    'duration_months', 'billing', 'unit_price', 'formation_amount', 'discount_amount', 'promotion_id', 'promo_code', 'registration_fee', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'validated_at', 'validated_by',
-    'started_at', 'finished_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
+    'duration_months', 'billing', 'unit_price', 'formation_amount', 'discount_amount', 'promotion_id', 'promo_code', 'registration_fee', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'formateur_id', 'validated_at', 'validated_by',
+    'started_at', 'finished_at', 'attestation_number', 'attestation_issued_at', 'attestation_issued_by', 'attestation_copies', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
     'notified_at', 'notification_error',
 ])]
 class Inscription extends Model
@@ -41,7 +41,7 @@ class Inscription extends Model
             'status' => InscriptionStatus::class, 'mode' => FormationMode::class, 'payment_choice' => PaymentChoice::class,
             'billing' => Billing::class, 'gender' => Gender::class, 'birth_date' => 'date',
             'duration_months' => 'integer', 'unit_price' => 'integer', 'formation_amount' => 'integer', 'discount_amount' => 'integer', 'registration_fee' => 'integer', 'total_amount' => 'integer', 'amount_paid' => 'integer',
-            'validated_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime',
+            'validated_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime', 'attestation_issued_at' => 'datetime', 'attestation_copies' => 'integer',
             'consent_at' => 'datetime', 'notified_at' => 'datetime',
         ];
     }
@@ -79,6 +79,24 @@ class Inscription extends Model
     public function groupe(): BelongsTo
     {
         return $this->belongsTo(Groupe::class)->withTrashed();
+    }
+
+    /** Formateur d'une formation personnalisée (en groupe : celui du groupe, voir teacher()). */
+    public function formateur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'formateur_id')->withTrashed();
+    }
+
+    /** Formation personnalisée (individuelle, en ligne ou en présentiel) : sans formule. */
+    public function isPersonalised(): bool
+    {
+        return $this->formule_id === null;
+    }
+
+    /** Formateur qui donne la formation : celui de l'inscription (personnalisée), sinon celui du groupe. */
+    public function teacherId(): ?int
+    {
+        return $this->formateur_id ?? $this->groupe?->formateur_id;
     }
 
     public function promotion(): BelongsTo

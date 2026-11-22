@@ -135,6 +135,51 @@
                     </div>
                 @endif
 
+                {{-- Formation personnalisée : son formateur (rémunéré au tiers de la mensualité). --}}
+                @if ($inscription->isPersonalised() && $status !== InscriptionStatus::Annulee && auth()->user()->can('organize', $inscription))
+                    @php $teachers = \App\Models\User::role(\App\Enums\RoleName::Formateur->value)->active()->orderBy('name')->get(); @endphp
+                    <div class="card">
+                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-chalkboard me-2'></i>FORMATEUR DE LA FORMATION PERSONNALISÉE</h6></div>
+                        <div class="card-body">
+                            @if ($teachers->isEmpty())
+                                <p class="mb-0 small text-muted">Aucun compte formateur : créez-le dans Utilisateurs (rôle « Formateur »).</p>
+                            @else
+                                <form method="POST" action="{{ route('inscriptions.teacher', $inscription) }}" class="d-flex flex-wrap align-items-end gap-2" data-crud-form data-no-guard>
+                                    @csrf @method('PUT')
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-semibold" for="i-teacher">Formateur</label>
+                                        <select class="form-select" id="i-teacher" name="formateur_id">
+                                            <option value="">— À choisir —</option>
+                                            @foreach ($teachers as $teacher)<option value="{{ $teacher->id }}" @selected($inscription->formateur_id === $teacher->id)>{{ $teacher->name }}</option>@endforeach
+                                        </select>
+                                        <div class="form-text">Il retrouve l'apprenant dans son espace ; sa part (formation personnalisée) est calculée sur chaque paiement.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary"><i class='bx bx-check me-1'></i>Enregistrer</button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Attestation de fin de formation : délivrée une fois (formation terminée), puis duplicata. --}}
+                @if ($status === InscriptionStatus::Terminee && auth()->user()->can('inscriptions.attestation'))
+                    <div class="card border-success">
+                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>ATTESTATION DE FIN DE FORMATION</h6></div>
+                        <div class="card-body">
+                            @if ($inscription->attestation_number)
+                                <p class="mb-3">Délivrée le <strong>{{ $inscription->attestation_issued_at->format('d/m/Y') }}</strong> — n° <strong>{{ $inscription->attestation_number }}</strong>@if ($inscription->attestation_copies) · {{ $inscription->attestation_copies }} duplicata(s)@endif. Elle n'est délivrée qu'une fois : une réimpression porte la mention « DUPLICATA ».</p>
+                                <form method="POST" action="{{ route('inscriptions.attestation.duplicate', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-outline-primary"><i class='bx bx-printer me-1'></i>Imprimer un duplicata</button></form>
+                            @else
+                                @if ($inscription->balance() > 0)
+                                    <p class="alert alert-warning small mb-3"><i class='bx bx-error'></i> Il reste {{ $money($inscription->balance()) }} à payer sur cette formation.</p>
+                                @endif
+                                <p class="mb-3">La formation est terminée : délivrez l'attestation. Elle s'ouvre prête à imprimer, avec son numéro.</p>
+                                <form method="POST" action="{{ route('inscriptions.attestation.issue', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-success btn-lg"><i class='bx bx-award me-1'></i>Délivrer l'attestation</button></form>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
                 @can('viewAny', \App\Models\Paiement::class)
                     <div class="card">
                         <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
@@ -242,6 +287,12 @@
 @endsection
 
 @push('scripts')
+    <script>
+        // Attestation ouverte dans un nouvel onglet : la fiche se recharge pour afficher la délivrance.
+        document.querySelectorAll('form[data-reload-after]').forEach(function (form) {
+            form.addEventListener('submit', function () { setTimeout(function () { window.location.reload(); }, 1500); });
+        });
+    </script>
     <script src="{{ asset('assets/js/crud-ajax.js') }}?v={{ filemtime(public_path('assets/js/crud-ajax.js')) }}"></script>
     <script>CrudAjax.init(document.querySelector('[data-crud="inscription-{{ $inscription->id }}"]'));</script>
     @include('partials.confirm-delete')

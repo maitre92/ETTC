@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Groupe;
 use App\Models\GroupeMessage;
+use App\Models\Inscription;
 use App\Models\Seance;
 use App\Models\Support;
+use App\Services\Remunerations\RemunerationService;
 use App\Services\Seances\DiscussionService;
 use App\Services\Seances\SeanceService;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +39,10 @@ class FormateurController extends Controller
             'week' => Seance::with('groupe')->whereIn('groupe_id', $ids)->where('is_cancelled', false)
                 ->where('starts_at', '>', now()->endOfDay())->where('starts_at', '<=', now()->addDays(7)->endOfDay())->orderBy('starts_at')->get(),
             'latest' => GroupeMessage::with(['groupe', 'client'])->whereIn('groupe_id', $ids)->whereNotNull('client_id')->latest('id')->limit(6)->get(),
+            // Formations personnalisées qui lui sont confiées, et sa rémunération du mois.
+            'personal' => Inscription::with('niveau')->where('formateur_id', $user->id)->whereIn('status', ['validee', 'en_cours'])->orderBy('name')->get(),
+            'pay' => app(RemunerationService::class)->forTeacher($user, now()->format('Y-m')),
+            'payLastMonth' => app(RemunerationService::class)->forTeacher($user, now()->subMonthNoOverflow()->format('Y-m')),
         ]);
     }
 

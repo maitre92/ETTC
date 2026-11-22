@@ -43,7 +43,7 @@ class PaiementController extends Controller
             'gateway' => $gateways->active(),
             'refundedMonth' => (int) Paiement::where('status', PaymentStatus::Rembourse->value)->where('cancelled_at', '>=', $month)->sum('amount'),
             'qrCodes' => $this->service->merchantQrCodes(),
-            'settings' => collect(PaymentMethod::mobileMoney())->mapWithKeys(fn (PaymentMethod $m) => [$m->settingKey() => $settings->get($m->settingKey())])
+            'settings' => collect(PaymentMethod::mobileMoney())->flatMap(fn (PaymentMethod $m) => [$m->settingKey() => $settings->get($m->settingKey()), $m->ussdSettingKey() => $settings->get($m->ussdSettingKey())])
                 ->put('paiement.instructions', $settings->get('paiement.instructions'))->put('paiement.notify_email', $settings->get('paiement.notify_email'))->all(),
             'defaultVerifier' => $settings->notificationEmail(),
         ]);
@@ -144,17 +144,22 @@ class PaiementController extends Controller
         abort_unless($request->user()->can('paiements.configure'), 403);
         $rules = ['instructions' => ['nullable', 'string', 'max:1000'], 'notify_email' => ['nullable', 'email', 'max:190']];
         $names = [];
+        $messages = [];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $rules[$method->value] = ['nullable', 'string', 'max:60'];
             $rules[$method->value.'_qr'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+            $rules[$method->value.'_ussd'] = ['nullable', 'string', 'max:80', 'regex:/^[0-9#*\s]*(code secret)?[0-9#*\s]*$/iu'];
+            $names[$method->value.'_ussd'] = 'code marchand '.$method->label();
+            $messages[$method->value.'_ussd.regex'] = 'Seulement des chiffres, * et #, avec « code secret » à l\'endroit où l\'apprenant tape son code (ex. #144#8*754830*code secret#).';
             $names[$method->value] = 'numéro '.$method->label();
             $names[$method->value.'_qr'] = 'QR '.$method->label();
         }
-        $data = $request->validate($rules, [], $names);
+        $data = $request->validate($rules, $messages, $names);
 
         $values = ['paiement.instructions' => $data['instructions'] ?? '', 'paiement.notify_email' => $data['notify_email'] ?? ''];
         foreach (PaymentMethod::mobileMoney() as $method) {
             $values[$method->settingKey()] = $data[$method->value] ?? '';
+            $values[$method->ussdSettingKey()] = preg_replace('/\s+/', '', (string) ($data[$method->value.'_ussd'] ?? '')) === '' ? '' : trim(preg_replace('/\s*code\s*secret\s*/iu', 'code secret', (string) $data[$method->value.'_ussd']));
             // QR marchand : nouvelle image déposée, ou retirée (case « Retirer »).
             if ($request->hasFile($method->value.'_qr')) {
                 $values[$method->qrSettingKey()] = (string) $medias->store($request->file($method->value.'_qr'), $request->user(), 'QR '.$method->label(), 'Paiements')->id;

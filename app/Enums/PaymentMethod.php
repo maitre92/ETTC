@@ -87,6 +87,23 @@ enum PaymentMethod: string
         return $this->isMobileMoney() ? 'paiement.'.$this->value : null;
     }
 
+    /** Réglage de la formule de paiement par code marchand (USSD), ex. « #144#8*754830*code secret# ». */
+    public function ussdSettingKey(): ?string
+    {
+        return $this->isMobileMoney() ? 'paiement.'.$this->value.'_ussd' : null;
+    }
+
+    /** Opérateur de la puce (« Orange », « Moov ») pour les explications. */
+    public function operator(): string
+    {
+        return match ($this) {
+            self::OrangeMoney => 'Orange',
+            self::MoovMoney => 'Moov',
+            self::Wave => 'Wave',
+            default => '',
+        };
+    }
+
     /** Réglage de l'image du QR marchand (identifiant d'une image de la bibliothèque). */
     public function qrSettingKey(): ?string
     {

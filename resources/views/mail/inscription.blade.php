@@ -70,6 +70,17 @@
                             </td>
                         @endforeach
                     </tr></table>
+                    {{-- Paiement par code marchand : les étapes, numérotées. --}}
+                    @foreach ($payment['methods'] as $method)
+                        @if (! empty($method['ussd']))
+                            <p style="margin:14px 0 6px;font-weight:bold">Payer par code marchand {{ $method['label'] }}@if ($method['ussd']['merchant']) (code marchand {{ $method['ussd']['merchant'] }})@endif</p>
+                            <ol style="margin:0;padding-left:20px;font-size:14px">
+                                @foreach ($method['ussd']['steps'] as $step)
+                                    <li style="margin-bottom:6px"><strong>{{ $step['title'] }}</strong> — {{ $step['text'] }}@if ($step['code']) <span style="font-family:monospace;font-size:15px;background:#ffffff;padding:2px 6px;border-radius:4px">{{ $step['code'] }}</span>@endif</li>
+                                @endforeach
+                            </ol>
+                        @endif
+                    @endforeach
                     @if ($payment['whatsapp'])<p style="margin:14px 0 0;font-size:14px">Après le paiement, envoyez-nous la référence du SMS : <a href="{{ $payment['whatsapp'] }}" style="color:#045eb5;font-weight:bold">sur WhatsApp</a>@if ($payment['account']), ou déclarez-la dans votre <a href="{{ $payment['account'] }}" style="color:#045eb5;font-weight:bold">espace apprenant</a> (créé avec cette adresse e-mail)@endif.</p>@endif
                 </div>
             @endif

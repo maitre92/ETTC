@@ -263,6 +263,7 @@ class InscriptionsTest extends TestCase
     public function test_the_wizard_shows_the_numbers_when_online_payment_is_chosen(): void
     {
         $this->formule();
+        app(SiteSettings::class)->save(['paiement.orange_money_ussd' => '']);
         $this->get('/inscription')->assertOk()->assertDontSee('data-online-pay', false);
         app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01']);
         $this->get('/inscription')->assertOk()->assertSee('data-online-pay', false)->assertSee('Payer en ligne par mobile money')->assertSee('70 00 00 01');
@@ -271,7 +272,7 @@ class InscriptionsTest extends TestCase
     public function test_a_payment_declared_at_inscription_is_verified_then_the_learner_gets_the_receipt(): void
     {
         Mail::fake();
-        app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01', 'paiement.notify_email' => 'promoteur@ettc.test']);
+        app(SiteSettings::class)->save(['paiement.wave' => '70 00 00 01', 'paiement.notify_email' => 'promoteur@ettc.test', 'paiement.orange_money_ussd' => '']);
         $formule = $this->formule();
         $base = ['formule_id' => $formule->id, 'mode' => 'presentiel', 'payment_choice' => 'en_ligne', 'name' => 'Awa', 'phone' => '75 22 91 25', 'email' => 'awa@exemple.ml'];
 

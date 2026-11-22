@@ -64,10 +64,44 @@ class PaiementService
     public function merchantNumbers(): array
     {
         $qr = $this->merchantQrCodes();
+        $ussd = $this->merchantUssd();
 
         return collect(PaymentMethod::mobileMoney())
             ->mapWithKeys(fn (PaymentMethod $m) => [$m->value => trim($this->settings->get($m->settingKey()))])
-            ->filter(fn (string $number, string $method) => $number !== '' || isset($qr[$method]))->all();
+            ->filter(fn (string $number, string $method) => $number !== '' || isset($qr[$method]) || isset($ussd[$method]))->all();
+    }
+
+    /**
+     * Paiement par code marchand (USSD) de chaque moyen qui en a un : formule, code marchand et étapes expliquées une à
+     * une (diaporama « Comment payer », paiements/_ussd-steps et site.js). « code secret » dans la formule marque
+     * l'endroit où l'apprenant tape son code ; il n'est jamais demandé ni enregistré par le site.
+     *
+     * @return array<string, array{formula: string, merchant: ?string, steps: list<array{title: string, text: string, code: ?string}>}>
+     */
+    public function merchantUssd(?string $amount = null): array
+    {
+        $out = [];
+        foreach (PaymentMethod::mobileMoney() as $method) {
+            $formula = trim($this->settings->get($method->ussdSettingKey()));
+            if ($formula === '') {
+                continue;
+            }
+            $secretAt = mb_stripos($formula, 'code secret');
+            $prefix = $secretAt === false ? $formula : mb_substr($formula, 0, $secretAt);
+            $suffix = $secretAt === false ? '' : mb_substr($formula, $secretAt + mb_strlen('code secret'));
+            preg_match_all('/\d{4,}/', $prefix, $digits);
+            $merchant = end($digits[0]) ?: null;
+            $sim = $method->operator() ? 'puce '.$method->operator() : 'téléphone';
+            $steps = [['title' => 'Composez le code', 'text' => "Sur votre téléphone ({$sim}), ouvrez le clavier d'appel et tapez :", 'code' => $prefix]];
+            if ($secretAt !== false) {
+                $steps[] = ['title' => 'Ajoutez votre code secret', 'text' => 'À la suite, tapez votre code secret '.$method->label().($suffix !== '' ? ', puis '.$suffix : '').'. Ne le montrez à personne : le centre ne vous le demandera jamais.', 'code' => $prefix.'••••'.$suffix];
+            }
+            $steps[] = ['title' => 'Validez', 'text' => 'Appuyez sur OK (ou la touche d\'appel), puis suivez les instructions à l\'écran'.($amount ? " pour payer {$amount}" : '').' et confirmez.', 'code' => null];
+            $steps[] = ['title' => 'Gardez le SMS', 'text' => $method->label().' vous envoie un SMS de confirmation avec une référence : indiquez-la au centre (formulaire de paiement ou WhatsApp).', 'code' => null];
+            $out[$method->value] = ['formula' => $formula, 'merchant' => $merchant, 'steps' => $steps];
+        }
+
+        return $out;
     }
 
     /**
@@ -85,14 +119,16 @@ class PaiementService
         }
         $qr = $this->merchantQrCodes();
         $amount = Formule::money($inscription->nextInstallment());
+        $ussd = $this->merchantUssd($amount);
 
         return [
             'amount' => $amount,
             'methods' => collect($numbers)->map(fn (string $number, string $method) => [
                 'value' => $method, 'label' => PaymentMethod::from($method)->label(), 'number' => $number, 'qr' => $qr[$method] ?? null,
                 'qr_path' => $this->merchantQrPaths()[$method] ?? null,
+                'ussd' => $ussd[$method] ?? null,
             ])->values()->all(),
-            'instructions' => 'Envoyez '.$amount.' (première échéance) au numéro ou au QR du centre, en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.'
+            'instructions' => 'Envoyez '.$amount.' (première échéance) au centre (code marchand, numéro ou QR), en indiquant la référence '.$inscription->number.'. Gardez le SMS de confirmation : sa référence prouve votre paiement.'
                 .($inscription->mode === FormationMode::Presentiel ? ' Vous pouvez aussi payer au centre, à l\'accueil.' : ''),
             'whatsapp' => $this->settings->whatsappLink('Bonjour, j\'ai payé '.$amount.' pour mon inscription '.$inscription->number.'. Référence de la transaction : '),
             'account' => Route::has('client.register') ? route('client.register') : null,

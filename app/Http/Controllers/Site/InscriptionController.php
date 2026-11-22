@@ -40,6 +40,7 @@ class InscriptionController extends Controller
             // Numéros et QR mobile money du centre, montrés dès que « Payer en ligne » est choisi (étape 4).
             'mobileMoney' => app(PaiementService::class)->merchantNumbers(),
             'mobileMoneyQr' => app(PaiementService::class)->merchantQrCodes(),
+            'mobileMoneyUssd' => app(PaiementService::class)->merchantUssd(),
             // Frais d'inscription et promotions automatiques en cours, affichés sur les cartes des formules.
             'fee' => app(Tarification::class)->registrationFee(),
             'promos' => app(Tarification::class)->automaticDiscounts($formules),

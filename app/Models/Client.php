@@ -31,7 +31,7 @@ class Client extends Authenticatable
 
     protected function casts(): array
     {
-        return ['password' => 'hashed', 'is_active' => 'boolean', 'last_login_at' => 'datetime', 'email_verified_at' => 'datetime', 'birth_date' => 'date', 'gender' => Gender::class];
+        return ['password' => 'hashed', 'is_active' => 'boolean', 'last_login_at' => 'datetime', 'last_seen_at' => 'datetime', 'last_logout_at' => 'datetime', 'email_verified_at' => 'datetime', 'birth_date' => 'date', 'gender' => Gender::class];
     }
 
     protected static function booted(): void
@@ -68,7 +68,7 @@ class Client extends Authenticatable
 
     public function activityExcept(): array
     {
-        return ['created_at', 'updated_at', 'deleted_at', 'password', 'remember_token', 'last_login_at'];
+        return ['created_at', 'updated_at', 'deleted_at', 'password', 'remember_token', 'last_login_at', 'last_seen_at', 'last_logout_at'];
     }
 
     public function activityModule(): string

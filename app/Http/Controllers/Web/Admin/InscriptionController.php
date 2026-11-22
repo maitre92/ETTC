@@ -17,6 +17,9 @@ use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Promotion;
 use App\Models\TestNiveau;
+use App\Models\User;
+use App\Services\Attestations\AttestationService;
+use App\Services\Audit\ActivityLogger;
 use App\Services\Inscriptions\InscriptionService;
 use App\Services\Paiements\PaiementService;
 use App\Services\Seances\SeanceService;
@@ -24,6 +27,7 @@ use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -257,5 +261,44 @@ class InscriptionController extends Controller
         $inscription->delete();
 
         return redirect()->route('inscriptions.index')->with('status', "Inscription {$inscription->number} supprimée.");
+    }
+
+    /** Délivrance de l'attestation (une fois) : ouverte, prête à imprimer. */
+    public function issueAttestation(Request $request, Inscription $inscription, AttestationService $attestations): Response|RedirectResponse
+    {
+        try {
+            $attestations->issue($inscription, $request->user());
+        } catch (ValidationException $e) {
+            return redirect()->route('inscriptions.show', $inscription)->withErrors($e->errors());
+        }
+
+        return $attestations->pdf($inscription->fresh(['niveau']))->stream($attestations->filename($inscription));
+    }
+
+    /** Réimpression : « DUPLICATA », journalisée. */
+    public function duplicateAttestation(Request $request, Inscription $inscription, AttestationService $attestations): Response|RedirectResponse
+    {
+        try {
+            $attestations->duplicate($inscription, $request->user());
+        } catch (ValidationException $e) {
+            return redirect()->route('inscriptions.show', $inscription)->withErrors($e->errors());
+        }
+
+        return $attestations->pdf($inscription->fresh(['niveau']), true)->stream($attestations->filename($inscription));
+    }
+
+    /** Formateur d'une formation personnalisée (1/3 de la mensualité lui revient). */
+    public function assignTeacher(Request $request, Inscription $inscription, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('organize', $inscription);
+        $id = $request->validate(['formateur_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')]], [], ['formateur_id' => 'formateur'])['formateur_id'] ?? null;
+        $old = $inscription->formateur_id;
+        if ((int) $old !== (int) $id) {
+            Inscription::withoutActivityLog(fn () => $inscription->update(['formateur_id' => $id ?: null]));
+            $name = $id ? User::find($id)?->name : null;
+            $logger->log('inscriptions.teacher_assigned', 'inscriptions', 'Formateur '.($name ? "« {$name} »" : 'retiré').' — '.$inscription->number.' ('.$inscription->name.')', $inscription, ['formateur_id' => $old], ['formateur_id' => $id ?: null], $request->user());
+        }
+
+        return redirect()->route('inscriptions.show', $inscription)->with('status', $id ? 'Formateur attribué : il retrouve cet apprenant dans son espace.' : 'Formateur retiré.');
     }
 }

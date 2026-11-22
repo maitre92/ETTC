@@ -16,6 +16,9 @@
         </div>
     @endforeach
 </div>
+@foreach ($ussd ?? [] as $ussdMethod => $ussdInfo)
+    @include('paiements._ussd-steps', ['label' => PaymentMethod::from($ussdMethod)->label(), 'ussd' => $ussdInfo])
+@endforeach
 <p class="small text-muted">{{ $instructions }}</p>
 <form method="POST" action="{{ route('client.paiements.store') }}" class="row g-3" enctype="multipart/form-data" data-ajax-form novalidate>
     @csrf

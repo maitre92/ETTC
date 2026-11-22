@@ -53,7 +53,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'password_changed_at' => 'datetime',
-            'last_login_at' => 'datetime',
+            'last_login_at' => 'datetime', 'last_seen_at' => 'datetime', 'last_logout_at' => 'datetime',
         ];
     }
 
@@ -139,6 +139,6 @@ class User extends Authenticatable
     public function activityExcept(): array
     {
         // last_login_at change à chaque connexion : bruit sans valeur (la connexion elle-même est auditée).
-        return ['created_at', 'updated_at', 'deleted_at', 'password', 'remember_token', 'last_login_at'];
+        return ['created_at', 'updated_at', 'deleted_at', 'password', 'remember_token', 'last_login_at', 'last_seen_at', 'last_logout_at'];
     }
 }

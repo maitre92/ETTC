@@ -155,7 +155,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                             </div>
                             <div class="modal-body">
-                                <p class="small text-muted">Numéros marchands et QR à scanner sur lesquels les apprenants envoient leur paiement en ligne. Sans numéro ni QR, un moyen n'est pas proposé. Les formations en présentiel se règlent au centre.</p>
+                                <p class="small text-muted">Code marchand, numéro ou QR à scanner sur lesquels les apprenants envoient leur paiement en ligne. Sans aucun des trois, un moyen n'est pas proposé. Les formations en présentiel se règlent au centre.</p>
                                 <div class="row g-3">
                                     @foreach (PaymentMethod::mobileMoney() as $method)
                                         <div class="col-md-4">
@@ -163,6 +163,9 @@
                                                 <div class="fw-bold mb-2">{{ $method->label() }}</div>
                                                 <label class="form-label small fw-semibold text-start w-100" for="s-{{ $method->value }}">Numéro marchand</label>
                                                 <input class="form-control mb-3" id="s-{{ $method->value }}" name="{{ $method->value }}" maxlength="60" value="{{ $settings[$method->settingKey()] }}" placeholder="Ex. 75 22 91 25 (ETTC)">
+                                                <label class="form-label small fw-semibold text-start w-100" for="s-{{ $method->value }}-ussd">Paiement par code marchand</label>
+                                                <input class="form-control mb-1 font-monospace" id="s-{{ $method->value }}-ussd" name="{{ $method->value }}_ussd" maxlength="80" value="{{ $settings[$method->ussdSettingKey()] }}" placeholder="#144#8*754830*code secret#">
+                                                <div class="form-text text-start mb-3">Formule à composer ; écrivez « code secret » là où l'apprenant tape le sien. Les étapes lui sont expliquées en diaporama.</div>
                                                 <div class="small fw-semibold text-start">QR marchand à scanner</div>
                                                 <div class="d-flex align-items-center justify-content-center bg-light rounded my-2" style="height:170px">
                                                     <img @if (isset($qrCodes[$method->value])) src="{{ $qrCodes[$method->value] }}" @endif alt="Aperçu du QR {{ $method->label() }}" width="150" height="150" style="object-fit:contain" class="bg-white rounded {{ isset($qrCodes[$method->value]) ? '' : 'd-none' }}" data-qr-preview-img="{{ $method->value }}">

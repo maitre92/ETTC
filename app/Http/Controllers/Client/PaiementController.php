@@ -40,6 +40,7 @@ class PaiementController extends Controller
             'paiements' => Paiement::forClient($client)->with('inscription')->latest('paid_at')->latest('id')->get(),
             'numbers' => $this->service->merchantNumbers(),
             'qrCodes' => $this->service->merchantQrCodes(),
+            'ussd' => $this->service->merchantUssd(),
             'gateway' => app(GatewayManager::class)->active(),
             'instructions' => $settings->get('paiement.instructions'),
             'seo' => Seo::make('Mes paiements')->noIndex(),

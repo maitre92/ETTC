@@ -8,7 +8,7 @@
     @php
         $money = fn (int $amount) => \App\Models\Formule::money($amount);
         $query = fn (array $extra = []) => array_filter(['periode' => $preset, 'du' => $preset === 'dates' ? $from->format('Y-m-d') : null, 'au' => $preset === 'dates' ? $to->format('Y-m-d') : null, 'moyen' => $family] + $extra);
-        $sources = ['paiement' => ['Paiement apprenant', 'bg-primary-subtle'], 'remboursement' => ['Remboursement', 'bg-warning-subtle'], 'commission' => ['Commission', 'bg-info-subtle'], 'manuel' => ['Saisi', 'bg-light text-dark']];
+        $sources = ['paiement' => ['Paiement apprenant', 'bg-primary-subtle'], 'remboursement' => ['Remboursement', 'bg-warning-subtle'], 'commission' => ['Commission', 'bg-info-subtle'], 'formateur' => ['Formateur', 'bg-secondary-subtle'], 'manuel' => ['Saisi', 'bg-light text-dark']];
         $canRecord = auth()->user()->can('caisse.record');
         $canCancel = auth()->user()->can('caisse.cancel');
     @endphp
@@ -125,6 +125,8 @@
                                                 <td class="text-end text-nowrap">
                                                     @if ($r['source'] === 'paiement' || $r['source'] === 'remboursement')
                                                         <a href="{{ route('paiements.show', $r['model']) }}" class="btn btn-light btn-sm" title="Voir le paiement"><i class='bx bx-show'></i></a>
+                                                    @elseif ($r['source'] === 'formateur' && auth()->user()->can('remunerations.view'))
+                                                        <a href="{{ route('remunerations.index', ['mois' => $r['model']->period]) }}" class="btn btn-light btn-sm" title="Voir la rémunération"><i class='bx bx-show'></i></a>
                                                     @elseif ($r['source'] === 'manuel')
                                                         @if ($r['model']->proof_path)<a href="{{ route('caisse.proof', $r['model']) }}" class="btn btn-light btn-sm" target="_blank" rel="noopener" title="Justificatif"><i class='bx bx-paperclip'></i></a>@endif
                                                         @if ($canCancel && ! $r['cancelled'])

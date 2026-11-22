@@ -68,6 +68,7 @@ Route::name('site.')->group(function () {
     Route::get('/manifest-equipe.webmanifest', [AppManifestController::class, 'team'])->name('manifest.team');
     // Paiement automatique (cahier §3.8 A) : notification serveur du prestataire (sans CSRF, simple signal) et page
     // « opérateur simulé » (développement seulement, adresses signées).
+    Route::get('/certificat/{inscription}/{key}', [PaiementNotificationController::class, 'verifyCertificate'])->whereNumber('inscription')->middleware('throttle:60,1')->name('certificat.verify');
     Route::get('/recu/{number}/{key}', [PaiementNotificationController::class, 'verify'])->middleware('throttle:60,1')->name('recu.verify');
     Route::match(['get', 'post'], '/paiements/notification/{gateway}', [PaiementNotificationController::class, 'notify'])->middleware('throttle:120,1')->name('paiements.notify');
     Route::get('/paiements/simulation/{transaction}', [PaiementNotificationController::class, 'simulation'])->middleware('signed')->name('paiement-simule');

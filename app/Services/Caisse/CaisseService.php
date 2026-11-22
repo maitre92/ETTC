@@ -6,6 +6,7 @@ use App\Enums\CashCategory;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\CommissionVersement;
+use App\Models\FormateurVersement;
 use App\Models\Formule;
 use App\Models\MouvementCaisse;
 use App\Models\Paiement;
@@ -23,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  * Caisse du centre (demande du centre, 2026-11-21) : journal des entrées et sorties, soldes par moyen (espèces, mobile
  * money, banque). Sources :
  *  - AUTOMATIQUES (lues dans leur table, jamais recopiées) : frais de formation encaissés (paiements confirmés),
- *    remboursements (sortie à la date du remboursement), versements de la commission ;
+ *    remboursements (sortie à la date du remboursement), versements de la commission et rémunérations des formateurs ;
  *  - SAISIES : revenus divers, dépenses (justificatif facultatif), transferts entre moyens (dépôt en banque…).
  * Un mouvement saisi ne se supprime jamais : il s'annule avec un motif (audit).
  */
@@ -112,6 +113,12 @@ class CaisseService
             ->each(function (CommissionVersement $v) use ($rows) {
                 $rows->push($this->row(CarbonImmutable::parse($v->paid_on), 'COM-'.$v->period, 'Commission du développeur ('.$v->period.')', 'Commission versée', self::payoutMethod($v->method), 0, $v->amount, 'commission', $v));
             });
+        FormateurVersement::with('formateur')->whereBetween('paid_on', [$from->toDateString(), $to->toDateString()])->get()
+            ->each(function (FormateurVersement $v) use ($rows) {
+                $row = $this->row(CarbonImmutable::parse($v->paid_on), $v->number, 'Rémunération — '.($v->formateur?->name ?? '').' ('.$v->period.')', 'Rémunération des formateurs', $v->method, 0, $v->amount, 'formateur', $v);
+                $row['cancelled'] = $v->isCancelled();
+                $rows->push($row);
+            });
         MouvementCaisse::with(['recorder', 'canceller'])->whereBetween('occurred_on', [$from->toDateString(), $to->toDateString()])->get()
             ->each(function (MouvementCaisse $m) use ($rows) {
                 $row = $this->row(CarbonImmutable::parse($m->occurred_on), $m->number, $m->label.($m->party ? ' — '.$m->party : ''), $m->category->label(), $m->method,
@@ -171,6 +178,8 @@ class CaisseService
             ->get(['method', 'amount'])->each(fn (Paiement $p) => $add($p->method, -$p->amount));
         CommissionVersement::where('paid_on', '<=', $until->toDateString())->get(['method', 'amount'])
             ->each(fn (CommissionVersement $v) => $add(self::payoutMethod($v->method), -$v->amount));
+        FormateurVersement::valid()->where('paid_on', '<=', $until->toDateString())->get(['method', 'amount'])
+            ->each(fn (FormateurVersement $v) => $add($v->method, -$v->amount));
         MouvementCaisse::valid()->where('occurred_on', '<=', $until->toDateString())->get(['type', 'method', 'to_method', 'amount'])
             ->each(function (MouvementCaisse $m) use ($add) {
                 match ($m->type) {

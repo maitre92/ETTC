@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
+use App\Models\Inscription;
 use App\Models\Paiement;
+use App\Services\Attestations\AttestationService;
 use App\Services\Paiements\Gateway\SimulationGateway;
 use App\Services\Paiements\PaiementService;
 use App\Services\Paiements\ReceiptService;
@@ -39,6 +41,20 @@ class PaiementNotificationController extends Controller
         $valid = $paiement && $paiement->status->hasReceipt() && $receipts->matches($paiement, $key);
 
         return view('site.paiements.verification', ['paiement' => $valid ? $paiement : null, 'number' => $number, 'seo' => Seo::make('Vérification d\'un reçu')->noIndex()]);
+    }
+
+    /** Vérification publique d'une attestation (QR du certificat) : nom, formation, période, référence. */
+    public function verifyCertificate(int $inscription, string $key, AttestationService $attestations): View
+    {
+        $found = Inscription::with('niveau')->find($inscription);
+        $valid = $found && $attestations->matches($found, $key);
+
+        return view('site.paiements.certificat', [
+            'inscription' => $valid ? $found : null,
+            'training' => $valid ? $attestations->trainingName($found) : null,
+            'period' => $valid ? $attestations->period($found) : null,
+            'seo' => Seo::make('Vérification d\'une attestation')->noIndex(),
+        ]);
     }
 
     public function simulation(Request $request, string $transaction): View

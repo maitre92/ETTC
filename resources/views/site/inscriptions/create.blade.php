@@ -146,6 +146,9 @@
                                         </div>
                                     @endforeach
                                 </div>
+                                @foreach ($mobileMoneyUssd as $method => $ussd)
+                                    @include('paiements._ussd-steps', ['label' => \App\Enums\PaymentMethod::from($method)->label(), 'ussd' => $ussd])
+                                @endforeach
                                 {{-- Déjà payé ? La référence part avec l'inscription : le centre vérifie, puis confirme (reçu par e-mail). --}}
                                 <div class="pay-now-declare text-start mt-3">
                                     <h4 class="h6 mb-1">Vous avez déjà payé ? Indiquez la référence</h4>

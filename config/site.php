@@ -70,6 +70,17 @@ return [
         // en présentiel au centre. Numéros marchands vides = moyen non proposé à l'apprenant (à fournir par le centre).
         // Frais d'inscription (demande du centre, 2026-11-21) : payés une fois, avec la première échéance ; 0 = aucun.
         'formation.registration_fee' => '5000',
+        // Attestation de fin de formation (Pages et paramètres → Attestations).
+        // Rémunération des formateurs (2026-11-22) : formation personnalisée « 1/3 » de la mensualité, en groupe « 20 » %.
+        'formateurs.rate_personnalisee' => '1/3',
+        'formateurs.rate_groupe' => '20',
+        // Attestation « Certificate of Training » (modèle fourni par le centre, 2026-11-22), écran Attestations : signataire,
+        // lieu ; signature et sceau déposés (fichiers privés) — vides : ceux du modèle.
+        'attestation.director_name' => 'Mr. Cheick O. KONATÉ',
+        'attestation.director_title' => 'The General Director',
+        'attestation.city' => 'Ségou, Mali',
+        'attestation.signature_file' => '',
+        'attestation.stamp_file' => '',
         // Commission du développeur (cahier §8, Finances → Réglages) : taux en %, formations personnalisées incluses ou non.
         'finance.commission_rate' => '20',
         'finance.include_personnalisee' => '0',
@@ -80,6 +91,10 @@ return [
         'paiement.notify_email' => '',
         // QR marchands (image fournie par l'opérateur, à scanner avec son application) : identifiant d'une image.
         'paiement.orange_money_qr' => '',
+        // Paiement par code marchand (USSD) : formule à composer (demande du centre, 2026-11-22) ; vide = non proposé.
+        'paiement.orange_money_ussd' => '#144#8*754830*code secret#',
+        'paiement.wave_ussd' => '',
+        'paiement.moov_money_ussd' => '',
         'paiement.wave_qr' => '',
         'paiement.moov_money_qr' => '',
         'paiement.instructions' => 'Envoyez le montant au numéro du centre, puis indiquez ici la référence de la transaction (reçue par SMS). Le centre vérifie le paiement et vous délivre un reçu.',

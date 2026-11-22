@@ -12,7 +12,10 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::get('/inscriptions/{inscription}', [InscriptionController::class, 'show'])->middleware('permission:inscriptions.view')->name('inscriptions.show');
     Route::put('/inscriptions/{inscription}/validation', [InscriptionController::class, 'validateFile'])->middleware('permission:inscriptions.validate')->name('inscriptions.validate');
     Route::put('/inscriptions/{inscription}/debut', [InscriptionController::class, 'start'])->middleware('permission:inscriptions.validate')->name('inscriptions.start');
+    Route::post('/inscriptions/{inscription}/attestation', [InscriptionController::class, 'issueAttestation'])->middleware('permission:inscriptions.attestation')->name('inscriptions.attestation.issue');
+    Route::post('/inscriptions/{inscription}/attestation/duplicata', [InscriptionController::class, 'duplicateAttestation'])->middleware('permission:inscriptions.attestation')->name('inscriptions.attestation.duplicate');
     Route::put('/inscriptions/{inscription}/fin', [InscriptionController::class, 'finish'])->middleware('permission:inscriptions.validate')->name('inscriptions.finish');
+    Route::put('/inscriptions/{inscription}/formateur', [InscriptionController::class, 'assignTeacher'])->middleware('permission:inscriptions.organize')->name('inscriptions.teacher');
     Route::put('/inscriptions/{inscription}/dossier', [InscriptionController::class, 'organize'])->middleware('permission:inscriptions.organize')->name('inscriptions.organize');
     Route::put('/inscriptions/{inscription}/annulation', [InscriptionController::class, 'cancel'])->middleware('permission:inscriptions.cancel')->name('inscriptions.cancel');
     Route::delete('/inscriptions/{inscription}', [InscriptionController::class, 'destroy'])->middleware('permission:inscriptions.delete')->name('inscriptions.destroy');

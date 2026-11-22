@@ -18,11 +18,11 @@
             'pages' => 'Contenus du site', 'prestations' => 'Contenus du site', 'articles' => 'Contenus du site',
             'temoignages' => 'Contenus du site', 'medias' => 'Contenus du site',
             // Modules du cahier ETTC (config/planned_modules.php) : leur groupe est prêt avant leur construction.
-            'formations' => 'Formations', 'tests' => 'Formations', 'inscriptions' => 'Formations', 'seances' => 'Formations', 'groupes' => 'Formations',
-            'paiements' => 'Finances', 'finances' => 'Finances', 'caisse' => 'Finances',
+            'formations' => 'Formations', 'attestations' => 'Formations', 'tests' => 'Formations', 'inscriptions' => 'Formations', 'seances' => 'Formations', 'groupes' => 'Formations',
+            'paiements' => 'Finances', 'finances' => 'Finances', 'caisse' => 'Finances', 'remunerations' => 'Finances',
             'demandes' => 'Demandes et apprenants', 'clients' => 'Demandes et apprenants', 'statistiques' => 'Demandes et apprenants',
             'traductions' => 'Demandes et apprenants', 'formations_personnalisees' => 'Demandes et apprenants', 'excursions' => 'Demandes et apprenants',
-            'users' => 'Administration', 'activite' => 'Administration',
+            'users' => 'Administration', 'activite' => 'Administration', 'connexions' => 'Administration',
         ];
         $groupIcons = ['Formations' => 'bx bx-book-open', 'Finances' => 'bx bx-wallet', 'Demandes et apprenants' => 'bx bx-briefcase', 'Contenus du site' => 'bx bx-globe', 'Administration' => 'bx bx-buildings'];
         $groups = $navigation

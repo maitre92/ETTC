@@ -255,6 +255,80 @@
     }
 
     /* Paiement mobile money après une inscription en ligne : montant, numéro et QR de chaque opérateur, consignes. */
+    /*
+     * Diaporama des étapes ([data-steps-slider] : paiement par code marchand) : une étape à la fois, points et flèches,
+     * défilement toutes les 6 s (en pause au survol ou au focus, coupé si le visiteur réduit les animations). Bouton
+     * [data-copy] : copie le code à composer. Sans JavaScript, toutes les étapes restent listées.
+     */
+    SiteUI.initSlides = function (root) {
+        (root || document).querySelectorAll('[data-steps-slider]:not([data-ready])').forEach(function (box) {
+            box.setAttribute('data-ready', '1');
+            var slides = Array.prototype.slice.call(box.querySelectorAll('[data-step-slide]'));
+            if (slides.length < 2) return;
+            box.classList.add('is-slider');
+            var index = 0, timer = null;
+            var nav = document.createElement('div');
+            nav.className = 'ussd-steps-nav';
+            var prev = document.createElement('button'); prev.type = 'button'; prev.className = 'btn btn-sm btn-light'; prev.setAttribute('aria-label', 'Étape précédente'); prev.innerHTML = '<i class="bx bx-chevron-left" aria-hidden="true"></i>';
+            var next = document.createElement('button'); next.type = 'button'; next.className = 'btn btn-sm btn-primary'; next.innerHTML = 'Étape suivante <i class="bx bx-chevron-right" aria-hidden="true"></i>';
+            var dots = document.createElement('span'); dots.className = 'ussd-dots';
+            slides.forEach(function (s, k) {
+                var d = document.createElement('button'); d.type = 'button'; d.setAttribute('aria-label', 'Étape ' + (k + 1));
+                d.addEventListener('click', function () { show(k); restart(); });
+                dots.appendChild(d);
+            });
+            nav.appendChild(prev); nav.appendChild(dots); nav.appendChild(next);
+            box.appendChild(nav);
+            function show(k) {
+                index = (k + slides.length) % slides.length;
+                slides.forEach(function (s, j) { s.hidden = j !== index; });
+                Array.prototype.forEach.call(dots.children, function (d, j) { d.classList.toggle('is-active', j === index); d.setAttribute('aria-current', j === index ? 'step' : 'false'); });
+                next.innerHTML = index === slides.length - 1 ? 'Recommencer <i class="bx bx-revision" aria-hidden="true"></i>' : 'Étape suivante <i class="bx bx-chevron-right" aria-hidden="true"></i>';
+            }
+            function restart() { clearInterval(timer); if (!reduceMotion) timer = setInterval(function () { show(index + 1); }, 6000); }
+            prev.addEventListener('click', function () { show(index - 1); restart(); });
+            next.addEventListener('click', function () { show(index + 1); restart(); });
+            box.addEventListener('mouseenter', function () { clearInterval(timer); });
+            box.addEventListener('mouseleave', restart);
+            box.addEventListener('focusin', function () { clearInterval(timer); });
+            show(0); restart();
+        });
+    };
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-copy]');
+        if (!button) return;
+        var text = button.getAttribute('data-copy');
+        var done = function () { SiteUI.toast('Code copié : collez-le dans le clavier d\'appel.', 'success'); };
+        if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, function () {}); }
+        else { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
+    });
+    document.addEventListener('DOMContentLoaded', function () { SiteUI.initSlides(document); });
+
+    function ussdBlock(label, ussd) {
+        var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+        var box = el('div', 'ussd-steps'); box.setAttribute('data-steps-slider', ''); box.setAttribute('role', 'group');
+        box.setAttribute('aria-label', 'Comment payer par code marchand ' + label);
+        var head = el('p', 'ussd-steps-head', 'Payer par code marchand ' + label + (ussd.merchant ? ' · code marchand ' + ussd.merchant : ''));
+        box.appendChild(head);
+        var list = el('ol', 'ussd-steps-list');
+        ussd.steps.forEach(function (step, k) {
+            var li = el('li', 'ussd-step'); li.setAttribute('data-step-slide', '');
+            li.appendChild(el('span', 'ussd-step-num', String(k + 1)));
+            var body = el('div');
+            body.appendChild(el('strong', '', step.title));
+            body.appendChild(el('p', 'mb-1', step.text));
+            if (step.code) {
+                var code = el('div', 'ussd-code'); code.appendChild(el('code', '', step.code));
+                if (k === 0) { var copy = el('button', 'btn btn-sm btn-outline-primary', 'Copier'); copy.type = 'button'; copy.setAttribute('data-copy', step.code); code.appendChild(copy); }
+                body.appendChild(code);
+            }
+            li.appendChild(body);
+            list.appendChild(li);
+        });
+        box.appendChild(list);
+        return box;
+    }
+
     function paymentBlock(info) {
         var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
         var box = el('div', 'pay-now');
@@ -273,6 +347,7 @@
             list.appendChild(card);
         });
         box.appendChild(list);
+        info.methods.forEach(function (m) { if (m.ussd) box.appendChild(ussdBlock(m.label, m.ussd)); });
         var actions = el('div', 'd-flex flex-wrap gap-2 justify-content-center mt-3');
         if (info.whatsapp) { var wa = el('a', 'btn btn-whatsapp', 'J\'ai payé : envoyer la référence sur WhatsApp'); wa.href = info.whatsapp; wa.target = '_blank'; wa.rel = 'noopener'; actions.appendChild(wa); }
         if (info.account) { var acc = el('a', 'btn btn-outline-primary', 'Créer mon espace apprenant'); acc.href = info.account; actions.appendChild(acc); }
@@ -323,6 +398,7 @@
                         success.querySelector('h2').textContent = result.data.title || 'Message envoyé';
                         success.querySelector('p').textContent = result.data.message;
                         if (result.data.payment) { success.appendChild(paymentBlock(result.data.payment)); }
+                        SiteUI.initSlides(success);
                         form.replaceWith(success);
                         success.focus();
                         success.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });

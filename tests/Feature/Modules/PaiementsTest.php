@@ -208,6 +208,7 @@ class PaiementsTest extends TestCase
     {
         Mail::fake();
         config(['services.paiement.gateway' => 'simulation']);
+        app(SiteSettings::class)->save(['paiement.orange_money_ussd' => '']);
         $client = Client::factory()->create();
         $inscription = $this->inscription(['client_id' => $client->id, 'mode' => FormationMode::EnLigne, 'payment_choice' => PaymentChoice::EnLigne]);
 
