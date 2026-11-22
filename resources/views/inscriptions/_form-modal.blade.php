@@ -66,7 +66,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold" for="{{ $modalId }}-promo">Code promo <span class="text-muted small fw-normal">(facultatif)</span></label>
                             <input class="form-control text-uppercase" id="{{ $modalId }}-promo" name="promo_code" maxlength="40" autocomplete="off" data-promo-input>
-                            <div class="form-text">Les promotions automatiques en cours s'appliquent toutes seules.</div>
+                            <div class="form-text">Le code affiché sur la promotion (bandeau du site, Formations → Promotions).</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-check form-switch mt-md-4 pt-md-2">

@@ -544,3 +544,8 @@ body { color: #26304a; }
 }
 .promo-ticker-soon { font-style: normal; font-weight: 800; text-transform: uppercase; font-size: .78rem; letter-spacing: .06em; background: rgba(0, 0, 0, .2); border-radius: 4px; padding: .05rem .4rem; }
 .promo-slide-link { color: #fff; text-decoration: underline; font-weight: 600; } .promo-slide-link:hover { color: var(--ettc-yellow); }
+
+/* Inscription venue d'une promotion : rappel de l'offre (seule sa formule et son mode sont proposés). */
+.promo-focus { display: flex; align-items: center; gap: .9rem; margin-bottom: 1rem; padding: .8rem 1rem; border-radius: 14px; background: linear-gradient(90deg, #fff4e8, #fffbe6); border: 2px solid #ffd2a8; }
+.promo-focus-badge { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 4rem; height: 4rem; padding: 0 .4rem; border-radius: 50%; background: var(--ettc-red); color: #fff; font-weight: 900; }
+.ettc-promo-suggest { display: inline-block; padding: .35rem .6rem; border-radius: 10px; background: #fff4e8; border: 1px solid #ffd2a8; color: var(--ettc-ink); }

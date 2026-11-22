@@ -33,24 +33,34 @@ class InscriptionController extends Controller
     {
         $niveaux = Niveau::published()->ordered()->get();
         $formules = Formule::published()->ordered()->get();
+        $code = Promotion::normalizeCode((string) $request->query('code'));
+
+        // Venu d'une promotion (code dans l'adresse) : seule SA formule (et son mode) est proposée ; toutes si elle
+        // vaut pour toutes ; le code est déjà saisi.
+        $focus = $code !== null ? Promotion::bookable()->where('code', $code)->with('formule')->first() : null;
+        if ($focus?->formule_id && $formules->contains('id', $focus->formule_id)) {
+            $formules = $formules->where('id', $focus->formule_id)->values();
+        }
+        $modes = collect(FormationMode::cases())->filter(fn (FormationMode $m) => ! $focus?->mode || $focus->mode === $m)->values();
 
         return view('site.inscriptions.create', [
             'niveaux' => $niveaux,
             'formules' => $formules,
+            'modes' => $modes,
+            'focus' => $focus,
             // Numéros et QR mobile money du centre, montrés dès que « Payer en ligne » est choisi (étape 4).
             'mobileMoney' => app(PaiementService::class)->merchantNumbers(),
             'mobileMoneyQr' => app(PaiementService::class)->merchantQrCodes(),
             'mobileMoneyUssd' => app(PaiementService::class)->merchantUssd(),
-            // Frais d'inscription et promotions automatiques en cours, affichés sur les cartes des formules.
+            // Frais d'inscription et promotions en cours (avec leur code), affichés sur les cartes des formules.
             'fee' => app(Tarification::class)->registrationFee(),
-            'promos' => app(Tarification::class)->automaticDiscounts($formules),
+            'promos' => app(Tarification::class)->siteDiscounts($formules),
             'preset' => [
                 'niveau' => $niveaux->firstWhere('slug', (string) $request->query('niveau'))?->id,
                 'formule' => $formules->firstWhere('slug', (string) $request->query('formule'))?->id ?? ($formules->count() === 1 ? $formules->first()->id : null),
-                'mode' => FormationMode::tryFrom((string) $request->query('mode'))?->value,
+                'mode' => $modes->count() === 1 ? $modes->first()->value : FormationMode::tryFrom((string) $request->query('mode'))?->value,
                 // « J'en profite » d'une promotion : son code déjà saisi.
-                'code' => Promotion::normalizeCode((string) $request->query('code')),
-                'promo' => ctype_digit((string) $request->query('promo')) ? (int) $request->query('promo') : null,
+                'code' => $code,
             ],
             'seo' => Seo::make('Inscription à une formation', 'Inscrivez-vous en ligne à une formation d\'anglais : choisissez votre niveau, votre formule et votre mode, puis réglez en ligne ou au centre.')->noIndex(),
         ]);
@@ -69,13 +79,12 @@ class InscriptionController extends Controller
         }
         $code = Promotion::normalizeCode((string) $request->query('promo_code'));
         $withFee = ! $request->boolean('sans_frais');
-        $promoId = ctype_digit((string) $request->query('promo_id')) ? (int) $request->query('promo_id') : null;
         $codeError = null;
         try {
-            $q = $tarification->quote($formule, $mode, $code, $withFee, $promoId);
+            $q = $tarification->quote($formule, $mode, $code, $withFee);
         } catch (ValidationException $e) {
             $codeError = collect($e->errors())->flatten()->first();
-            $q = $tarification->quote($formule, $mode, null, $withFee, $promoId);
+            $q = $tarification->quote($formule, $mode, null, $withFee);
         }
         $monthly = $q['billing'] === Billing::Mensuel && $q['duration_months'] > 1;
         $formation = $q['formation_amount'] - $q['discount_amount'];
@@ -99,6 +108,9 @@ class InscriptionController extends Controller
                 : Formule::money($installment),
             'promo' => $q['promotion'] ? ['name' => $q['promotion']->name, 'badge' => $q['promotion']->badge(), 'code' => $q['promo_code']] : null,
             'code_error' => $codeError,
+            // Une promotion existe pour cette formule et le visiteur n'a pas (encore) son code : on la lui propose.
+            'suggest' => ($suggest = $tarification->suggestion($formule, $mode)) && $suggest->code !== $q['promo_code']
+                ? ['code' => $suggest->code, 'name' => $suggest->name, 'badge' => $suggest->badge(), 'upcoming' => $suggest->isUpcoming()] : null,
             'code_ok' => $code && ! $codeError && $q['promo_code'] === $code,
         ]);
     }

@@ -98,8 +98,7 @@
             var q = quote();
             if (!tarifUrl || !q || q.missing) { tarif = null; renderPrice(); return; }
             var params = 'formule_id=' + encodeURIComponent(q.formule.value) + '&mode=' + encodeURIComponent(q.mode.value)
-                + '&promo_code=' + encodeURIComponent(promoInput ? promoInput.value : '')
-                + (form.querySelector('[data-promo-id]') ? '&promo_id=' + encodeURIComponent(form.querySelector('[data-promo-id]').value) : '');
+                + '&promo_code=' + encodeURIComponent(promoInput ? promoInput.value : '');
             fetch(tarifUrl + '?' + params, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (data) {
@@ -107,8 +106,14 @@
                     if (promoFeedback && tarif && (showCode || tarif.code_error)) {
                         promoFeedback.innerHTML = tarif.code_error
                             ? '<span class="text-danger">' + esc(tarif.code_error) + '</span>'
-                            : (tarif.code_ok ? '<span class="text-success"><i class="bx bx-check-circle"></i> Code appliqué : ' + esc(tarif.promo.name) + ' (' + esc(tarif.promo.badge) + ')</span>'
-                                : (tarif.promo ? '<span class="text-muted">La promotion en cours est plus avantageuse : elle est gardée.</span>' : ''));
+                            : (tarif.code_ok ? '<span class="text-success"><i class="bx bx-check-circle"></i> Code appliqué : ' + esc(tarif.promo.name) + ' (' + esc(tarif.promo.badge) + ')</span>' : '');
+                    }
+                    // Promotion pour cette formule, code pas encore saisi : « Appliquer » en un clic.
+                    if (promoFeedback && tarif && tarif.suggest && !tarif.code_error && !tarif.code_ok) {
+                        promoFeedback.innerHTML = '<span class="ettc-promo-suggest"><i class="bx bxs-offer"></i> Une promotion existe pour cette formule : <b>'
+                            + esc(tarif.suggest.badge) + '</b> avec le code <b>' + esc(tarif.suggest.code) + '</b>'
+                            + (tarif.suggest.upcoming ? ' (réservée dès maintenant)' : '')
+                            + ' <button type="button" class="btn btn-sm btn-warning ms-1" data-promo-suggest="' + esc(tarif.suggest.code) + '">Appliquer</button></span>';
                     }
                     renderPrice();
                     if (current === steps.length - 1) { renderRecap(); }
@@ -240,6 +245,12 @@
             if (index !== -1 && index !== current) { show(index); }
         }).observe(form, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
+        form.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-promo-suggest]');
+            if (!b || !promoInput) { return; }
+            promoInput.value = b.getAttribute('data-promo-suggest');
+            fetchTarif(true);
+        });
         // Code promo : bouton « Appliquer » ou touche Entrée (sans envoyer le formulaire).
         var promoApply = form.querySelector('[data-promo-apply]');
         if (promoApply) { promoApply.addEventListener('click', function () { fetchTarif(true); }); }

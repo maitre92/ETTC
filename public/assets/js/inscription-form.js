@@ -52,7 +52,8 @@
                     return '<tr class="' + cls + '"><td>' + esc(l[0]) + '</td><td class="text-end text-nowrap">' + esc(l[1]) + '</td></tr>';
                 }).join('') + '</table><div class="mt-1">Premier paiement : <strong>' + esc(data.first_label) + '</strong></div>'
                     + (data.code_error ? '<div class="text-danger small mt-1"><i class="bx bx-error-circle"></i> ' + esc(data.code_error) + '</div>' : '')
-                    + (data.code_ok ? '<div class="text-success small mt-1"><i class="bx bx-check-circle"></i> Code promo appliqué.</div>' : '');
+                    + (data.code_ok ? '<div class="text-success small mt-1"><i class="bx bx-check-circle"></i> Code promo appliqué.</div>' : '')
+                    + (data.suggest && !data.code_error && !data.code_ok ? '<div class="small mt-1"><i class="bx bxs-offer text-warning"></i> Promotion pour cette formule : <b>' + esc(data.suggest.badge) + '</b>, code <b>' + esc(data.suggest.code) + '</b> <button type="button" class="btn btn-warning btn-sm py-0" data-promo-suggest="' + esc(data.suggest.code) + '">Appliquer</button></div>' : '');
                 var amount = form.querySelector('[data-pay-amount]');
                 if (amount) {
                     amount.max = data.total;
@@ -142,6 +143,14 @@
             clearTimeout(timers.get(event.target));
             timers.set(event.target, setTimeout(function () { fetchTarif(form); }, 500));
         }
+    });
+    document.addEventListener('click', function (event) {
+        var b = event.target.closest('[data-promo-suggest]');
+        var form = b ? b.closest('form[data-inscription-form]') : null;
+        var input = form ? form.querySelector('[data-promo-input]') : null;
+        if (!input) { return; }
+        input.value = b.getAttribute('data-promo-suggest');
+        fetchTarif(form);
     });
     document.addEventListener('change', function (event) {
         var form = event.target.closest('form[data-inscription-form]');

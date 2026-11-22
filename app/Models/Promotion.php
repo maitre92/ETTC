@@ -11,11 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
- * Promotion sur les FRAIS DE FORMATION (demande du centre, 2026-11-21), jamais sur les frais d'inscription :
- * - sans code : appliquée automatiquement pendant sa période ;
- * - avec code : appliquée quand l'apprenant (ou l'équipe) saisit le code.
+ * Promotion sur les FRAIS DE FORMATION (demande du centre, 2026-11-21), jamais sur les frais d'inscription. Chaque
+ * promotion a un CODE (saisi, sinon généré à partir du nom : generateCode) affiché sur le bandeau et le diaporama ; la
+ * réduction s'applique quand l'apprenant (ou l'accueil) le saisit — déjà rempli depuis « J'en profite » (2026-11-23).
  * Pourcentage ou montant (sur le total de la formation), sur une formule et un mode, ou sur toutes. Les deux ne se
  * cumulent pas : la meilleure réduction l'emporte. La réduction est figée sur l'inscription.
  */
@@ -113,7 +114,6 @@ class Promotion extends Model
             'formule' => $this->formule?->slug,
             'mode' => $this->mode?->value,
             'code' => $this->code,
-            'promo' => $this->code ? null : $this->id,
         ]));
     }
 
@@ -181,6 +181,29 @@ class Promotion extends Model
             $this->mode ? mb_strtolower($this->mode->label()) : null,
             $this->ends_on ? "jusqu'au ".$this->ends_on->format('d/m/Y') : null,
         ])->filter()->implode(' · ');
+    }
+
+    /** Code généré à partir du nom : « promotion du fin d'année » → FINANNEE26 (unique, chiffres ajoutés au besoin). */
+    public static function generateCode(string $name): string
+    {
+        $skip = ['PROMOTION', 'PROMO', 'OFFRE', 'DU', 'DE', 'DES', 'LA', 'LE', 'LES', 'ET', 'POUR', 'SUR', 'AU', 'AUX', 'EN', 'D', 'L'];
+        $words = array_filter(preg_split('/[^A-Z0-9]+/', strtoupper(Str::ascii($name))) ?: [], fn ($w) => $w !== '' && ! in_array($w, $skip, true));
+        $base = substr(implode('', $words) ?: 'PROMO', 0, 10).now()->format('y');
+        $code = $base;
+        for ($i = 2; self::withTrashed()->where('code', $code)->exists(); $i++) {
+            $code = $base.$i;
+        }
+
+        return $code;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $promotion) {
+            if (blank($promotion->code)) {
+                $promotion->code = self::generateCode((string) $promotion->name);
+            }
+        });
     }
 
     public static function normalizeCode(?string $code): ?string

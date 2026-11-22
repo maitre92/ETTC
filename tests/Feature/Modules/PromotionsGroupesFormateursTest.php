@@ -83,22 +83,32 @@ class PromotionsGroupesFormateursTest extends TestCase
         $this->assertSame(10000, $first['commission_amount']);
     }
 
-    public function test_automatic_promotion_and_promo_code_reduce_only_the_training_fees(): void
+    public function test_every_promotion_has_a_code_that_applies_only_to_its_formula(): void
     {
         $formule = $this->formule();
+        $other = Formule::factory()->create(['name' => 'Formule 6 mois', 'price_online' => 40000, 'price_onsite' => 20000]);
         $admin = User::factory()->administrateur()->create();
         $this->actingAs($admin)->get('/admin/formations/promotions')->assertOk()->assertSee('PROMOTIONS');
-        $this->post('/admin/formations/promotions', ['name' => 'Rentrée', 'kind' => 'percent', 'value' => '10', 'is_active' => '1'])->assertRedirect();
-        $this->post('/admin/formations/promotions', ['name' => 'Partenaires', 'code' => 'ami 2027', 'kind' => 'amount', 'value' => '30 000', 'mode' => 'en_ligne', 'is_active' => '1'])->assertRedirect();
+        $this->post('/admin/formations/promotions', ['name' => 'Promotion de la rentrée', 'kind' => 'percent', 'value' => '10', 'formule_id' => $formule->id, 'is_active' => '1', 'show_on_site' => '1'])->assertRedirect();
+        $this->post('/admin/formations/promotions', ['name' => 'Partenaires', 'code' => 'ami 2027', 'kind' => 'amount', 'value' => '30 000', 'mode' => 'en_ligne', 'is_active' => '1', 'show_on_site' => '1'])->assertRedirect();
         $this->post('/admin/formations/promotions', ['name' => 'Trop', 'kind' => 'percent', 'value' => '150', 'is_active' => '1'])->assertSessionHasErrors('value');
+        // Sans code saisi : généré à partir du nom.
+        $generated = Promotion::where('name', 'Promotion de la rentrée')->value('code');
+        $this->assertSame('RENTREE'.now()->format('y'), $generated);
         $this->assertSame('AMI2027', Promotion::where('name', 'Partenaires')->value('code'));
         auth()->logout();
 
-        // Automatique : -10 % de 100 000 ; le code (−30 000) est meilleur en ligne ; un code inconnu est signalé.
-        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne')->assertJsonPath('total', 95000);
+        // Sans code : plein tarif, mais la promotion de la formule est proposée (« Appliquer »).
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne')->assertJsonPath('total', 105000)->assertJsonPath('suggest.code', 'AMI2027');
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=presentiel')->assertJsonPath('suggest.code', $generated);
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code='.strtolower($generated))->assertJsonPath('total', 95000)->assertJsonPath('code_ok', true);
         $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code=ami2027')->assertJsonPath('total', 75000)->assertJsonPath('code_ok', true);
-        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code=FAUX')->assertJsonPath('total', 95000)->assertJsonPath('code_error', fn ($e) => str_contains($e, 'pas valable'));
-        $this->get('/formations')->assertSee('Rentrée (-10 %)', false);
+        // Refus précis : code inconnu, autre formule, autre mode.
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code=FAUX')->assertJsonPath('total', 105000)->assertJsonPath('code_error', fn ($e) => str_contains($e, 'n\'existe pas'));
+        $this->getJson('/inscription/tarif?formule_id='.$other->id.'&mode=en_ligne&promo_code='.$generated)
+            ->assertJsonPath('code_error', 'La promotion « Promotion de la rentrée » ne concerne pas cette formule : elle vaut pour Formule 2 mois.');
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=presentiel&promo_code=AMI2027')->assertJsonPath('code_error', fn ($e) => str_contains($e, 'en ligne'));
+        $this->get('/formations')->assertSee('-10 % avec le code '.$generated);
 
         $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'promo_code' => 'FAUX', 'name' => 'Awa', 'phone' => '75 22 91 25']))
             ->assertUnprocessable()->assertJsonValidationErrors('promo_code');
@@ -110,9 +120,9 @@ class PromotionsGroupesFormateursTest extends TestCase
         // Premier paiement : frais d'inscription + une échéance de la formation réduite (70 000 / 2).
         $this->assertSame(40000, $inscription->nextInstallment());
 
-        // Promotion terminée : plus appliquée, l'inscription garde sa réduction.
+        // Promotion terminée : refusée avec ce motif, l'inscription garde sa réduction.
         Promotion::query()->each(fn ($p) => $p->update(['ends_on' => now()->subDay()]));
-        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne')->assertJsonPath('total', 105000);
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code=AMI2027')->assertJsonPath('total', 105000)->assertJsonPath('code_error', fn ($e) => str_contains($e, 'terminée'));
         $this->assertSame(75000, $inscription->fresh()->total_amount);
     }
 
@@ -224,20 +234,25 @@ class PromotionsGroupesFormateursTest extends TestCase
     public function test_an_upcoming_promotion_is_announced_as_coming_soon(): void
     {
         $formule = $this->formule();
-        Promotion::create(['name' => 'Fin d\'année', 'kind' => 'percent', 'value' => 50, 'formule_id' => $formule->id, 'starts_on' => now()->addDays(9), 'ends_on' => now()->addDays(39), 'max_uses' => 15, 'is_active' => true, 'show_on_site' => true]);
+        Promotion::create(['name' => 'Fin d\'année', 'code' => 'FINANNEE', 'kind' => 'percent', 'value' => 50, 'formule_id' => $formule->id, 'starts_on' => now()->addDays(9), 'ends_on' => now()->addDays(39), 'max_uses' => 15, 'is_active' => true, 'show_on_site' => true]);
         Promotion::create(['name' => 'Trop loin', 'kind' => 'percent', 'value' => 10, 'starts_on' => now()->addDays(90), 'is_active' => true, 'show_on_site' => true]);
 
         $this->get('/')->assertOk()->assertSee('data-promo-ticker', false)->assertSee('Bientôt')->assertSee('Fin d&#039;année', false)
             ->assertSee('15 places')->assertSee('Je réserve ma place')->assertDontSee('Trop loin');
         $promo = Promotion::where('name', 'Fin d\'année')->first();
 
-        // Pas appliquée d'office avant son début ; appliquée (réservée) pour le visiteur venu de la promotion.
+        // Sans code : plein tarif (et la promotion est proposée) ; avec son code : réservée dès maintenant.
         $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne')->assertJsonPath('total', 105000);
-        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_id='.$promo->id)->assertJsonPath('total', 55000)
+        $this->getJson('/inscription/tarif?formule_id='.$formule->id.'&mode=en_ligne&promo_code=FINANNEE')->assertJsonPath('total', 55000)
             ->assertJsonPath('lines.1.0', fn ($label) => str_contains($label, 'réservée'));
-        $this->get($promo->signupUrl())->assertOk()->assertSee('name="promo_id" value="'.$promo->id.'"', false);
+        Formule::factory()->create(['name' => 'Formule 6 mois', 'price_online' => 40000, 'price_onsite' => 20000]);
+        // Venu de la promotion : seule sa formule est proposée, avec le rappel de l'offre et un lien vers toutes les formules.
+        $this->get($promo->signupUrl())->assertOk()->assertSee('value="FINANNEE"', false)
+            ->assertSee('Offre « Fin d&#039;année »', false)->assertSee('Voir toutes les formules (sans cette offre)')
+            ->assertSee('Formule 2 mois')->assertDontSee('Formule 6 mois');
+        $this->get('/inscription')->assertOk()->assertSee('Formule 6 mois')->assertDontSee('Offre « Fin');
 
-        $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'promo_id' => $promo->id, 'name' => 'Awa', 'phone' => '75 22 91 25']))->assertOk();
+        $this->postJson('/inscription', $this->human(['formule_id' => $formule->id, 'mode' => 'en_ligne', 'payment_choice' => 'en_ligne', 'promo_code' => 'FINANNEE', 'name' => 'Awa', 'phone' => '75 22 91 25']))->assertOk();
         $inscription = Inscription::firstOrFail();
         $this->assertSame([50000, $promo->id, 55000], [$inscription->discount_amount, $inscription->promotion_id, $inscription->total_amount]);
         $this->assertSame(1, $promo->fresh()->uses_count);

@@ -24,49 +24,48 @@ class Tarification
         return max(0, (int) preg_replace('/\D/', '', $this->settings->get('formation.registration_fee')));
     }
 
-    /** Meilleure promotion automatique (sans code) en cours pour cette formule et ce mode. */
-    public function automaticPromotion(Formule $formule, FormationMode $mode): ?Promotion
+    /**
+     * Promotion du code saisi pour cette formule et ce mode. Refus précis (sous le champ « Code promo ») : code inconnu,
+     * promotion arrêtée, terminée, épuisée, pas encore commencée, ou qui ne concerne pas cette formule / ce mode.
+     */
+    public function promotionForCode(string $code, Formule $formule, FormationMode $mode): Promotion
     {
-        $amount = (int) $formule->total($mode->priceColumn());
+        $promo = Promotion::with('formule')->where('code', Promotion::normalizeCode($code))->first();
+        $fail = fn (string $message) => throw ValidationException::withMessages(['promo_code' => $message]);
 
-        return Promotion::running()->whereNull('code')->for($formule, $mode)->get()
-            ->sortByDesc(fn (Promotion $p) => $p->discountOn($amount))->first();
-    }
+        if (! $promo || ! $promo->is_active) {
+            $fail('Ce code promo n\'existe pas : vérifiez-le sur le bandeau des promotions.');
+        }
+        if ($promo->ends_on && $promo->ends_on->lt(today())) {
+            $fail("La promotion « {$promo->name} » est terminée.");
+        }
+        if ($promo->max_uses !== null && $promo->uses_count >= $promo->max_uses) {
+            $fail("Il n'y a plus de place pour la promotion « {$promo->name} ».");
+        }
+        if (! Promotion::bookable()->whereKey($promo->id)->exists()) {
+            $fail("La promotion « {$promo->name} » n'a pas encore commencé (".$promo->deadline().').');
+        }
+        if (($promo->formule_id && $promo->formule_id !== $formule->id) || ($promo->mode && $promo->mode !== $mode)) {
+            $fail("La promotion « {$promo->name} » ne concerne pas cette formule : elle vaut pour "
+                .($promo->formule?->name ?? 'toutes les formules').($promo->mode ? ', '.mb_strtolower($promo->mode->label()) : '').'.');
+        }
 
-    /** Promotion d'un code saisi ; null si le code n'existe pas ou ne s'applique pas. */
-    public function codePromotion(?string $code, Formule $formule, FormationMode $mode): ?Promotion
-    {
-        $code = Promotion::normalizeCode($code);
-
-        return $code ? Promotion::bookable()->where('code', $code)->for($formule, $mode)->first() : null;
+        return $promo;
     }
 
     /**
+     * Tarif : la réduction vient du CODE promo saisi (affiché sur le bandeau, ou déjà rempli depuis la promotion).
+     *
      * @return array{formule_name: string, duration_months: int, billing: Billing, unit_price: int, formation_amount: int, discount_amount: int, promotion_id: ?int, promo_code: ?string, registration_fee: int, total_amount: int, promotion: ?Promotion}
      */
-    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true, ?int $promoId = null): array
+    public function quote(Formule $formule, FormationMode $mode, ?string $code = null, bool $withFee = true): array
     {
         $price = $formule->{$mode->priceColumn()};
         if (! $formule->is_published || $price === null) {
             throw ValidationException::withMessages(['mode' => "La formule « {$formule->name} » n'est pas proposée ".mb_strtolower($mode->label()).'.']);
         }
         $formation = (int) $formule->total($mode->priceColumn());
-
-        $promotion = $this->automaticPromotion($formule, $mode);
-        // Venu d'une promotion annoncée (« Je réserve ») : elle s'applique si elle vaut pour cette formule et ce mode.
-        if ($promoId && ($chosen = Promotion::bookable()->whereNull('code')->whereKey($promoId)->for($formule, $mode)->first())
-            && (! $promotion || $chosen->discountOn($formation) >= $promotion->discountOn($formation))) {
-            $promotion = $chosen;
-        }
-        if (Promotion::normalizeCode($code)) {
-            $byCode = $this->codePromotion($code, $formule, $mode);
-            if (! $byCode) {
-                throw ValidationException::withMessages(['promo_code' => 'Ce code promo n\'est pas valable pour cette formule (code inconnu, terminé ou épuisé).']);
-            }
-            if (! $promotion || $byCode->discountOn($formation) >= $promotion->discountOn($formation)) {
-                $promotion = $byCode;
-            }
-        }
+        $promotion = Promotion::normalizeCode($code) ? $this->promotionForCode((string) $code, $formule, $mode) : null;
         $discount = $promotion?->discountOn($formation) ?? 0;
         $fee = $withFee ? $this->registrationFee() : 0;
 
@@ -86,25 +85,38 @@ class Tarification
     }
 
     /**
-     * Réductions automatiques par formule et mode, pour l'affichage en direct (site, administration).
+     * Promotions en cours affichées sur le site, par formule et par mode (étiquettes des cartes des formules) :
+     * « -20 % avec le code RENTREE26 ».
      *
-     * @return array<int, array<string, array{discount: int, label: string}>>
+     * @return array<int, array<string, array{discount: int, label: string, code: ?string}>>
      */
-    public function automaticDiscounts(iterable $formules): array
+    public function siteDiscounts(iterable $formules): array
     {
+        $promos = Promotion::running()->where('show_on_site', true)->get();
         $map = [];
         foreach ($formules as $formule) {
             foreach (FormationMode::cases() as $mode) {
                 if ($formule->{$mode->priceColumn()} === null) {
                     continue;
                 }
-                $promo = $this->automaticPromotion($formule, $mode);
-                if ($promo) {
-                    $map[$formule->id][$mode->value] = ['discount' => $promo->discountOn((int) $formule->total($mode->priceColumn())), 'label' => $promo->name.' ('.$promo->badge().')'];
+                $amount = (int) $formule->total($mode->priceColumn());
+                $best = $promos->filter(fn (Promotion $p) => (! $p->formule_id || $p->formule_id === $formule->id) && (! $p->mode || $p->mode === $mode))
+                    ->sortByDesc(fn (Promotion $p) => $p->discountOn($amount))->first();
+                if ($best) {
+                    $map[$formule->id][$mode->value] = ['discount' => $best->discountOn($amount), 'label' => $best->badge().' avec le code '.$best->code, 'code' => $best->code];
                 }
             }
         }
 
         return $map;
+    }
+
+    /** Promotion à proposer pour cette formule et ce mode (affichée sur le site, en cours ou réservable) : la plus forte. */
+    public function suggestion(Formule $formule, FormationMode $mode): ?Promotion
+    {
+        $amount = (int) $formule->total($mode->priceColumn());
+
+        return Promotion::bookable()->where('show_on_site', true)->for($formule, $mode)->get()
+            ->sortByDesc(fn (Promotion $p) => $p->discountOn($amount))->first();
     }
 }

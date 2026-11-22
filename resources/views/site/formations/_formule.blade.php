@@ -3,9 +3,9 @@
      (présélectionné dans l'inscription). --}}
 @php
     $prices = $formule->prices();
-    // Promotions automatiques en cours et frais d'inscription (Formules et tarifs), affichés sous les prix.
+    // Promotions en cours (avec leur code) et frais d'inscription (Formules et tarifs), affichés sous les prix.
     $tarification = app(\App\Services\Formations\Tarification::class);
-    $promos = $tarification->automaticDiscounts([$formule])[$formule->id] ?? [];
+    $promos = $tarification->siteDiscounts([$formule])[$formule->id] ?? [];
     $fee = $tarification->registrationFee();
 @endphp
 <article class="ettc-formula">

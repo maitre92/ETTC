@@ -29,7 +29,6 @@
             @else
                 <form method="POST" action="{{ route('site.inscription.store') }}" class="ettc-wizard" enctype="multipart/form-data" data-ajax-form data-ettc-wizard data-tarif-url="{{ route('site.inscription.tarif') }}" novalidate>
                     @csrf
-                    @if (! empty($preset['promo']))<input type="hidden" name="promo_id" value="{{ $preset['promo'] }}" data-promo-id>@endif
                     <ol class="ettc-wizard-steps" aria-hidden="true">
                         @foreach ($steps as $stepLabel)
                             <li class="{{ $loop->first ? 'is-current' : '' }}"><span>{{ $loop->iteration }}</span>{{ $stepLabel }}</li>
@@ -62,6 +61,17 @@
                     {{-- 2. Formule et mode --}}
                     <fieldset class="ettc-step" data-step>
                         <legend class="h4 text-ink">2. Votre formule et votre mode</legend>
+                        @if ($focus)
+                            {{-- Venu d'une promotion : seule l'offre est proposée ; lien pour revenir à toutes les formules. --}}
+                            <div class="promo-focus">
+                                <span class="promo-focus-badge">{{ $focus->badge() }}</span>
+                                <div>
+                                    <strong>Offre « {{ $focus->name }} »</strong>{{ $focus->isUpcoming() ? ' — réservée dès maintenant' : '' }}
+                                    <div class="small">{{ $focus->formule?->name ?? 'Toutes les formules' }}{{ $focus->mode ? ', '.mb_strtolower($focus->mode->label()) : '' }}@if ($focus->deadline()) · {{ $focus->deadline() }}@endif</div>
+                                    <a href="{{ route('site.inscription.create') }}" class="small">Voir toutes les formules (sans cette offre)</a>
+                                </div>
+                            </div>
+                        @endif
                         <div class="ettc-choices">
                             @foreach ($formules as $formule)
                                 <label class="ettc-choice form-check">
@@ -74,14 +84,14 @@
                                         <small>{{ $modeLabel }} : <b>{{ \App\Models\Formule::money($amount) }}</b> {{ $formule->billing->suffix() }}</small>
                                     @endforeach
                                     @foreach ($promos[$formule->id] ?? [] as $promoMode => $promo)
-                                        <small class="ettc-promo-tag"><i class='bx bxs-offer' aria-hidden="true"></i> {{ $promo['label'] }}{{ count($promos[$formule->id]) < 2 ? ' — '.mb_strtolower(\App\Enums\FormationMode::from($promoMode)->label()) : '' }}</small>
+                                        <small class="ettc-promo-tag"><i class='bx bxs-offer' aria-hidden="true"></i> {{ $promo['label'] }} — {{ mb_strtolower(\App\Enums\FormationMode::from($promoMode)->label()) }}</small>
                                     @endforeach
                                 </label>
                             @endforeach
                         </div>
                         <p class="fw-semibold mt-3 mb-2 text-ink">Mode de formation</p>
                         <div class="ettc-choices ettc-choices-2">
-                            @foreach (\App\Enums\FormationMode::cases() as $mode)
+                            @foreach ($modes as $mode)
                                 <label class="ettc-choice form-check">
                                     <input class="form-check-input" type="radio" name="mode" value="{{ $mode->value }}" required data-label="{{ $mode->label() }}" @checked(old('mode', $preset['mode']) === $mode->value)>
                                     <strong><i class='bx {{ $mode === \App\Enums\FormationMode::EnLigne ? 'bx-video' : 'bx-building-house' }}' aria-hidden="true"></i> {{ $mode->label() }}</strong>
