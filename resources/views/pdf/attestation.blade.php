@@ -28,6 +28,7 @@
         .signer { position: absolute; left: {{ $mm(828) }}mm; width: {{ $mm(224) }}mm; text-align: center; line-height: 1; white-space: nowrap; font-family: 'DejaVu Serif', serif; font-weight: bold; color: #101018; }
         .rule { position: absolute; left: {{ $mm(828) }}mm; top: {{ $mm(707) }}mm; width: {{ $mm(224) }}mm; height: 0.35mm; background: #101018; }
         .cover { position: absolute; left: {{ $mm(1125 - 77) }}mm; top: {{ $mm(746 - 77) }}mm; width: {{ $mm(154) }}mm; height: {{ $mm(154) }}mm; border-radius: {{ $mm(77) }}mm; background: rgb(245, 248, 252); }
+        .contact { position: absolute; left: {{ $mm(963) }}mm; width: 62mm; line-height: 1; white-space: nowrap; font-family: 'DejaVu Sans', sans-serif; font-weight: bold; color: #141d45; }
         .dup { position: absolute; top: 88mm; left: 0; width: 297mm; text-align: center; font-family: helvetica, sans-serif; font-weight: bold; font-size: 60pt; color: #d4351c; opacity: .14; transform: rotate(-12deg); }
     </style>
 </head>

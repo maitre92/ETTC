@@ -17,6 +17,14 @@
     <div class="t line" style="top: {{ $top(121.8, 12.4) }}mm">The training was conducted {{ $mode }} <b>{{ $period }}</b>,</div>
     <div class="t line" style="top: {{ $top(127.8, 12.4) }}mm">with a total duration of <b>{{ $duration }}</b>.</div>
 
+    {{-- Coordonnées en haut à droite (écran Attestations ; sinon celles du site), à côté des icônes du modèle. --}}
+    @foreach ($contacts ?? [] as $i => $contact)
+        @if ($contact !== '')
+            @php $contactSize = min(9.1, round(9.1 * 22 / max(22, mb_strlen($contact)), 1)); @endphp
+            <div class="contact" style="top: {{ $top([11.21, 17.40, 23.60, 29.40][$i] - 0.75, $contactSize) }}mm; font-size: {{ $contactSize }}pt">{{ $contact }}</div>
+        @endif
+    @endforeach
+
     <img src="{{ $qr }}" alt="" class="qr">
     <div class="ref" style="top: {{ $top(184.9, 8.6) }}mm">{{ $inscription->attestation_number }}</div>
     <div class="issued" style="top: {{ $top(171.7, 11.3) }}mm">Issued in {{ $city }}, on {{ $issued }}.</div>

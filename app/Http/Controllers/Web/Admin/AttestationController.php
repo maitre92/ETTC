@@ -48,12 +48,19 @@ class AttestationController extends Controller
             'director_name' => ['required', 'string', 'max:60'],
             'director_title' => ['required', 'string', 'max:40'],
             'city' => ['required', 'string', 'max:60'],
-        ], [], ['director_name' => 'nom du signataire', 'director_title' => 'titre', 'city' => 'lieu']);
+            'contact_city' => ['nullable', 'string', 'max:60'],
+            'contact_phone' => ['nullable', 'string', 'max:40'],
+            'contact_email' => ['nullable', 'string', 'max:80'],
+            'contact_website' => ['nullable', 'string', 'max:80'],
+        ], [], ['director_name' => 'nom du signataire', 'director_title' => 'titre', 'city' => 'lieu', 'contact_city' => 'lieu (en-tête)', 'contact_phone' => 'téléphone', 'contact_email' => 'e-mail', 'contact_website' => 'site internet']);
         $values = ['attestation.director_name' => trim($data['director_name']), 'attestation.director_title' => trim($data['director_title']), 'attestation.city' => trim($data['city'])];
+        foreach (['city', 'phone', 'email', 'website'] as $field) {
+            $values['attestation.contact_'.$field] = trim((string) ($data['contact_'.$field] ?? ''));
+        }
         $settings->save($values);
         $logger->log('attestations.signer_updated', 'attestations', 'Signataire de l\'attestation : '.$values['attestation.director_name'].' ('.$values['attestation.director_title'].')', new: $values);
 
-        return redirect()->route('attestations.edit')->with('status', 'Signataire enregistré.');
+        return redirect()->route('attestations.edit')->with('status', 'Signataire et coordonnées enregistrés.');
     }
 
     /** Traite l'image proposée et renvoie : l'image traitée, l'aperçu de l'attestation entière et le zoom. */

@@ -84,6 +84,11 @@ return [
         'attestation.director_title' => 'The General Director',
         'attestation.city' => 'Ségou, Mali',
         'attestation.signature_file' => '',
+        // Coordonnées en haut à droite de l'attestation : vides = celles du site (Pages et paramètres → Coordonnées).
+        'attestation.contact_city' => '',
+        'attestation.contact_phone' => '',
+        'attestation.contact_email' => '',
+        'attestation.contact_website' => 'www.ettc-mali.org',
         'attestation.stamp_file' => '',
         // Commission du développeur (cahier §8, Finances → Réglages) : taux en %, formations personnalisées incluses ou non.
         'finance.commission_rate' => '20',

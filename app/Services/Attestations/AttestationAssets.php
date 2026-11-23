@@ -220,6 +220,19 @@ class AttestationAssets
         imagefilledrectangle($img, $lx0, $ly, $lx1, $ly + 1, $ink);
         $this->text($img, $font, $override['name'] ?? $this->name(), self::NAME['x'], self::NAME['base'], 13.5, self::NAME['max'], $ink);
 
+        // Coordonnées en haut à droite.
+        $sans = base_path('vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ttf');
+        $navy = imagecolorallocate($img, 24, 34, 74);
+        foreach ($this->contacts() as $i => $line) {
+            if ($line !== '') {
+                $size = 11.5;
+                while ($size > 7 && (imagettfbbox($size, 0, $sans, $line)[2] - imagettfbbox($size, 0, $sans, $line)[0]) > 230) {
+                    $size -= 0.5;
+                }
+                imagettftext($img, $size, 0, self::CONTACT_LEFT, (int) round(self::CONTACT_LINES[$i] + 5), $navy, $sans, $line);
+            }
+        }
+
         $zoom = imagecreatetruecolor(880, 360);
         imagecopyresampled($zoom, $img, 0, 0, 790, 650, 880, 360, 440, 180);
         $full = imagecreatetruecolor(960, 640);
@@ -227,6 +240,24 @@ class AttestationAssets
 
         return ['full' => 'data:image/png;base64,'.base64_encode($this->png($full)), 'zoom' => 'data:image/png;base64,'.base64_encode($this->png($zoom))];
     }
+
+    /**
+     * Coordonnées en haut à droite (lieu, téléphone, e-mail, site), dans l'ordre des icônes du modèle : celles réglées
+     * pour l'attestation, sinon celles du site.
+     *
+     * @return list<string>
+     */
+    public function contacts(): array
+    {
+        $get = fn (string $key, string $fallback) => trim($this->settings->get('attestation.contact_'.$key)) ?: trim($this->settings->get($fallback));
+
+        return [$get('city', 'contact.city'), $get('phone', 'contact.phone_1'), $get('email', 'contact.email'), trim($this->settings->get('attestation.contact_website'))];
+    }
+
+    /** Lignes des coordonnées (pixels du modèle) : centre vertical de chaque ligne, bord gauche du texte. */
+    public const CONTACT_LINES = [48.3, 75.0, 101.7, 126.7];
+
+    public const CONTACT_LEFT = 963;
 
     public function name(): string
     {

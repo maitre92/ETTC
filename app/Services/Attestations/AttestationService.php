@@ -167,6 +167,7 @@ class AttestationService
             'stampFit' => $assets->fitMm($assets->stampPath(), 140, 140),
             'signer' => $assets->name(),
             'signerTitle' => mb_strtoupper($assets->title()),
+            'contacts' => $assets->contacts(),
             'training' => $this->trainingName($inscription),
             'period' => $this->period($inscription),
             'duration' => $this->duration($inscription),

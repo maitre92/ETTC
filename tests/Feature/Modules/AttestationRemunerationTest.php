@@ -263,4 +263,19 @@ class AttestationRemunerationTest extends TestCase
         $inscription->update(['amount_paid' => 100000]);
         $this->assertSame([], $service->blockers($inscription->fresh()));
     }
+
+    public function test_the_header_contacts_of_the_certificate_are_configurable(): void
+    {
+        $assets = app(AttestationAssets::class);
+        app(SiteSettings::class)->save(['contact.city' => 'Ségou, Mali', 'contact.phone_1' => '+223 75 22 91 25', 'contact.email' => 'contact@ettc-mali.org']);
+        $this->assertSame(['Ségou, Mali', '+223 75 22 91 25', 'contact@ettc-mali.org', 'www.ettc-mali.org'], $assets->contacts());
+
+        $this->actingAs(User::factory()->administrateur()->create());
+        $this->get('/admin/attestations')->assertOk()->assertSee('Coordonnées en haut de l\'attestation', false);
+        $this->put('/admin/attestations/signataire', ['director_name' => 'Mr. Cheick O. KONATÉ', 'director_title' => 'The General Director', 'city' => 'Ségou, Mali',
+            'contact_city' => 'Bamako, Mali', 'contact_phone' => '+223 70 00 00 00', 'contact_email' => '', 'contact_website' => 'ettc.ml'])->assertRedirect();
+        // Vide = celle du site.
+        $this->assertSame(['Bamako, Mali', '+223 70 00 00 00', 'contact@ettc-mali.org', 'ettc.ml'], $assets->contacts());
+        $this->get('/admin/attestations/exemple')->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
 }

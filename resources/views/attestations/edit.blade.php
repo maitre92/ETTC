@@ -66,13 +66,18 @@
         <div class="col-xl-5">
             {{-- Signataire --}}
             <div class="card">
-                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-user-check me-2'></i>SIGNATAIRE</h6></div>
+                <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-user-check me-2'></i>SIGNATAIRE ET COORDONNÉES</h6></div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('attestations.signer') }}" class="row g-2">
                         @csrf @method('PUT')
                         <div class="col-12"><label class="form-label fw-semibold" for="a-name">Nom (tel qu'il apparaît sous la signature)</label><input class="form-control" id="a-name" name="director_name" maxlength="60" required value="{{ old('director_name', $settings->get('attestation.director_name')) }}"></div>
                         <div class="col-md-7"><label class="form-label fw-semibold" for="a-title">Titre (en anglais)</label><input class="form-control" id="a-title" name="director_title" maxlength="40" required value="{{ old('director_title', $settings->get('attestation.director_title')) }}"><div class="form-text">Ex. The General Director</div></div>
                         <div class="col-md-5"><label class="form-label fw-semibold" for="a-city">Lieu de délivrance</label><input class="form-control" id="a-city" name="city" maxlength="60" required value="{{ old('city', $settings->get('attestation.city')) }}"></div>
+                        <div class="col-12 mt-3"><span class="fw-semibold">Coordonnées en haut de l'attestation</span><div class="form-text mt-0">Vide : celles du site (Pages et paramètres → Coordonnées).</div></div>
+                        <div class="col-md-6"><label class="form-label small" for="a-ccity"><i class='bx bxs-map'></i> Lieu</label><input class="form-control" id="a-ccity" name="contact_city" maxlength="60" value="{{ old('contact_city', $settings->get('attestation.contact_city')) }}" placeholder="{{ $settings->get('contact.city') }}"></div>
+                        <div class="col-md-6"><label class="form-label small" for="a-cphone"><i class='bx bxs-phone'></i> Téléphone</label><input class="form-control" id="a-cphone" name="contact_phone" maxlength="40" value="{{ old('contact_phone', $settings->get('attestation.contact_phone')) }}" placeholder="{{ $settings->get('contact.phone_1') }}"></div>
+                        <div class="col-md-6"><label class="form-label small" for="a-cemail"><i class='bx bxs-envelope'></i> E-mail</label><input class="form-control" id="a-cemail" name="contact_email" maxlength="80" value="{{ old('contact_email', $settings->get('attestation.contact_email')) }}" placeholder="{{ $settings->get('contact.email') }}"></div>
+                        <div class="col-md-6"><label class="form-label small" for="a-cweb"><i class='bx bx-globe'></i> Site internet</label><input class="form-control" id="a-cweb" name="contact_website" maxlength="80" value="{{ old('contact_website', $settings->get('attestation.contact_website')) }}" placeholder="www.ettc-mali.org"></div>
                         <div class="col-12"><button type="submit" class="btn btn-primary"><i class='bx bx-save me-1'></i>Enregistrer</button></div>
                     </form>
                 </div>
