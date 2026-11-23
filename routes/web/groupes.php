@@ -18,6 +18,7 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/groupes/{groupe}/seances', [GroupeController::class, 'storeSeance'])->middleware('permission:seances.manage')->name('groupes.seances.store');
     Route::put('/groupes/{groupe}/seances/{seance}', [GroupeController::class, 'updateSeance'])->middleware('permission:seances.manage')->name('groupes.seances.update');
     Route::put('/groupes/{groupe}/seances/{seance}/annulation', [GroupeController::class, 'cancelSeance'])->middleware('permission:seances.manage')->name('groupes.seances.cancel');
+    Route::post('/groupes/{groupe}/attestations', [GroupeController::class, 'attestations'])->middleware('permission:inscriptions.attestation')->name('groupes.attestations');
     Route::post('/groupes/{groupe}/messages', [GroupeController::class, 'storeMessage'])->middleware('permission:seances.manage')->name('groupes.messages.store');
     Route::delete('/groupes/{groupe}/messages/{message}', [GroupeController::class, 'destroyMessage'])->middleware('permission:seances.manage')->name('groupes.messages.destroy');
     Route::post('/groupes/{groupe}/supports', [GroupeController::class, 'storeSupport'])->middleware('permission:seances.supports')->name('groupes.supports.store');

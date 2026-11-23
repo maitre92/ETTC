@@ -29,6 +29,12 @@ class PaiementPolicy extends ModulePolicy
         return $user->can('paiements.refund');
     }
 
+    /** Demander l'annulation (secrétaire) : seulement sans le droit d'annuler soi-même. */
+    public function requestCancel(User $user, Paiement $paiement): bool
+    {
+        return $user->can('paiements.request_cancel') && ! $user->can('paiements.refund');
+    }
+
     public function delete(User $user, Model $model): bool
     {
         return false;

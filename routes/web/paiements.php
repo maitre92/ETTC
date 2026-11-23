@@ -14,5 +14,8 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::put('/paiements/{paiement}/confirmation', [PaiementController::class, 'confirm'])->middleware('permission:paiements.verify')->name('paiements.confirm');
     Route::put('/paiements/{paiement}/rejet', [PaiementController::class, 'reject'])->middleware('permission:paiements.verify')->name('paiements.reject');
     Route::put('/paiements/{paiement}/annulation', [PaiementController::class, 'cancel'])->middleware('permission:paiements.refund')->name('paiements.cancel');
+    Route::put('/paiements/{paiement}/demande-annulation', [PaiementController::class, 'requestCancel'])->middleware('permission:paiements.request_cancel')->name('paiements.cancel-request');
+    Route::put('/paiements/{paiement}/demande-annulation/validation', [PaiementController::class, 'approveCancel'])->middleware('permission:paiements.refund')->name('paiements.cancel-request.approve');
+    Route::put('/paiements/{paiement}/demande-annulation/refus', [PaiementController::class, 'rejectCancel'])->middleware('permission:paiements.refund')->name('paiements.cancel-request.reject');
     Route::put('/paiements/{paiement}/remboursement', [PaiementController::class, 'refund'])->middleware('permission:paiements.refund')->name('paiements.refund');
 });

@@ -3,6 +3,7 @@
 namespace App\Services\Paiements;
 
 use App\Models\Paiement;
+use App\Services\Attestations\AttestationAssets;
 use App\Support\SiteSettings;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Endroid\QrCode\Builder\Builder;
@@ -30,6 +31,10 @@ class ReceiptService
             'logo' => self::logoDataUri(),
             'qr' => $this->qr($this->qrText($paiement), $thermal ? 170 : 190),
             'verifyUrl' => $this->verificationUrl($paiement),
+            // Signature et sceau du centre (écran Attestations), sur le reçu A5.
+            'signature' => $thermal ? null : app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->signaturePath()),
+            'stamp' => $thermal ? null : app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->documentStampPath()),
+            'signer' => app(AttestationAssets::class)->name(),
         ]);
 
         // 80 mm = 226,77 pt ; hauteur généreuse (le papier thermique est coupé après l'impression).

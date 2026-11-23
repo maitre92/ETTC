@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers\Client;
 
+use App\Enums\FormationMode;
 use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientDocument;
 use App\Models\Inscription;
 use App\Models\TestNiveau;
+use App\Services\Attestations\AttestationService;
 use App\Support\PhoneNumber;
 use App\Support\Seo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -42,6 +45,18 @@ class AccountController extends Controller
             'dues' => Inscription::forClient($client)->unpaid()->get()->filter(fn ($i) => $i->payableNow() > 0)->values(),
             'seo' => Seo::make('Mon espace client')->noIndex(),
         ]);
+    }
+
+    /**
+     * Attestation d'une formation EN LIGNE (délivrance à distance) : téléchargeable par l'apprenant, une fois délivrée.
+     * En présentiel, elle se retire au centre (pas de téléchargement).
+     */
+    public function attestation(Request $request, Inscription $inscription, AttestationService $attestations): Response
+    {
+        $mine = Inscription::forClient($this->client($request))->whereKey($inscription->id)->exists();
+        abort_unless($mine && $inscription->attestation_number && $inscription->mode === FormationMode::EnLigne, 404);
+
+        return $attestations->pdf($inscription)->download($attestations->filename($inscription));
     }
 
     public function demandes(Request $request): View

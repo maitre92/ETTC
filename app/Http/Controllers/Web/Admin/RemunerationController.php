@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Models\FormateurVersement;
 use App\Models\User;
+use App\Services\Attestations\AttestationAssets;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Paiements\ReceiptService;
 use App\Services\Remunerations\RemunerationService;
@@ -96,6 +97,9 @@ class RemunerationController extends Controller
             'data' => $data, 'payouts' => FormateurVersement::valid()->where('user_id', $formateur->id)->where('period', $period)->get(),
             'rates' => ['personnalisee' => $this->service->rateLabel('personnalisee'), 'groupe' => $this->service->rateLabel('groupe')],
             'site' => $site, 'logo' => ReceiptService::logoDataUri(),
+            'signature' => app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->signaturePath()),
+            'stamp' => app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->documentStampPath()),
+            'signer' => app(AttestationAssets::class)->name(),
         ])->setPaper('a4')->download('Remuneration_'.str_replace(' ', '_', $formateur->name).'_'.$period.'.pdf');
     }
 

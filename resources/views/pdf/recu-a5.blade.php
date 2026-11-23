@@ -18,6 +18,9 @@
         .foot td { vertical-align: top; }
         .sign { height: 46px; border-bottom: 1px dotted #5d6b82; width: 150px; }
         .small { font-size: 8px; }
+        .sign-zone { position: relative; height: 62px; margin-top: 4px; }
+        .sign-stamp { position: absolute; left: 70px; top: 0; width: 62px; height: 62px; opacity: .9; }
+        .sign-img { position: absolute; left: 0; top: 16px; width: 110px; }
     </style>
 </head>
 <body>
@@ -38,8 +41,12 @@
         <tr>
             <td>
                 <div class="muted">{{ $paiement->source === 'en_ligne' ? 'Paiement en ligne confirmé par l\'opérateur.' : 'Encaissé par : '.($paiement->recorder?->displayName() ?? $paiement->confirmer?->displayName() ?? $site->get('company.short_name')) }}</div>
-                <div class="sign"></div>
-                <div class="muted small">Cachet et signature</div>
+                {{-- Signature et sceau du centre (Formations → Attestations ; ceux du modèle par défaut). --}}
+                <div class="sign-zone">
+                    @if ($stamp ?? null)<img src="{{ $stamp }}" alt="" class="sign-stamp">@endif
+                    @if ($signature ?? null)<img src="{{ $signature }}" alt="" class="sign-img">@endif
+                </div>
+                <div class="muted small">{{ ($signer ?? '') !== '' ? $signer.' — ' : '' }}Cachet et signature</div>
             </td>
             <td style="text-align:right">
                 <img src="{{ $qr }}" width="88" height="88" alt="">

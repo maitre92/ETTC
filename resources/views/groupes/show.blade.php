@@ -174,6 +174,33 @@
                     </div>
                 </div>
 
+                {{-- Attestations du groupe en une fois (formations terminées), un seul PDF à imprimer. --}}
+                @can('inscriptions.attestation')
+                    @php
+                        $finished = $groupe->members->where('status', \App\Enums\InscriptionStatus::Terminee);
+                        $toIssue = $finished->whereNull('attestation_number')->count();
+                        $running = $groupe->members->where('status', \App\Enums\InscriptionStatus::EnCours)->count();
+                        $issuedCount = $groupe->members->whereNotNull('attestation_number')->count();
+                    @endphp
+                    @if ($groupe->members->isNotEmpty())
+                        <div class="card" id="attestations">
+                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>ATTESTATIONS DU GROUPE</h6></div>
+                            <div class="card-body">
+                                @error('attestations')<div class="alert alert-warning small">{{ $message }}</div>@enderror
+                                <p class="small mb-2">{{ $issuedCount }} déjà délivrée(s) · {{ $toIssue }} à délivrer (formation terminée) · {{ $running }} formation(s) encore en cours.</p>
+                                <form method="POST" action="{{ route('groupes.attestations', $groupe) }}" target="_blank" data-no-guard data-reload-after>
+                                    @csrf
+                                    @if ($running > 0)
+                                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="att-finish" name="finish" value="1"><label class="form-check-label small" for="att-finish">Terminer d'abord la formation des {{ $running }} apprenant(s) en cours</label></div>
+                                    @endif
+                                    <button type="submit" class="btn btn-success"><i class='bx bx-award me-1'></i>Délivrer les attestations</button>
+                                    <div class="form-text">Un seul PDF, une page par apprenant. Chacun est prévenu par e-mail (formation en ligne : attestation jointe et dans son espace).</div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+                @endcan
+
                 @include('groupes._discussion', [
                     'groupe' => $groupe,
                     'postUrl' => $canManage ? route('groupes.messages.store', $groupe) : null,
@@ -280,6 +307,11 @@
 @endsection
 
 @push('scripts')
+    <script>
+        document.querySelectorAll('form[data-reload-after]').forEach(function (form) {
+            form.addEventListener('submit', function () { setTimeout(function () { window.location.reload(); }, 2000); });
+        });
+    </script>
     <script src="{{ asset('assets/js/crud-ajax.js') }}?v={{ filemtime(public_path('assets/js/crud-ajax.js')) }}"></script>
     <script>CrudAjax.init(document.querySelector('[data-crud="groupe-{{ $groupe->id }}"]'));</script>
 @endpush

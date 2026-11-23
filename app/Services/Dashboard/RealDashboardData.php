@@ -98,7 +98,8 @@ class RealDashboardData
             'temoignages' => $user->can('temoignages.update') ? Temoignage::where('source', 'client')->where('is_published', false)->count() : 0,
             'inscriptions' => $user->can('inscriptions.view') ? Inscription::where('status', InscriptionStatus::AValider->value)->count() : 0,
             'tests' => $user->can('tests.view') ? TestNiveau::where('status', TestStatus::Demande->value)->count() : 0,
-            'paiements' => $user->can('paiements.verify') ? Paiement::where('status', PaymentStatus::AVerifier->value)->count() : 0,
+            'paiements' => ($user->can('paiements.verify') ? Paiement::where('status', PaymentStatus::AVerifier->value)->count() : 0)
+                + ($user->can('paiements.refund') ? Paiement::cancelRequested()->count() : 0),
             // Formateur : messages de ses apprenants pas encore lus.
             'formateur' => $user->can('formateurs.space') ? $this->unreadForTeacher($user) : 0,
         ]);
@@ -127,6 +128,12 @@ class RealDashboardData
             $failed = Demande::whereNotNull('notification_error')->where('created_at', '>=', now()->subDays(7))->count();
             if ($failed > 0) {
                 $items[] = ['icon' => 'bx-error', 'class' => 'text-warning', 'text' => "{$failed} notification(s) e-mail non envoyée(s) cette semaine.", 'link' => route('demandes.index')];
+            }
+        }
+
+        if ($user->can('paiements.refund') && Route::has('paiements.index')) {
+            foreach (Paiement::cancelRequested()->with('cancelRequester')->limit(5)->get() as $request) {
+                $items[] = ['icon' => 'bx-undo', 'class' => 'text-danger', 'text' => ($request->cancelRequester?->name ?? 'La secrétaire').' demande '.($request->cancel_request_type === 'remboursement' ? 'le remboursement' : 'l\'annulation').' du paiement '.$request->number.'.', 'link' => route('paiements.show', $request)];
             }
         }
 

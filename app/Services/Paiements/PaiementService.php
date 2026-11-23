@@ -391,6 +391,61 @@ class PaiementService
         return DB::transaction(fn () => $this->change($paiement, ['status' => PaymentStatus::Rejete, 'cancel_reason' => $reason, 'cancelled_at' => now(), 'cancelled_by' => $actor->id], 'paiements.rejected', "Paiement rejeté : {$reason}", $actor));
     }
 
+    /** Demande d'annulation (erreur) ou de remboursement par la secrétaire : en attente de l'administrateur. */
+    public function requestCancel(Paiement $paiement, string $type, string $reason, User $actor): Paiement
+    {
+        $this->ensureStatus($paiement, PaymentStatus::Confirme, 'Seul un paiement confirmé peut être annulé ou remboursé.');
+        if ($paiement->hasCancelRequest()) {
+            throw ValidationException::withMessages(['reason' => 'Une demande est déjà en attente pour ce paiement.']);
+        }
+
+        return DB::transaction(function () use ($paiement, $type, $reason, $actor) {
+            Paiement::withoutActivityLog(fn () => $paiement->update(['cancel_request_type' => $type, 'cancel_request_reason' => $reason, 'cancel_requested_by' => $actor->id, 'cancel_requested_at' => now()]));
+            $what = $type === 'remboursement' ? 'Remboursement' : 'Annulation';
+            $this->logger->log('paiements.cancel_requested', 'paiements', "{$what} demandé(e) — {$paiement->number} ({$paiement->money()}) : {$reason}", $paiement,
+                new: ['type' => $type, 'reason' => $reason], actor: $actor);
+
+            return $paiement;
+        });
+    }
+
+    /** L'administrateur valide la demande : le paiement est annulé ou remboursé avec le motif donné. */
+    public function approveCancelRequest(Paiement $paiement, User $actor): Paiement
+    {
+        if (! $paiement->hasCancelRequest()) {
+            throw ValidationException::withMessages(['reason' => 'Aucune demande en attente pour ce paiement.']);
+        }
+        $type = $paiement->cancel_request_type;
+        $reason = $paiement->cancel_request_reason.' (demandé par '.($paiement->cancelRequester?->name ?? '—').')';
+
+        return DB::transaction(function () use ($paiement, $type, $reason, $actor) {
+            $this->clearRequest($paiement);
+
+            return $type === 'remboursement' ? $this->refund($paiement, $reason, $actor) : $this->cancel($paiement, $reason, $actor);
+        });
+    }
+
+    /** L'administrateur refuse la demande : le paiement reste confirmé. */
+    public function rejectCancelRequest(Paiement $paiement, ?string $reason, User $actor): Paiement
+    {
+        if (! $paiement->hasCancelRequest()) {
+            throw ValidationException::withMessages(['reason' => 'Aucune demande en attente pour ce paiement.']);
+        }
+
+        return DB::transaction(function () use ($paiement, $reason, $actor) {
+            $requested = $paiement->cancel_request_reason;
+            $this->clearRequest($paiement);
+            $this->logger->log('paiements.cancel_request_rejected', 'paiements', "Demande d'annulation refusée — {$paiement->number} ({$requested})".($reason ? " : {$reason}" : ''), $paiement, actor: $actor);
+
+            return $paiement;
+        });
+    }
+
+    private function clearRequest(Paiement $paiement): void
+    {
+        Paiement::withoutActivityLog(fn () => $paiement->update(['cancel_request_type' => null, 'cancel_request_reason' => null, 'cancel_requested_by' => null, 'cancel_requested_at' => null]));
+    }
+
     /** Paiement confirmé par erreur (aucun argent reçu) : annulé, le montant payé de l'inscription diminue. */
     public function cancel(Paiement $paiement, string $reason, User $actor): Paiement
     {

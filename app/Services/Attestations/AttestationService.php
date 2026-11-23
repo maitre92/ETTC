@@ -3,6 +3,7 @@
 namespace App\Services\Attestations;
 
 use App\Enums\InscriptionStatus;
+use App\Mail\AttestationDelivree;
 use App\Models\Inscription;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
@@ -13,8 +14,11 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Attestation de fin de formation — « Certificate of Training », d'après le modèle fourni par le centre (2026-11-22),
@@ -51,7 +55,7 @@ class AttestationService
             throw ValidationException::withMessages(['attestation' => 'L\'attestation se délivre quand la formation est terminée (bouton « Terminer la formation »).']);
         }
 
-        return DB::transaction(function () use ($inscription, $actor) {
+        $inscription = DB::transaction(function () use ($inscription, $actor) {
             Inscription::withoutActivityLog(fn () => $inscription->update([
                 'attestation_number' => $this->reference(),
                 'attestation_issued_at' => now(),
@@ -62,6 +66,28 @@ class AttestationService
 
             return $inscription;
         });
+        $this->mailLearner($inscription);
+
+        return $inscription;
+    }
+
+    /**
+     * Prévient l'apprenant : formation en ligne → attestation jointe (délivrance à distance) ; présentiel → à retirer au
+     * centre. Un échec d'envoi ne bloque jamais la délivrance (journalisé).
+     */
+    public function mailLearner(Inscription $inscription): void
+    {
+        $email = $inscription->email ?: $inscription->client?->email;
+        if (! $email) {
+            return;
+        }
+        try {
+            Mail::to($email, $inscription->name)->send(new AttestationDelivree($inscription));
+            Inscription::withoutActivityLog(fn () => $inscription->forceFill(['attestation_sent_at' => now()])->saveQuietly());
+        } catch (Throwable $e) {
+            Log::error("Attestation {$inscription->attestation_number} non envoyée à {$email} : ".Str::limit($e->getMessage(), 300));
+            $this->logger->log('inscriptions.attestation_mail_failed', 'inscriptions', "Envoi de l'attestation impossible — {$inscription->attestation_number}", $inscription, new: ['error' => Str::limit($e->getMessage(), 300)]);
+        }
     }
 
     /** Réimpression : « DUPLICATA », journalisée. */
@@ -81,12 +107,37 @@ class AttestationService
 
     public function pdf(Inscription $inscription, bool $duplicate = false): \Barryvdh\DomPDF\PDF
     {
+        return $this->render([$this->pageData($inscription, $duplicate)]);
+    }
+
+    /** Plusieurs attestations dans un seul PDF (un groupe), une page chacune. @param  iterable<Inscription>  $inscriptions */
+    public function batchPdf(iterable $inscriptions): \Barryvdh\DomPDF\PDF
+    {
+        $pages = [];
+        foreach ($inscriptions as $inscription) {
+            $pages[] = $this->pageData($inscription, false);
+        }
+
+        return $this->render($pages);
+    }
+
+    /** @param  list<array<string, mixed>>  $pages */
+    private function render(array $pages): \Barryvdh\DomPDF\PDF
+    {
+        return Pdf::loadView('pdf.attestation', ['pages' => $pages])->setPaper([0, 0, 841.89, 561.0]);
+    }
+
+    /** Données d'une page d'attestation. @return array<string, mixed> */
+    public function pageData(Inscription $inscription, bool $duplicate = false): array
+    {
         $inscription->loadMissing('niveau');
         $assets = app(AttestationAssets::class);
+        static $background = null;
+        $background ??= 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents(AttestationAssets::background()));
 
-        return Pdf::loadView('pdf.attestation', [
+        return [
             'inscription' => $inscription,
-            'background' => 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents(AttestationAssets::background())),
+            'background' => $background,
             'signature' => $assets->dataUri($assets->signaturePath()),
             'signatureFit' => $assets->fitMm($assets->signaturePath(), 150, 64),
             'stamp' => $assets->dataUri($assets->stampPath()),
@@ -101,7 +152,7 @@ class AttestationService
             'issued' => ($inscription->attestation_issued_at ?? now())->locale('en')->isoFormat('MMMM Do, YYYY'),
             'qr' => $this->qr($inscription),
             'duplicate' => $duplicate,
-        ])->setPaper([0, 0, 841.89, 561.0]);
+        ];
     }
 
     public function filename(Inscription $inscription): string

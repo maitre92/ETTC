@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'number', 'inscription_id', 'client_id', 'nature', 'amount', 'proof_path', 'proof_name', 'commission_rate', 'commission_amount', 'method', 'reference', 'payer_phone', 'period', 'status',
     'source', 'gateway', 'gateway_transaction_id', 'gateway_status', 'gateway_checked_at', 'paid_at', 'recorded_by', 'confirmed_at', 'confirmed_by', 'notes', 'cancel_reason', 'cancelled_at',
-    'cancelled_by', 'ip_address',
+    'cancelled_by', 'cancel_request_type', 'cancel_request_reason', 'cancel_requested_by', 'cancel_requested_at', 'ip_address',
 ])]
 class Paiement extends Model
 {
@@ -32,7 +32,7 @@ class Paiement extends Model
     {
         return [
             'nature' => PaymentNature::class, 'method' => PaymentMethod::class, 'status' => PaymentStatus::class,
-            'amount' => 'integer', 'commission_rate' => 'float', 'commission_amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime', 'gateway_checked_at' => 'datetime',
+            'amount' => 'integer', 'commission_rate' => 'float', 'commission_amount' => 'integer', 'paid_at' => 'datetime', 'confirmed_at' => 'datetime', 'cancelled_at' => 'datetime', 'gateway_checked_at' => 'datetime', 'cancel_requested_at' => 'datetime',
         ];
     }
 
@@ -75,5 +75,21 @@ class Paiement extends Model
     public function money(): string
     {
         return Formule::money($this->amount);
+    }
+
+    /** Secrétaire qui a demandé l'annulation ou le remboursement (validation par l'administrateur). */
+    public function cancelRequester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancel_requested_by')->withTrashed();
+    }
+
+    public function hasCancelRequest(): bool
+    {
+        return $this->cancel_request_type !== null;
+    }
+
+    public function scopeCancelRequested(Builder $query): Builder
+    {
+        return $query->whereNotNull('cancel_request_type')->where('status', PaymentStatus::Confirme->value);
     }
 }

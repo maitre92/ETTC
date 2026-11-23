@@ -301,4 +301,13 @@ class InscriptionController extends Controller
 
         return redirect()->route('inscriptions.show', $inscription)->with('status', $id ? 'Formateur attribué : il retrouve cet apprenant dans son espace.' : 'Formateur retiré.');
     }
+
+    /** Renvoie à l'apprenant l'e-mail de son attestation (jointe si la formation est en ligne). */
+    public function resendAttestation(Inscription $inscription, AttestationService $attestations): RedirectResponse
+    {
+        abort_unless($inscription->attestation_number, 404);
+        $attestations->mailLearner($inscription);
+
+        return redirect()->route('inscriptions.show', $inscription)->with('status', $inscription->fresh()->attestation_sent_at ? 'E-mail de l\'attestation envoyé.' : 'L\'e-mail n\'a pas pu partir : vérifiez l\'adresse.');
+    }
 }

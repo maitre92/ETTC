@@ -138,6 +138,33 @@ class PaiementController extends Controller
         return redirect()->route('paiements.show', $paiement)->with('status', 'Remboursement enregistré.');
     }
 
+    /** Secrétaire : demande d'annulation ou de remboursement (motif), à valider par l'administrateur. */
+    public function requestCancel(Request $request, Paiement $paiement): RedirectResponse
+    {
+        Gate::authorize('requestCancel', $paiement);
+        $type = $request->validate(['type' => ['required', Rule::in(['annulation', 'remboursement'])]])['type'];
+        $this->service->requestCancel($paiement, $type, $this->reason($request), $request->user());
+
+        return redirect()->route('paiements.show', $paiement)->with('status', 'Demande envoyée : l\'administrateur la valide ou la refuse.');
+    }
+
+    public function approveCancel(Request $request, Paiement $paiement): RedirectResponse
+    {
+        Gate::authorize('refund', $paiement);
+        $this->service->approveCancelRequest($paiement, $request->user());
+
+        return redirect()->route('paiements.show', $paiement)->with('status', 'Demande validée : '.($paiement->status === PaymentStatus::Rembourse ? 'paiement remboursé.' : 'paiement annulé.'));
+    }
+
+    public function rejectCancel(Request $request, Paiement $paiement): RedirectResponse
+    {
+        Gate::authorize('refund', $paiement);
+        $reason = $request->validate(['reject_reason' => ['nullable', 'string', 'max:300']])['reject_reason'] ?? null;
+        $this->service->rejectCancelRequest($paiement, $reason, $request->user());
+
+        return redirect()->route('paiements.show', $paiement)->with('status', 'Demande refusée : le paiement reste confirmé.');
+    }
+
     /** Numéros mobile money et consignes affichés à l'apprenant (paiement en ligne). */
     public function settings(Request $request, MediaService $medias): RedirectResponse
     {

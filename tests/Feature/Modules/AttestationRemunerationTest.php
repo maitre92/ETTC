@@ -6,6 +6,7 @@ use App\Enums\FormationMode;
 use App\Enums\InscriptionStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\RoleName;
+use App\Mail\AttestationDelivree;
 use App\Models\ActivityLog;
 use App\Models\Client;
 use App\Models\FormateurVersement;
@@ -23,6 +24,7 @@ use App\Services\Remunerations\RemunerationService;
 use App\Support\SiteSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BuildsFoundation;
 use Tests\TestCase;
@@ -194,5 +196,48 @@ class AttestationRemunerationTest extends TestCase
 
         $this->get($url)->assertOk()->assertSee('Attestation authentique')->assertSee('Amos Dembele');
         $this->get('/certificat/'.$inscription->id.'/faussecle12345678901')->assertOk()->assertSee('Attestation introuvable');
+    }
+
+    public function test_an_online_learner_receives_the_certificate_remotely_and_onsite_learners_collect_it(): void
+    {
+        Mail::fake();
+        $client = Client::factory()->create(['email' => 'awa@exemple.ml']);
+        $online = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $onsite = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::Presentiel, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $admin = User::factory()->administrateur()->create();
+        app(AttestationService::class)->issue($online, $admin);
+        app(AttestationService::class)->issue($onsite, $admin);
+
+        Mail::assertSent(AttestationDelivree::class, fn ($m) => $m->inscription->is($online) && count($m->attachments()) === 1 && str_contains($m->render(), 'jointe'));
+        Mail::assertSent(AttestationDelivree::class, fn ($m) => $m->inscription->is($onsite) && $m->attachments() === [] && str_contains($m->render(), 'retirer au centre'));
+        $this->assertNotNull($online->fresh()->attestation_sent_at);
+
+        $this->actingAs($client, 'client')->get('/espace-client/inscriptions')->assertOk()->assertSee('Télécharger mon attestation')->assertSee('à retirer au centre');
+        $this->get("/espace-client/inscriptions/{$online->id}/attestation")->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get("/espace-client/inscriptions/{$onsite->id}/attestation")->assertNotFound();
+        $stranger = Inscription::factory()->create(['mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        app(AttestationService::class)->issue($stranger, $admin);
+        $this->get("/espace-client/inscriptions/{$stranger->id}/attestation")->assertNotFound();
+    }
+
+    public function test_a_whole_group_gets_its_certificates_in_one_pdf(): void
+    {
+        Mail::fake();
+        $groupe = Groupe::factory()->create();
+        $done = Inscription::factory()->count(2)->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $running = Inscription::factory()->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::EnCours]);
+        $this->actingAs(User::factory()->administrateur()->create());
+
+        $this->get("/admin/groupes/{$groupe->id}")->assertOk()->assertSee('ATTESTATIONS DU GROUPE')->assertSee('2 à délivrer');
+        $this->post("/admin/groupes/{$groupe->id}/attestations")->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame(2, Inscription::whereNotNull('attestation_number')->count());
+        $this->assertNull($running->fresh()->attestation_number);
+
+        // « Terminer d'abord » : l'apprenant en cours est terminé puis reçoit la sienne ; plus rien ensuite.
+        $this->post("/admin/groupes/{$groupe->id}/attestations", ['finish' => '1'])->assertOk();
+        $this->assertSame(InscriptionStatus::Terminee, $running->fresh()->status);
+        $this->assertNotNull($running->fresh()->attestation_number);
+        $this->post("/admin/groupes/{$groupe->id}/attestations")->assertRedirect()->assertSessionHasErrors('attestations');
+        Mail::assertSent(AttestationDelivree::class, 3);
     }
 }

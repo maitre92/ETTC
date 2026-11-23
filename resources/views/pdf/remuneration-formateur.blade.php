@@ -53,6 +53,13 @@
         </table>
     @endif
 
-    <table class="sign"><tr><td>Le formateur</td><td class="r">Pour {{ $site->get('company.short_name') }}</td></tr></table>
+    <table class="sign"><tr>
+        <td>Le formateur</td>
+        <td class="r">Pour {{ $site->get('company.short_name') }}<br>
+            <span style="position: relative; display: inline-block; width: 170px; height: 70px;">
+                @if ($stamp)<img src="{{ $stamp }}" alt="" style="position: absolute; right: 0; top: 0; width: 68px; height: 68px; opacity: .9;">@endif
+                @if ($signature)<img src="{{ $signature }}" alt="" style="position: absolute; right: 50px; top: 18px; width: 115px;">@endif
+            </span><br>{{ $signer }}</td>
+    </tr></table>
 </body>
 </html>

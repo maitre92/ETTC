@@ -106,4 +106,59 @@ class CaisseTest extends TestCase
         $this->actingAs($secretaire)->get('/admin/journal-activite')->assertForbidden();
         $this->actingAs($this->superadmin())->get('/admin/journal-activite')->assertOk()->assertSee('Action du superadmin')->assertSee('Action d un autre administrateur');
     }
+
+    public function test_only_the_administrator_cancels_a_payment_the_secretary_requests_it(): void
+    {
+        Mail::fake();
+        $inscription = Inscription::factory()->create(['status' => InscriptionStatus::EnCours]);
+        $paiement = Paiement::factory()->create(['inscription_id' => $inscription->id, 'amount' => 50000, 'status' => PaymentStatus::Confirme, 'paid_at' => now()]);
+        $inscription->update(['amount_paid' => 50000]);
+        $secretaire = User::factory()->commercial()->create(['name' => 'Fanta']);
+        $admin = User::factory()->administrateur()->create();
+
+        $this->actingAs($secretaire)->put("/admin/paiements/{$paiement->id}/annulation", ['reason' => 'Erreur'])->assertForbidden();
+        $this->get("/admin/paiements/{$paiement->id}")->assertOk()->assertSee('DEMANDER UNE ANNULATION');
+        $this->put("/admin/paiements/{$paiement->id}/demande-annulation", ['type' => 'annulation', 'reason' => 'Saisi deux fois'])->assertRedirect();
+        $this->put("/admin/paiements/{$paiement->id}/demande-annulation", ['type' => 'annulation', 'reason' => 'Encore'])->assertSessionHasErrors('reason');
+        $this->put("/admin/paiements/{$paiement->id}/demande-annulation/validation")->assertForbidden();
+        $this->assertSame(PaymentStatus::Confirme, $paiement->fresh()->status);
+
+        // L'administrateur voit la demande (pastille, liste) et la valide.
+        $this->actingAs($admin)->get('/admin/paiements')->assertOk()->assertSee('demande(s) d\'annulation à valider', false)->assertSee('Saisi deux fois');
+        $this->put("/admin/paiements/{$paiement->id}/demande-annulation/validation")->assertRedirect();
+        $paiement->refresh();
+        $this->assertSame(PaymentStatus::Annule, $paiement->status);
+        $this->assertStringContainsString('demandé par Fanta', $paiement->cancel_reason);
+        $this->assertSame(0, $inscription->fresh()->amount_paid);
+        $this->assertTrue(ActivityLog::where('action', 'paiements.cancel_requested')->exists());
+
+        // Refus : le paiement reste confirmé.
+        $other = Paiement::factory()->create(['inscription_id' => $inscription->id, 'amount' => 10000, 'status' => PaymentStatus::Confirme, 'paid_at' => now()]);
+        $this->actingAs($secretaire)->put("/admin/paiements/{$other->id}/demande-annulation", ['type' => 'remboursement', 'reason' => 'Abandon'])->assertRedirect();
+        $this->actingAs($admin)->put("/admin/paiements/{$other->id}/demande-annulation/refus", ['reject_reason' => 'Pas de remboursement'])->assertRedirect();
+        $this->assertSame(PaymentStatus::Confirme, $other->fresh()->status);
+        $this->assertFalse($other->fresh()->hasCancelRequest());
+    }
+
+    public function test_the_administrator_grants_his_own_rights_to_his_team_only(): void
+    {
+        $admin = User::factory()->administrateur()->create();
+        $secretaire = User::factory()->commercial()->create(['name' => 'Fanta']);
+        $other = User::factory()->administrateur()->create(['name' => 'Autre chef']);
+
+        $this->actingAs($admin)->get('/admin/equipe/permissions?user='.$secretaire->id)->assertOk()
+            ->assertSee('Fanta')->assertDontSee('Autre chef')->assertSee('value="paiements.refund"', false)->assertDontSee('value="audit.view"', false);
+
+        // Un droit de l'administrateur : donné ; un droit réservé au superadmin : refusé ; un pair : interdit.
+        $this->put("/admin/equipe/permissions/{$secretaire->id}", ['permissions' => ['paiements.refund', 'caisse.cancel']])->assertRedirect();
+        $this->assertTrue($secretaire->fresh()->can('paiements.refund'));
+        $this->put("/admin/equipe/permissions/{$secretaire->id}", ['permissions' => ['audit.view']])->assertSessionHasErrors('permissions');
+        $this->put("/admin/equipe/permissions/{$other->id}", ['permissions' => []])->assertForbidden();
+        $this->assertTrue(ActivityLog::where('action', 'equipe.permissions_updated')->exists());
+
+        // Retirer : la case décochée enlève le droit.
+        $this->put("/admin/equipe/permissions/{$secretaire->id}", ['permissions' => ['caisse.cancel']])->assertRedirect();
+        $this->assertFalse($secretaire->fresh()->can('paiements.refund'));
+        $this->actingAs($secretaire)->get('/admin/equipe/permissions')->assertForbidden();
+    }
 }

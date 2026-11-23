@@ -31,6 +31,7 @@ Route::prefix('espace-client')->name('client.')->group(function () {
         Route::get('/groupes/{groupe}', [GroupeController::class, 'show'])->name('groupes.show');
         Route::post('/groupes/{groupe}/messages', [GroupeController::class, 'storeMessage'])->middleware('throttle:30,1')->name('groupes.messages.store');
         Route::get('/inscriptions', [AccountController::class, 'inscriptions'])->name('inscriptions');
+        Route::get('/inscriptions/{inscription}/attestation', [AccountController::class, 'attestation'])->name('inscriptions.attestation');
         Route::get('/paiements', [PaiementController::class, 'index'])->name('paiements');
         Route::post('/paiements', [PaiementController::class, 'store'])->middleware('throttle:demandes')->name('paiements.store');
         Route::get('/paiements/{paiement}/recu', [PaiementController::class, 'receipt'])->name('paiements.receipt');

@@ -87,7 +87,48 @@
                     @endcan
                 @endif
 
-                @if ($paiement->status === PaymentStatus::Confirme)
+                {{-- Demande d'annulation de la secrétaire : l'administrateur valide ou refuse. --}}
+                @if ($paiement->status === PaymentStatus::Confirme && $paiement->hasCancelRequest())
+                    <div class="card border-warning">
+                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-error me-2'></i>DEMANDE {{ $paiement->cancel_request_type === 'remboursement' ? 'DE REMBOURSEMENT' : 'D\'ANNULATION' }}</h6></div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>{{ $paiement->cancelRequester?->name ?? '—' }}</strong> demande {{ $paiement->cancel_request_type === 'remboursement' ? 'le remboursement' : 'l\'annulation' }} de ce paiement, le {{ $paiement->cancel_requested_at->format('d/m/Y à H:i') }}.</p>
+                            <p class="mb-3">Motif : <em>{{ $paiement->cancel_request_reason }}</em></p>
+                            @can('refund', $paiement)
+                                <div class="d-flex flex-wrap gap-2 align-items-start">
+                                    <form method="POST" action="{{ route('paiements.cancel-request.approve', $paiement) }}" data-crud-form data-no-guard data-confirm="Valider : le paiement sera {{ $paiement->cancel_request_type === 'remboursement' ? 'remboursé' : 'annulé' }} et le montant payé de l'inscription diminuera.">@csrf @method('PUT')<button type="submit" class="btn btn-danger"><i class='bx bx-check me-1'></i>Valider la demande</button></form>
+                                    <form method="POST" action="{{ route('paiements.cancel-request.reject', $paiement) }}" class="d-flex gap-1" data-crud-form data-no-guard>@csrf @method('PUT')<input class="form-control form-control-sm" name="reject_reason" maxlength="300" placeholder="Pourquoi (facultatif)" aria-label="Motif du refus"><button type="submit" class="btn btn-outline-secondary"><i class='bx bx-x me-1'></i>Refuser</button></form>
+                                </div>
+                            @else
+                                <p class="small text-muted mb-0"><i class='bx bx-time-five'></i> En attente de la validation de l'administrateur.</p>
+                            @endcan
+                        </div>
+                    </div>
+                @endif
+
+                @if ($paiement->status === PaymentStatus::Confirme && ! $paiement->hasCancelRequest())
+                    @can('requestCancel', $paiement)
+                        <div class="card">
+                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-undo me-2'></i>DEMANDER UNE ANNULATION</h6></div>
+                            <div class="card-body">
+                                <p class="small text-muted">Seul l'administrateur peut annuler ou rembourser un paiement : votre demande lui est soumise, avec le motif.</p>
+                                <form method="POST" action="{{ route('paiements.cancel-request', $paiement) }}" class="row g-2" data-crud-form data-no-guard>
+                                    @csrf @method('PUT')
+                                    <div class="col-12">
+                                        <div class="btn-group w-100" role="group" aria-label="Type de demande">
+                                            <input type="radio" class="btn-check" name="type" id="rq-annulation" value="annulation" checked><label class="btn btn-outline-danger" for="rq-annulation">Annulation (erreur, aucun argent reçu)</label>
+                                            <input type="radio" class="btn-check" name="type" id="rq-remboursement" value="remboursement"><label class="btn btn-outline-primary" for="rq-remboursement">Remboursement</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12"><label class="form-label fw-semibold" for="rq-reason">Motif</label><input class="form-control" id="rq-reason" name="reason" maxlength="300" required></div>
+                                    <div class="col-12"><button type="submit" class="btn btn-warning"><i class='bx bx-send me-1'></i>Envoyer la demande</button></div>
+                                </form>
+                            </div>
+                        </div>
+                    @endcan
+                @endif
+
+                @if ($paiement->status === PaymentStatus::Confirme && ! $paiement->hasCancelRequest())
                     @can('refund', $paiement)
                         <div class="card">
                             <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-undo me-2'></i>ANNULER OU REMBOURSER</h6></div>

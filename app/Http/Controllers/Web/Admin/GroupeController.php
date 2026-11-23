@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\FormationMode;
+use App\Enums\InscriptionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Annonce;
@@ -12,13 +13,17 @@ use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\Seance;
 use App\Models\Support;
+use App\Services\Attestations\AttestationService;
+use App\Services\Inscriptions\InscriptionService;
 use App\Services\Seances\AnnonceService;
 use App\Services\Seances\DiscussionService;
 use App\Services\Seances\SeanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -55,6 +60,29 @@ class GroupeController extends Controller
 
         return redirect()->route('groupes.index')->with('status', "{$result['placed']} apprenant(s) répartis."
             .($created->isNotEmpty() ? ' Nouveaux groupes : '.$created->implode(', ').' — choisissez leur formateur et programmez leurs séances.' : ''));
+    }
+
+    /**
+     * Attestations du groupe en une fois : (option) termine la formation des apprenants en cours, délivre l'attestation
+     * de chaque apprenant terminé qui n'en a pas encore (e-mail à chacun), puis ouvre un PDF avec toutes les pages.
+     */
+    public function attestations(Request $request, Groupe $groupe, AttestationService $attestations, InscriptionService $inscriptions): Response|RedirectResponse
+    {
+        Gate::authorize('view', $groupe);
+        $members = $groupe->members()->get();
+        if ($request->boolean('finish')) {
+            foreach ($members->where('status', InscriptionStatus::EnCours) as $member) {
+                $inscriptions->finish($member, $request->user());
+            }
+            $members = $groupe->members()->get();
+        }
+        $issued = $members->filter(fn (Inscription $m) => $m->status === InscriptionStatus::Terminee && ! $m->attestation_number)
+            ->map(fn (Inscription $m) => $attestations->issue($m, $request->user()))->values();
+        if ($issued->isEmpty()) {
+            return redirect()->route('groupes.show', $groupe)->withErrors(['attestations' => 'Aucune attestation à délivrer : terminez d\'abord la formation des apprenants (ou cochez « Terminer d\'abord… »).']);
+        }
+
+        return $attestations->batchPdf($issued)->stream('Attestations_'.Str::slug($groupe->name, '_').'.pdf');
     }
 
     /** Message de l'équipe dans la discussion du groupe (lue par les apprenants et le formateur). */

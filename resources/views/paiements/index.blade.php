@@ -27,6 +27,19 @@
 
     <div data-crud="paiements" data-crud-columns="5">
         <span data-crud-status hidden>{{ session('status') }}</span>
+        @can('paiements.refund')
+            @php $cancelRequests = \App\Models\Paiement::cancelRequested()->with(['inscription', 'cancelRequester'])->get(); @endphp
+            @if ($cancelRequests->isNotEmpty())
+                <div class="alert alert-warning">
+                    <strong><i class='bx bx-undo'></i> {{ $cancelRequests->count() }} demande(s) d'annulation à valider</strong>
+                    <ul class="mb-0 mt-1 small">
+                        @foreach ($cancelRequests as $request)
+                            <li><a href="{{ route('paiements.show', $request) }}">{{ $request->number }}</a> — {{ $request->inscription?->name }} · {{ $request->money() }} · {{ $request->cancel_request_type === 'remboursement' ? 'remboursement' : 'annulation' }} demandé(e) par {{ $request->cancelRequester?->name }} : « {{ $request->cancel_request_reason }} »</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+        @endcan
         @include('paiements._last-receipt')
         <div class="row g-3 mb-3">
             @foreach ([['Encaissé ce mois', $money($monthTotal), 'bx-wallet', 'success'], ['À vérifier', $toVerify->count().' ('.$money((int) $toVerify->sum('amount')).')', 'bx-search-alt', 'warning'], ['Reste à encaisser', $money((int) $unpaid->sum(fn ($i) => $i->balance())), 'bx-time-five', 'danger'], ['Remboursé ce mois', $money($refundedMonth), 'bx-undo', 'info']] as [$cardLabel, $cardValue, $cardIcon, $cardColor])

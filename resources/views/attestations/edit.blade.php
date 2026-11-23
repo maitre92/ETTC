@@ -2,7 +2,7 @@
 
 @section('title', 'Attestations')
 
-{{-- Réglages de l'attestation (demande du centre, 2026-11-22) : signataire et lieu ; signature tracée à l'écran ou déposée ;
+{{-- Réglages de l'attestation (demande du centre, 2026-11-22), repris sur les reçus A5 et les fiches de rémunération : signataire et lieu ; signature tracée à l'écran ou déposée ;
      sceau déposé, traité pour être lisible (fond détouré, encre renforcée) — aperçu SUR l'attestation avant d'enregistrer.
      Comportements : public/assets/js/attestation-settings.js. --}}
 @section('content')
@@ -21,6 +21,7 @@
 
     @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
     @if ($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+    <p class="small text-muted"><i class='bx bx-info-circle'></i> Le signataire, la signature et le sceau réglés ici figurent sur les <strong>attestations</strong>, les <strong>reçus A5</strong> et les <strong>fiches de rémunération</strong> des formateurs. Par défaut : ceux du modèle du centre.</p>
 
     <div class="row g-3" data-attestation-settings data-preview-url="{{ route('attestations.preview') }}">
         <div class="col-xl-5">

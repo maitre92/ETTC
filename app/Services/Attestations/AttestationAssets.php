@@ -16,7 +16,8 @@ use Illuminate\Validation\ValidationException;
  *    fond détouré en transparence (couleur du fond mesurée sur les bords), encre renforcée ou uniformisée (bleu, noir),
  *    recadrage, taille normalisée ;
  *  - APERÇU : l'attestation entière et un zoom sur la zone du signataire, composés comme le PDF (GD) ;
- *  - fichiers PRIVÉS (disque local), jamais publics ; chaque changement est audité.
+ *  - fichiers PRIVÉS (disque local), jamais publics ; chaque changement est audité ;
+ *  - mêmes signature et sceau sur les reçus A5 et les fiches de rémunération (documentStampPath).
  * Positions en pixels du modèle (1280 × 853), communes à l'aperçu et au PDF (pdf/attestation).
  */
 class AttestationAssets
@@ -47,6 +48,12 @@ class AttestationAssets
     public function stampPath(): ?string
     {
         return $this->customPath('stamp');
+    }
+
+    /** Sceau des documents (reçus A5, fiches de rémunération) : celui déposé, sinon celui du modèle. */
+    public function documentStampPath(): string
+    {
+        return $this->stampPath() ?? resource_path('images/attestation-sceau.png');
     }
 
     public function isCustom(string $kind): bool

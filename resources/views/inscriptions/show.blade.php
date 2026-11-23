@@ -168,12 +168,26 @@
                         <div class="card-body">
                             @if ($inscription->attestation_number)
                                 <p class="mb-3">Délivrée le <strong>{{ $inscription->attestation_issued_at->format('d/m/Y') }}</strong> — n° <strong>{{ $inscription->attestation_number }}</strong>@if ($inscription->attestation_copies) · {{ $inscription->attestation_copies }} duplicata(s)@endif. Elle n'est délivrée qu'une fois : une réimpression porte la mention « DUPLICATA ».</p>
-                                <form method="POST" action="{{ route('inscriptions.attestation.duplicate', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-outline-primary"><i class='bx bx-printer me-1'></i>Imprimer un duplicata</button></form>
+                                <p class="small mb-3">
+                                    @if ($inscription->attestation_sent_at)
+                                        <i class='bx bx-envelope'></i> Apprenant prévenu par e-mail le {{ $inscription->attestation_sent_at->format('d/m/Y à H:i') }}{{ $inscription->mode === \App\Enums\FormationMode::EnLigne ? ' — attestation jointe et téléchargeable dans son espace (formation en ligne).' : ' — à retirer au centre.' }}
+                                    @elseif ($inscription->email || $inscription->client?->email)
+                                        <i class='bx bx-error'></i> L'e-mail n'a pas pu être envoyé.
+                                    @else
+                                        <i class='bx bx-info-circle'></i> Pas d'adresse e-mail : prévenez l'apprenant par téléphone.
+                                    @endif
+                                </p>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form method="POST" action="{{ route('inscriptions.attestation.duplicate', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-outline-primary"><i class='bx bx-printer me-1'></i>Imprimer un duplicata</button></form>
+                                    @if ($inscription->email || $inscription->client?->email)
+                                        <form method="POST" action="{{ route('inscriptions.attestation.resend', $inscription) }}" data-crud-form data-no-guard>@csrf<button type="submit" class="btn btn-outline-secondary"><i class='bx bx-envelope me-1'></i>{{ $inscription->attestation_sent_at ? 'Renvoyer l\'e-mail' : 'Envoyer l\'e-mail' }}</button></form>
+                                    @endif
+                                </div>
                             @else
                                 @if ($inscription->balance() > 0)
                                     <p class="alert alert-warning small mb-3"><i class='bx bx-error'></i> Il reste {{ $money($inscription->balance()) }} à payer sur cette formation.</p>
                                 @endif
-                                <p class="mb-3">La formation est terminée : délivrez l'attestation. Elle s'ouvre prête à imprimer, avec son numéro.</p>
+                                <p class="mb-3">La formation est terminée : délivrez l'attestation. Elle s'ouvre prête à imprimer, avec son numéro. {{ $inscription->mode === \App\Enums\FormationMode::EnLigne ? 'Formation en ligne : l\'apprenant la reçoit aussi par e-mail et la retrouve dans son espace.' : 'L\'apprenant est prévenu par e-mail qu\'elle est à retirer au centre.' }}</p>
                                 <form method="POST" action="{{ route('inscriptions.attestation.issue', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-success btn-lg"><i class='bx bx-award me-1'></i>Délivrer l'attestation</button></form>
                             @endif
                         </div>
