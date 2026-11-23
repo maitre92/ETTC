@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Groupe;
 use App\Models\GroupeMessage;
 use App\Models\Inscription;
+use App\Models\Niveau;
 use App\Models\Seance;
 use App\Models\Support;
+use App\Models\TestNiveau;
 use App\Services\Remunerations\RemunerationService;
 use App\Services\Seances\DiscussionService;
 use App\Services\Seances\SeanceService;
+use App\Services\Tests\TestNiveauService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -41,6 +44,11 @@ class FormateurController extends Controller
             'latest' => GroupeMessage::with(['groupe', 'client'])->whereIn('groupe_id', $ids)->whereNotNull('client_id')->latest('id')->limit(6)->get(),
             // Formations personnalisées qui lui sont confiées, et sa rémunération du mois.
             'personal' => Inscription::with('niveau')->where('formateur_id', $user->id)->whereIn('status', ['validee', 'en_cours'])->orderBy('name')->get(),
+            // Tests de niveau qui lui sont confiés (frais d'inscription de l'apprenant à la clé).
+            'tests' => TestNiveau::where('examiner_id', $user->id)
+                ->where(fn ($q) => $q->whereIn('status', ['demande', 'planifie'])->orWhere(fn ($q) => $q->where('source', 'en_ligne')->where('status', 'passe')->whereNull('result_by')))
+                ->orderBy('scheduled_at')->get(),
+            'niveaux' => Niveau::published()->ordered()->get(),
             'pay' => app(RemunerationService::class)->forTeacher($user, now()->format('Y-m')),
             'payLastMonth' => app(RemunerationService::class)->forTeacher($user, now()->subMonthNoOverflow()->format('Y-m')),
         ]);
@@ -137,6 +145,30 @@ class FormateurController extends Controller
         abort_unless($support->groupe_id === $groupe->id && $support->path && Storage::disk('local')->exists($support->path), 404);
 
         return Storage::disk('local')->download($support->path, $support->original_name);
+    }
+
+    /** Résultat d'un test de niveau qui lui est confié. */
+    public function testResult(Request $request, TestNiveau $test, TestNiveauService $tests): RedirectResponse
+    {
+        abort_unless($test->examiner_id === $request->user()->id, 404);
+        $data = $request->validate([
+            'niveau_id' => ['required', 'exists:niveaux,id'],
+            'score' => ['nullable', 'string', 'max:50'],
+            'result_notes' => ['nullable', 'string', 'max:2000'],
+        ], [], ['niveau_id' => 'niveau', 'score' => 'score', 'result_notes' => 'remarques']);
+        $tests->recordResult($test, Niveau::findOrFail($data['niveau_id']), $data['score'] ?? null, $data['result_notes'] ?? null, $request->user());
+
+        return redirect()->route('formateur.index')->with('status', "Résultat enregistré pour {$test->name} : le centre peut l'inscrire au bon niveau.");
+    }
+
+    /** Enregistrement de l'oral d'un test en ligne qui lui est confié. */
+    public function testRecording(Request $request, TestNiveau $test, int $question): StreamedResponse
+    {
+        abort_unless($test->examiner_id === $request->user()->id, 404);
+        $path = $test->online_answers[$question]['recording'] ?? null;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
     }
 
     /** Seul le formateur du groupe (ou le superadmin) y a accès ; un autre groupe n'existe pas pour lui. */

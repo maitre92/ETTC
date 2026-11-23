@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'active', 'password.changed', 'permission:formateurs.space'])->prefix('mon-espace-formateur')->name('formateur.')->group(function () {
     Route::get('/', [FormateurController::class, 'index'])->name('index');
     Route::get('/groupes/{groupe}', [FormateurController::class, 'show'])->name('groupes.show');
+    Route::put('/tests/{test}/resultat', [FormateurController::class, 'testResult'])->name('tests.result');
+    Route::get('/tests/{test}/oral/{question}', [FormateurController::class, 'testRecording'])->whereNumber('question')->name('tests.recording');
     Route::post('/groupes/{groupe}/messages', [FormateurController::class, 'storeMessage'])->name('groupes.messages.store');
     Route::delete('/groupes/{groupe}/messages/{message}', [FormateurController::class, 'destroyMessage'])->name('groupes.messages.destroy');
     Route::post('/groupes/{groupe}/seances', [FormateurController::class, 'storeSeance'])->name('groupes.seances.store');

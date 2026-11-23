@@ -23,10 +23,12 @@
             ['name' => 'objectives', 'label' => 'Objectifs pédagogiques', 'type' => 'textarea', 'max' => 3000, 'help' => 'Un objectif par ligne.'],
             ['name' => 'skills', 'label' => 'Compétences visées', 'type' => 'textarea', 'max' => 3000, 'help' => 'Une compétence par ligne.'],
             ['name' => 'prerequisites', 'label' => 'Prérequis', 'type' => 'textarea', 'max' => 2000, 'help' => 'Un prérequis par ligne ; vide = aucun.'],
+            ['name' => 'min_score', 'label' => 'Score minimal au test en ligne (%)', 'type' => 'number', 'col' => 'col-md-4', 'help' => 'Ex. 0 (débutant), 40, 70 : le candidat reçoit le plus haut niveau atteint.'],
             ['name' => 'is_published', 'label' => 'Publié sur le site', 'type' => 'switch', 'default' => true, 'col' => 'col-md-8'],
         ],
         'columns' => [
             ['label' => 'NIVEAU', 'value' => fn ($n) => '<div class="fw-semibold">'.e($n->name).'</div><div class="small text-muted">'.e(\Illuminate\Support\Str::limit($n->summary, 110)).'</div>'],
+            ['label' => 'TEST EN LIGNE', 'value' => fn ($n) => $n->min_score === null ? '<span class="text-muted small">—</span>' : 'à partir de '.e($n->min_score).' %'],
         ],
     ])
 @endsection

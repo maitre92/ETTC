@@ -10,6 +10,7 @@ use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\TestNiveau;
+use App\Models\User;
 use App\Services\Audit\ActivityLogger;
 use App\Services\Tests\TestNiveauService;
 use App\Support\SiteSettings;
@@ -17,8 +18,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Tests de niveau (cahier §3.4, §5) : suivi des candidats (à planifier, planifiés, passés, annulés), fiche de
@@ -71,9 +75,10 @@ class TestNiveauController extends Controller
             'scheduled_at' => ['required', 'date', 'after:now'],
             'test_mode' => ['required', Rule::enum(TestMode::class)],
             'location' => ['nullable', 'string', 'max:500'],
-        ], ['scheduled_at.after' => 'Choisissez une date et une heure à venir.'], ['scheduled_at' => 'date et heure', 'test_mode' => 'mode', 'location' => 'lieu ou lien']);
+            'examiner_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
+        ], ['scheduled_at.after' => 'Choisissez une date et une heure à venir.'], ['scheduled_at' => 'date et heure', 'test_mode' => 'mode', 'location' => 'lieu ou lien', 'examiner_id' => 'formateur']);
 
-        $this->service->schedule($test, Carbon::parse($data['scheduled_at']), TestMode::from($data['test_mode']), $data['location'] ?? null, $request->user());
+        $this->service->schedule($test, Carbon::parse($data['scheduled_at']), TestMode::from($data['test_mode']), $data['location'] ?? null, $request->user(), isset($data['examiner_id']) ? (int) $data['examiner_id'] : null);
 
         return redirect()->route('tests.show', $test)->with('status', 'Test planifié le '.$test->scheduled_at->format('d/m/Y à H:i').($test->email ? ' : convocation envoyée par e-mail.' : '.'));
     }
@@ -122,5 +127,53 @@ class TestNiveauController extends Controller
         $logger->log('tests.presentation_updated', 'tests', 'Présentation du test de niveau modifiée');
 
         return redirect()->route('tests.index')->with('status', 'Présentation du test mise à jour sur le site.');
+    }
+
+    /** Enregistrement de l'oral d'un test en ligne (fichier privé). */
+    public function recording(TestNiveau $test, int $question): StreamedResponse
+    {
+        Gate::authorize('view', $test);
+        $path = $test->online_answers[$question]['recording'] ?? null;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
+    }
+
+    /** Test en ligne : formateur qui écoute l'oral et confirme le niveau (frais d'inscription à la clé). */
+    public function assignExaminer(Request $request, TestNiveau $test, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('schedule', $test);
+        $id = $request->validate(['examiner_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')]])['examiner_id'] ?? null;
+        TestNiveau::withoutActivityLog(fn () => $test->update(['examiner_id' => $id ?: null]));
+        $logger->log('tests.examiner_assigned', 'tests', "Test {$test->number} confié à ".($id ? User::find($id)?->name : 'l\'équipe du centre'), $test, actor: $request->user());
+
+        return redirect()->route('tests.show', $test)->with('status', $id ? 'Test confié au formateur : il le retrouve dans son espace.' : 'Test repris par l\'équipe.');
+    }
+
+    /** Questionnaire en document (PDF, Word, Excel, image) pour ce test : téléchargé par le candidat. */
+    public function questionnaire(Request $request, TestNiveau $test, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('schedule', $test);
+        $file = $request->validate(['questionnaire' => ['required', 'file', 'mimes:pdf,doc,docx,odt,xls,xlsx,jpg,jpeg,png', 'max:10240']], [], ['questionnaire' => 'questionnaire'])['questionnaire'];
+        if ($test->questionnaire_path) {
+            Storage::disk('local')->delete($test->questionnaire_path);
+        }
+        TestNiveau::withoutActivityLog(fn () => $test->update([
+            'questionnaire_path' => $file->storeAs('tests/'.$test->id, 'questionnaire-'.Str::random(8).'.'.$file->extension(), 'local'),
+            'questionnaire_name' => Str::limit($file->getClientOriginalName(), 200, ''),
+        ]));
+        $logger->log('tests.questionnaire_added', 'tests', "Questionnaire déposé pour le test {$test->number} : {$test->questionnaire_name}", $test, actor: $request->user());
+
+        return redirect()->route('tests.show', $test)->with('status', 'Questionnaire déposé : le candidat le télécharge depuis le lien de sa convocation.');
+    }
+
+    /** Questionnaire ou réponses du candidat (fichiers privés). */
+    public function paperFile(TestNiveau $test, string $which): StreamedResponse
+    {
+        Gate::authorize('view', $test);
+        [$path, $name] = $which === 'reponses' ? [$test->answers_path, $test->answers_name] : [$test->questionnaire_path, $test->questionnaire_name];
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->download($path, $name);
     }
 }

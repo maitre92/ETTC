@@ -89,16 +89,16 @@ class TestNiveauService
     }
 
     /** Planification (ou report) : date et heure, lieu ou lien de connexion ; convocation par e-mail si possible. */
-    public function schedule(TestNiveau $test, Carbon $at, TestMode $mode, ?string $location, User $actor): TestNiveau
+    public function schedule(TestNiveau $test, Carbon $at, TestMode $mode, ?string $location, User $actor, ?int $examinerId = null): TestNiveau
     {
         $this->ensureNot($test, [TestStatus::Passe, TestStatus::Annule], 'Ce test est déjà passé ou annulé : il ne peut plus être planifié.');
 
         $rescheduled = $test->scheduled_at !== null;
-        DB::transaction(function () use ($test, $at, $mode, $location, $actor, $rescheduled) {
+        DB::transaction(function () use ($test, $at, $mode, $location, $actor, $rescheduled, $examinerId) {
             $old = ['scheduled_at' => $test->scheduled_at?->toDateTimeString(), 'status' => $test->status->value];
-            TestNiveau::withoutActivityLog(fn () => $test->update(['status' => TestStatus::Planifie, 'scheduled_at' => $at, 'test_mode' => $mode, 'location' => $location]));
+            TestNiveau::withoutActivityLog(fn () => $test->update(['status' => TestStatus::Planifie, 'scheduled_at' => $at, 'test_mode' => $mode, 'location' => $location, 'examiner_id' => $examinerId]));
             $this->logger->log($rescheduled ? 'tests.rescheduled' : 'tests.scheduled', 'tests',
-                ($rescheduled ? 'Test reporté' : 'Test planifié')." — {$test->number} : {$at->format('d/m/Y H:i')} ({$mode->label()})",
+                ($rescheduled ? 'Test reporté' : 'Test planifié')." — {$test->number} : {$at->format('d/m/Y H:i')} ({$mode->label()})".($examinerId ? ', formateur : '.User::find($examinerId)?->name : ''),
                 $test, $old, ['scheduled_at' => $at->toDateTimeString(), 'status' => TestStatus::Planifie->value], $actor);
         });
 

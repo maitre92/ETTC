@@ -10,7 +10,7 @@
         $canPay = auth()->user()->can('remunerations.payout');
         $prev = $month->subMonthNoOverflow()->format('Y-m');
         $next = $month->addMonthNoOverflow()->format('Y-m');
-        $kinds = ['personnalisee' => 'Personnalisée', 'groupe' => 'En groupe'];
+        $kinds = ['personnalisee' => 'Personnalisée', 'groupe' => 'En groupe', 'test' => 'Test de niveau (frais d\'inscription)'];
     @endphp
     <div class="page-breadcrumb d-flex flex-wrap gap-2 align-items-center mb-3">
         <div class="breadcrumb-title pe-3">Finances</div>

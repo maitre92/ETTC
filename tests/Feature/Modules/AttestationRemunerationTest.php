@@ -68,6 +68,9 @@ class AttestationRemunerationTest extends TestCase
 
         $this->post("/admin/inscriptions/{$inscription->id}/attestation")->assertRedirect()->assertSessionHasErrors('attestation');
         $inscription->update(['status' => InscriptionStatus::Terminee, 'started_at' => '2025-12-02', 'finished_at' => '2026-02-27']);
+        // Conditions : payée en totalité (et fin prévue atteinte).
+        $this->post("/admin/inscriptions/{$inscription->id}/attestation")->assertSessionHasErrors('attestation');
+        $inscription->update(['amount_paid' => $inscription->total_amount]);
 
         $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Délivrer l\'attestation', false);
         $this->post("/admin/inscriptions/{$inscription->id}/attestation")->assertOk()->assertHeader('content-type', 'application/pdf');
@@ -190,7 +193,7 @@ class AttestationRemunerationTest extends TestCase
 
     public function test_a_certificate_can_be_verified_online(): void
     {
-        $inscription = Inscription::factory()->create(['name' => 'Amos Dembele', 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $inscription = Inscription::factory()->create(['name' => 'Amos Dembele', 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
         app(AttestationService::class)->issue($inscription, User::factory()->administrateur()->create());
         $url = app(AttestationService::class)->verificationUrl($inscription->fresh());
 
@@ -202,8 +205,8 @@ class AttestationRemunerationTest extends TestCase
     {
         Mail::fake();
         $client = Client::factory()->create(['email' => 'awa@exemple.ml']);
-        $online = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
-        $onsite = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::Presentiel, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $online = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
+        $onsite = Inscription::factory()->create(['client_id' => $client->id, 'email' => 'awa@exemple.ml', 'mode' => FormationMode::Presentiel, 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
         $admin = User::factory()->administrateur()->create();
         app(AttestationService::class)->issue($online, $admin);
         app(AttestationService::class)->issue($onsite, $admin);
@@ -215,7 +218,7 @@ class AttestationRemunerationTest extends TestCase
         $this->actingAs($client, 'client')->get('/espace-client/inscriptions')->assertOk()->assertSee('Télécharger mon attestation')->assertSee('à retirer au centre');
         $this->get("/espace-client/inscriptions/{$online->id}/attestation")->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->get("/espace-client/inscriptions/{$onsite->id}/attestation")->assertNotFound();
-        $stranger = Inscription::factory()->create(['mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
+        $stranger = Inscription::factory()->create(['mode' => FormationMode::EnLigne, 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
         app(AttestationService::class)->issue($stranger, $admin);
         $this->get("/espace-client/inscriptions/{$stranger->id}/attestation")->assertNotFound();
     }
@@ -224,11 +227,12 @@ class AttestationRemunerationTest extends TestCase
     {
         Mail::fake();
         $groupe = Groupe::factory()->create();
-        $done = Inscription::factory()->count(2)->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::Terminee, 'finished_at' => now()]);
-        $running = Inscription::factory()->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::EnCours]);
+        $done = Inscription::factory()->count(2)->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
+        $running = Inscription::factory()->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::EnCours, 'amount_paid' => 100000, 'total_amount' => 100000, 'started_at' => now()->subMonths(3)]);
+        $unpaid = Inscription::factory()->create(['groupe_id' => $groupe->id, 'status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'started_at' => now()->subMonths(3)]);
         $this->actingAs(User::factory()->administrateur()->create());
 
-        $this->get("/admin/groupes/{$groupe->id}")->assertOk()->assertSee('ATTESTATIONS DU GROUPE')->assertSee('2 à délivrer');
+        $this->get("/admin/groupes/{$groupe->id}")->assertOk()->assertSee('ATTESTATIONS DU GROUPE')->assertSee('2 prête(s) à délivrer')->assertSee('1 en attente (paiement ou fin prévue)');
         $this->post("/admin/groupes/{$groupe->id}/attestations")->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertSame(2, Inscription::whereNotNull('attestation_number')->count());
         $this->assertNull($running->fresh()->attestation_number);
@@ -239,5 +243,24 @@ class AttestationRemunerationTest extends TestCase
         $this->assertNotNull($running->fresh()->attestation_number);
         $this->post("/admin/groupes/{$groupe->id}/attestations")->assertRedirect()->assertSessionHasErrors('attestations');
         Mail::assertSent(AttestationDelivree::class, 3);
+    }
+
+    public function test_a_certificate_needs_full_payment_and_the_planned_end_which_can_be_changed(): void
+    {
+        $inscription = Inscription::factory()->create(['status' => InscriptionStatus::Terminee, 'finished_at' => now(), 'started_at' => now()->subWeeks(2), 'duration_months' => 3, 'total_amount' => 100000, 'amount_paid' => 60000]);
+        $service = app(AttestationService::class);
+        $blockers = $service->blockers($inscription);
+        $this->assertCount(2, $blockers);
+        $this->assertStringContainsString('reste', $blockers[0]);
+        $this->assertStringContainsString('fin prévue', $blockers[1]);
+
+        $this->actingAs(User::factory()->administrateur()->create());
+        $this->get("/admin/inscriptions/{$inscription->id}")->assertOk()->assertSee('Fin prévue (modifiable)')->assertSee('Frais payés en totalité — reste');
+        // La fin prévue se modifie (audit) ; le paiement intégral reste obligatoire.
+        $this->put("/admin/inscriptions/{$inscription->id}/fin-prevue", ['planned_end_on' => now()->subDay()->toDateString()])->assertRedirect();
+        $this->assertSame(['il reste 40'."\u{202F}".'000 FCFA à payer'], $service->blockers($inscription->fresh()));
+        $this->assertTrue(ActivityLog::where('action', 'inscriptions.planned_end_changed')->exists());
+        $inscription->update(['amount_paid' => 100000]);
+        $this->assertSame([], $service->blockers($inscription->fresh()));
     }
 }

@@ -9,10 +9,12 @@ use App\Services\Bulk\Definitions\CategoryBulk;
 use App\Services\Bulk\Definitions\ClientBulk;
 use App\Services\Bulk\Definitions\PrestationBulk;
 use App\Services\Bulk\Definitions\TemoignageBulk;
+use App\Services\Bulk\Definitions\TestQuestionBulk;
 
 return [
     'prestations' => PrestationBulk::class,
     'temoignages' => TemoignageBulk::class,
     'categories' => CategoryBulk::class,
+    'questions' => TestQuestionBulk::class,
     'clients' => ClientBulk::class,
 ];

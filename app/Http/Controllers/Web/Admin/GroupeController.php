@@ -41,7 +41,8 @@ class GroupeController extends Controller
         Gate::authorize('viewAny', Groupe::class);
 
         return view('groupes.index', [
-            'groupes' => Groupe::with('niveau')->withCount('members')->orderByDesc('is_active')->orderBy('name')->get(),
+            'groupes' => Groupe::with('niveau')->withCount(['members', 'members as certificates_due' => fn ($q) => $q->where('status', 'terminee')->whereNull('attestation_number')])
+                ->orderByDesc('is_active')->orderBy('name')->get(),
             'today' => Seance::with('groupe')->whereDate('starts_at', today())->orderBy('starts_at')->get(),
             'niveaux' => Niveau::ordered()->get(),
             'withoutGroup' => Inscription::whereNull('groupe_id')->whereIn('status', ['validee', 'en_cours'])->count(),
@@ -76,10 +77,17 @@ class GroupeController extends Controller
             }
             $members = $groupe->members()->get();
         }
-        $issued = $members->filter(fn (Inscription $m) => $m->status === InscriptionStatus::Terminee && ! $m->attestation_number)
+        // Seulement les apprenants qui remplissent les conditions (terminée, payée en totalité, fin prévue atteinte).
+        $waiting = $members->filter(fn (Inscription $m) => ! $m->attestation_number);
+        $blocked = $waiting->mapWithKeys(fn (Inscription $m) => [$m->name => $attestations->blockers($m)])->filter();
+        $issued = $waiting->reject(fn (Inscription $m) => $blocked->has($m->name))
             ->map(fn (Inscription $m) => $attestations->issue($m, $request->user()))->values();
+        $report = $blocked->map(fn ($reasons, $name) => $name.' : '.implode(', ', $reasons))->values()->all();
         if ($issued->isEmpty()) {
-            return redirect()->route('groupes.show', $groupe)->withErrors(['attestations' => 'Aucune attestation à délivrer : terminez d\'abord la formation des apprenants (ou cochez « Terminer d\'abord… »).']);
+            return redirect()->route('groupes.show', $groupe)->withErrors(['attestations' => 'Aucune attestation ne peut être délivrée. '.implode(' — ', $report)]);
+        }
+        if ($report) {
+            session()->flash('attestations_blocked', $report);
         }
 
         return $attestations->batchPdf($issued)->stream('Attestations_'.Str::slug($groupe->name, '_').'.pdf');

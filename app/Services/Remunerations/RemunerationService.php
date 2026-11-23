@@ -19,7 +19,9 @@ use Illuminate\Validation\ValidationException;
  * Rémunération des formateurs (demande du centre, 2026-11-22) :
  *  - formation PERSONNALISÉE (individuelle, en ligne ou en présentiel ; formateur attribué à l'inscription) : 1/3 de
  *    la mensualité, soit le tiers de chaque paiement de formation encaissé ;
- *  - formation EN GROUPE (formateur du groupe) : 20 % du montant encaissé.
+ *  - formation EN GROUPE (formateur du groupe) : 20 % du montant encaissé ;
+ *  - TEST DE NIVEAU fait passer par un formateur : les frais d'inscription (5 000 F) de l'inscription qui suit lui
+ *    reviennent en entier (test passé seul en ligne : ils restent au centre).
  * Calculée sur les frais de formation ENCAISSÉS (paiements confirmés) du mois, hors frais d'inscription ; taux
  * réglables (« 1/3 », « 20 »). Versements par mois et par formateur, annulables avec un motif, lus par la caisse.
  */
@@ -56,6 +58,9 @@ class RemunerationService
     /** « 1/3 » ou « 20 % » tel que réglé, pour l'affichage. */
     public function rateLabel(string $kind): string
     {
+        if ($kind === 'test') {
+            return '100 % des frais d\'inscription';
+        }
         $raw = trim($this->settings->get('formateurs.rate_'.$kind));
 
         return str_contains($raw, '/') ? $raw : rtrim(rtrim(str_replace('.', ',', $raw), '0'), ',').' %';
@@ -70,20 +75,29 @@ class RemunerationService
     public function lines(string $period): Collection
     {
         [$from, $to] = $this->bounds($period);
-        $paiements = Paiement::with(['inscription.groupe'])->where('status', PaymentStatus::Confirme->value)->whereBetween('paid_at', [$from, $to])->get();
+        $paiements = Paiement::with(['inscription.groupe', 'inscription.testNiveau'])->where('status', PaymentStatus::Confirme->value)->whereBetween('paid_at', [$from, $to])->get();
         $feeParts = $this->feeParts($paiements->pluck('inscription_id')->unique()->all());
         $rates = $this->rates();
 
-        return $paiements->map(function (Paiement $p) use ($feeParts, $rates) {
+        $lines = collect();
+        foreach ($paiements as $p) {
             $inscription = $p->inscription;
             $kind = $inscription->isPersonalised() ? 'personnalisee' : 'groupe';
-            $base = max(0, $p->amount - ($feeParts[$p->id] ?? 0));
+            $fee = $feeParts[$p->id] ?? 0;
+            $base = max(0, $p->amount - $fee);
+            if ($base > 0) {
+                $lines->push([
+                    'paiement' => $p, 'inscription' => $inscription, 'teacher_id' => $inscription->teacherId(), 'kind' => $kind,
+                    'base' => $base, 'rate' => $rates[$kind], 'share' => (int) round($base * $rates[$kind]),
+                ]);
+            }
+            // Test de niveau fait passer par un formateur : les frais d'inscription lui reviennent en entier.
+            if ($fee > 0 && ($examiner = $inscription->testNiveau?->examiner_id)) {
+                $lines->push(['paiement' => $p, 'inscription' => $inscription, 'teacher_id' => $examiner, 'kind' => 'test', 'base' => $fee, 'rate' => 1.0, 'share' => $fee]);
+            }
+        }
 
-            return [
-                'paiement' => $p, 'inscription' => $inscription, 'teacher_id' => $inscription->teacherId(), 'kind' => $kind,
-                'base' => $base, 'rate' => $rates[$kind], 'share' => (int) round($base * $rates[$kind]),
-            ];
-        })->filter(fn (array $l) => $l['base'] > 0)->values();
+        return $lines;
     }
 
     /**

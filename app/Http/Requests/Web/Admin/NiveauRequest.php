@@ -18,7 +18,7 @@ class NiveauRequest extends ContentRequest
 
     protected function nullableFields(): array
     {
-        return ['objectives', 'skills', 'prerequisites'];
+        return ['min_score', 'objectives', 'skills', 'prerequisites'];
     }
 
     /**
@@ -34,6 +34,7 @@ class NiveauRequest extends ContentRequest
             'prerequisites' => ['nullable', 'string', 'max:2000'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'is_published' => ['boolean'],
+            'min_score' => ['nullable', 'integer', 'between:0,100'],
         ];
     }
 

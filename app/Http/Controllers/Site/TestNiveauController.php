@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Site\TestNiveauRequest;
+use App\Models\TestQuestion;
+use App\Services\Tests\OnlineTestService;
 use App\Services\Tests\TestNiveauService;
 use App\Support\Seo;
 use App\Support\SiteSettings;
@@ -23,7 +25,13 @@ class TestNiveauController extends Controller
 
     public function show(): View
     {
+        $online = app(OnlineTestService::class);
+
         return view('site.tests.show', [
+            'online' => $online->available(),
+            'onlineCount' => (int) $this->settings->get('test.online_count'),
+            'onlineSpeaking' => TestQuestion::active()->where('section', 'speaking')->exists() ? (int) $this->settings->get('test.online_speaking') : 0,
+            'onlineMinutes' => $online->minutes(),
             'seo' => Seo::make('Test de niveau d\'anglais', 'Passez le test de niveau d\'anglais avant votre formation : il vous oriente vers le niveau qui vous correspond. Réservez-le en ligne auprès de '.$this->settings->get('company.short_name').'.'),
         ]);
     }

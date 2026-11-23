@@ -23,6 +23,45 @@
     @if ($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
     <p class="small text-muted"><i class='bx bx-info-circle'></i> Le signataire, la signature et le sceau réglés ici figurent sur les <strong>attestations</strong>, les <strong>reçus A5</strong> et les <strong>fiches de rémunération</strong> des formateurs. Par défaut : ceux du modèle du centre.</p>
 
+    {{-- À délivrer : par groupe (un seul PDF) ou apprenant par apprenant. --}}
+    @can('inscriptions.attestation')
+        <div class="card">
+            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>DÉLIVRER DES ATTESTATIONS</h6></div>
+            <div class="card-body">
+                <p class="small text-muted">Une attestation se délivre quand la formation est <strong>terminée</strong>, <strong>payée en totalité</strong> et que sa <strong>fin prévue</strong> est atteinte (date modifiable sur la fiche de l'inscription). Pour un groupe : ouvrez ses attestations (vous pouvez y terminer d'abord la formation de ceux en cours). Pour un apprenant seul : ouvrez son inscription.</p>
+                @if ($groups->isNotEmpty())
+                    <div class="row g-2 mb-3">
+                        @foreach ($groups as $g)
+                            <div class="col-md-6 col-xl-4">
+                                <div class="border rounded-3 p-2 h-100 d-flex flex-column">
+                                    <strong>{{ $g->name }}</strong>
+                                    <span class="small text-muted">{{ $g->issued }} délivrée(s) · {{ $g->due }} à délivrer · {{ $g->running }} en cours</span>
+                                    <a href="{{ route('groupes.show', $g) }}#attestations" class="btn btn-sm {{ $g->due ? 'btn-success' : 'btn-outline-success' }} mt-2 align-self-start"><i class='bx bx-award'></i> Attestations du groupe</a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                @if ($due->isNotEmpty())
+                    <p class="fw-semibold mb-1">Apprenants qui attendent leur attestation ({{ $due->count() }})</p>
+                    <ul class="list-unstyled mb-0">
+                        @foreach ($due as $inscription)
+                            <li class="d-flex flex-wrap align-items-center gap-2 py-1 border-bottom">
+                                @php $blockers = app(\App\Services\Attestations\AttestationService::class)->blockers($inscription); @endphp
+                                <span class="flex-grow-1">{{ $inscription->name }} <span class="small text-muted">· {{ $inscription->summary() }}{{ $inscription->groupe ? ' · '.$inscription->groupe->name : '' }}</span>
+                                    @if ($blockers)<span class="d-block small text-danger"><i class='bx bx-lock-alt'></i> {{ ucfirst(implode(' ; ', $blockers)) }}</span>@endif
+                                </span>
+                                <a href="{{ route('inscriptions.show', $inscription) }}" class="btn btn-sm {{ $blockers ? 'btn-outline-secondary' : 'btn-success' }}"><i class='bx bx-award'></i> {{ $blockers ? 'Voir' : 'Délivrer' }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="small mb-0">Aucune formation terminée en attente d'attestation.</p>
+                @endif
+            </div>
+        </div>
+    @endcan
+
     <div class="row g-3" data-attestation-settings data-preview-url="{{ route('attestations.preview') }}">
         <div class="col-xl-5">
             {{-- Signataire --}}

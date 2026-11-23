@@ -1,7 +1,7 @@
 {{-- Fiche de rémunération d'un formateur pour un mois. $formateur, $period, $month, $data, $payouts, $rates, $site, $logo. --}}
 @php
     $money = fn (int $amount) => number_format($amount, 0, ',', ' ').' FCFA';
-    $kinds = ['personnalisee' => 'Personnalisée', 'groupe' => 'En groupe'];
+    $kinds = ['personnalisee' => 'Personnalisée', 'groupe' => 'En groupe', 'test' => 'Test de niveau (frais d\'inscription)'];
 @endphp
 <!DOCTYPE html>
 <html lang="fr">

@@ -549,3 +549,17 @@ body { color: #26304a; }
 .promo-focus { display: flex; align-items: center; gap: .9rem; margin-bottom: 1rem; padding: .8rem 1rem; border-radius: 14px; background: linear-gradient(90deg, #fff4e8, #fffbe6); border: 2px solid #ffd2a8; }
 .promo-focus-badge { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 4rem; height: 4rem; padding: 0 .4rem; border-radius: 50%; background: var(--ettc-red); color: #fff; font-weight: 900; }
 .ettc-promo-suggest { display: inline-block; padding: .35rem .6rem; border-radius: 10px; background: #fff4e8; border: 1px solid #ffd2a8; color: var(--ettc-ink); }
+
+/* Test de niveau en ligne : encart de départ, barre (progression, minuteur), questions, enregistrement oral. */
+.online-test-card { padding: 1.2rem 1.3rem; border-radius: 16px; background: linear-gradient(120deg, #eef5ff, #fff8ee); border: 2px solid #cfe0ff; }
+.online-test-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding: .6rem 1rem; margin-bottom: 1rem; border-radius: 12px; background: var(--ettc-navy); color: #fff; font-weight: 600; }
+.online-test-timer.is-low { color: var(--ettc-yellow); animation: promoPulse 1s ease-in-out infinite; }
+.online-q { padding: 1.1rem 1.2rem; margin-bottom: 1rem; border-radius: 14px; background: #fff; border: 1px solid #e3e9f3; }
+.online-q[hidden] { display: none; }
+.online-q-text { font-size: 1.15rem; font-weight: 600; color: var(--ettc-ink); }
+.online-choice { display: flex; align-items: center; gap: .6rem; padding: .65rem .8rem; margin-bottom: .45rem; border: 2px solid #e3e9f3; border-radius: 10px; cursor: pointer; }
+.online-choice:has(input:checked) { border-color: var(--ettc-blue); background: #eef5ff; }
+.online-choice input { width: 1.15rem; height: 1.15rem; }
+.online-test-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; }
+.online-test-nav [hidden] { display: none !important; }
+.online-rec { padding: .8rem; border-radius: 10px; background: #fff8ee; border: 1px dashed #f6ae15; }

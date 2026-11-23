@@ -10,6 +10,7 @@ use App\Enums\PaymentChoice;
 use App\Enums\PaymentStatus;
 use App\Models\Concerns\LogsActivity;
 use App\Support\SiteSettings;
+use Carbon\CarbonInterface;
 use Database\Factories\InscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'number', 'status', 'source', 'client_id', 'test_niveau_id', 'demande_id', 'name', 'birth_date', 'gender', 'phone', 'email',
     'address', 'city', 'message', 'niveau_id', 'formule_id', 'mode', 'payment_choice', 'formule_name',
     'duration_months', 'billing', 'unit_price', 'formation_amount', 'discount_amount', 'promotion_id', 'promo_code', 'registration_fee', 'total_amount', 'amount_paid', 'session', 'groupe_id', 'formateur_id', 'validated_at', 'validated_by',
-    'started_at', 'finished_at', 'attestation_number', 'attestation_issued_at', 'attestation_issued_by', 'attestation_copies', 'attestation_sent_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
+    'started_at', 'finished_at', 'planned_end_on', 'attestation_number', 'attestation_issued_at', 'attestation_issued_by', 'attestation_copies', 'attestation_sent_at', 'cancel_reason', 'internal_notes', 'consent_at', 'ip_address', 'user_agent',
     'notified_at', 'notification_error',
 ])]
 class Inscription extends Model
@@ -41,7 +42,7 @@ class Inscription extends Model
             'status' => InscriptionStatus::class, 'mode' => FormationMode::class, 'payment_choice' => PaymentChoice::class,
             'billing' => Billing::class, 'gender' => Gender::class, 'birth_date' => 'date',
             'duration_months' => 'integer', 'unit_price' => 'integer', 'formation_amount' => 'integer', 'discount_amount' => 'integer', 'registration_fee' => 'integer', 'total_amount' => 'integer', 'amount_paid' => 'integer',
-            'validated_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime', 'attestation_issued_at' => 'datetime', 'attestation_copies' => 'integer', 'attestation_sent_at' => 'datetime',
+            'validated_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime', 'attestation_issued_at' => 'datetime', 'planned_end_on' => 'date', 'attestation_copies' => 'integer', 'attestation_sent_at' => 'datetime',
             'consent_at' => 'datetime', 'notified_at' => 'datetime',
         ];
     }
@@ -79,6 +80,19 @@ class Inscription extends Model
     public function groupe(): BelongsTo
     {
         return $this->belongsTo(Groupe::class)->withTrashed();
+    }
+
+    /**
+     * Fin prévue de la formation : celle réglée sur la fiche (modifiable), sinon début + durée de la formule.
+     */
+    public function plannedEnd(): CarbonInterface
+    {
+        if ($this->planned_end_on) {
+            return $this->planned_end_on;
+        }
+        $start = $this->started_at ?? $this->validated_at ?? $this->created_at ?? now();
+
+        return $start->copy()->addMonthsNoOverflow(max(1, (int) $this->duration_months))->startOfDay();
     }
 
     /** Formateur d'une formation personnalisée (en groupe : celui du groupe, voir teacher()). */

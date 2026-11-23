@@ -73,6 +73,36 @@
         </div>
     </div>
 
+    @if ($tests->isNotEmpty())
+        <div class="card border-warning">
+            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-target-lock me-2'></i>MES TESTS DE NIVEAU À FAIRE PASSER</h6></div>
+            <div class="card-body">
+                <p class="small text-muted">Après le test, indiquez le niveau : le centre inscrit l'apprenant, et ses frais d'inscription vous reviennent.</p>
+                @foreach ($tests as $test)
+                    <div class="border rounded-3 p-2 mb-2">
+                        <div class="d-flex flex-wrap justify-content-between gap-2">
+                            <div><strong>{{ $test->name }}</strong> <span class="small text-muted">· {{ $test->phone }}</span>
+                                <div class="small">@if ($test->isOnline())Test passé en ligne le {{ $test->result_at?->format('d/m/Y') }}@else{{ $test->scheduled_at ? $test->scheduled_at->translatedFormat('l j F à H\hi') : 'Date à fixer' }} · {{ $test->test_mode->label() }}@if ($test->location) · {{ $test->location }}@endif @endif</div>
+                            </div>
+                            @if ($test->phone)<a href="tel:{{ $test->phone }}" class="btn btn-light btn-sm align-self-start"><i class='bx bx-phone'></i></a>@endif
+                        </div>
+                        @if ($test->isOnline())
+                            <div class="mt-2">@include('tests._online', ['test' => $test, 'recordingUrl' => fn ($id) => route('formateur.tests.recording', [$test, $id])])</div>
+                            <p class="small mb-1">Niveau provisoire : <strong>{{ $test->niveau?->name ?? '—' }}</strong> ({{ $test->score }}) — écoutez l'oral puis confirmez ou corrigez :</p>
+                        @endif
+                        <form method="POST" action="{{ route('formateur.tests.result', $test) }}" class="row g-2 mt-1 align-items-end">
+                            @csrf @method('PUT')
+                            <div class="col-sm-4"><label class="form-label small mb-0" for="t-niv-{{ $test->id }}">Niveau</label><select class="form-select form-select-sm" id="t-niv-{{ $test->id }}" name="niveau_id" required><option value="">—</option>@foreach ($niveaux as $niveau)<option value="{{ $niveau->id }}" @selected($test->niveau_id === $niveau->id)>{{ $niveau->name }}</option>@endforeach</select></div>
+                            <div class="col-sm-3"><label class="form-label small mb-0" for="t-score-{{ $test->id }}">Score</label><input class="form-control form-control-sm" id="t-score-{{ $test->id }}" name="score" maxlength="50" placeholder="ex. 14/20"></div>
+                            <div class="col-sm-5"><label class="form-label small mb-0" for="t-notes-{{ $test->id }}">Remarques</label><input class="form-control form-control-sm" id="t-notes-{{ $test->id }}" name="result_notes" maxlength="2000"></div>
+                            <div class="col-12"><button type="submit" class="btn btn-success btn-sm"><i class='bx bx-check me-1'></i>Enregistrer le résultat</button></div>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if ($personal->isNotEmpty())
         <div class="card">
             <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-user-pin me-2'></i>MES FORMATIONS PERSONNALISÉES</h6></div>

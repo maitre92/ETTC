@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Niveau de formation (cahier §3.2) : fiche du catalogue avec objectifs, compétences visées et prérequis. Les
  * appellations et le nombre de niveaux sont fixés par le centre (cahier §12) et se gèrent dans l'administration.
  */
-#[Fillable(['name', 'slug', 'summary', 'objectives', 'skills', 'prerequisites', 'sort_order', 'is_published'])]
+#[Fillable(['name', 'slug', 'summary', 'objectives', 'skills', 'prerequisites', 'min_score', 'sort_order', 'is_published'])]
 class Niveau extends Model
 {
     /** @use HasFactory<NiveauFactory> */
@@ -26,7 +26,7 @@ class Niveau extends Model
 
     protected function casts(): array
     {
-        return ['is_published' => 'boolean', 'sort_order' => 'integer'];
+        return ['is_published' => 'boolean', 'sort_order' => 'integer', 'min_score' => 'integer'];
     }
 
     public function slugSource(): string

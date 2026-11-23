@@ -15,6 +15,7 @@ Route::middleware(['auth', 'active', 'password.changed'])->group(function () {
     Route::post('/inscriptions/{inscription}/attestation', [InscriptionController::class, 'issueAttestation'])->middleware('permission:inscriptions.attestation')->name('inscriptions.attestation.issue');
     Route::post('/inscriptions/{inscription}/attestation/duplicata', [InscriptionController::class, 'duplicateAttestation'])->middleware('permission:inscriptions.attestation')->name('inscriptions.attestation.duplicate');
     Route::post('/inscriptions/{inscription}/attestation/envoi', [InscriptionController::class, 'resendAttestation'])->middleware('permission:inscriptions.attestation')->name('inscriptions.attestation.resend');
+    Route::put('/inscriptions/{inscription}/fin-prevue', [InscriptionController::class, 'plannedEnd'])->middleware('permission:inscriptions.organize')->name('inscriptions.planned-end');
     Route::put('/inscriptions/{inscription}/fin', [InscriptionController::class, 'finish'])->middleware('permission:inscriptions.validate')->name('inscriptions.finish');
     Route::put('/inscriptions/{inscription}/formateur', [InscriptionController::class, 'assignTeacher'])->middleware('permission:inscriptions.organize')->name('inscriptions.teacher');
     Route::put('/inscriptions/{inscription}/dossier', [InscriptionController::class, 'organize'])->middleware('permission:inscriptions.organize')->name('inscriptions.organize');

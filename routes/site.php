@@ -11,6 +11,7 @@ use App\Http\Controllers\Site\SearchController;
 use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\ServiceController;
 use App\Http\Controllers\Site\TemoignageController;
+use App\Http\Controllers\Site\TestEnLigneController;
 use App\Http\Controllers\Site\TestNiveauController;
 use App\Http\Controllers\VideoUploadController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,15 @@ Route::name('site.')->group(function () {
     // Test de niveau (cahier §3.4) : présentation et demande / réservation (anti-spam, débit limité).
     Route::get('/test-de-niveau', [TestNiveauController::class, 'show'])->name('tests.show');
     Route::post('/test-de-niveau', [TestNiveauController::class, 'store'])->middleware('throttle:demandes')->name('tests.store');
+    // Test de niveau EN LIGNE, instantané (2026-11-23) : départ, questions (lien secret), envoi, résultat.
+    Route::post('/test-de-niveau/en-ligne', [TestEnLigneController::class, 'start'])->middleware('throttle:demandes')->name('tests.online.start');
+    Route::get('/test-de-niveau/en-ligne/{token}', [TestEnLigneController::class, 'take'])->where('token', '[A-Za-z0-9]{40}')->name('tests.online.take');
+    Route::post('/test-de-niveau/en-ligne/{token}', [TestEnLigneController::class, 'submit'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:demandes')->name('tests.online.submit');
+    // Questionnaire en document (test à distance) : lien de la convocation — télécharger, renvoyer ses réponses.
+    Route::get('/test-de-niveau/{test}/{key}', [TestEnLigneController::class, 'paper'])->whereNumber('test')->where('key', '[a-f0-9]{24}')->name('tests.paper');
+    Route::get('/test-de-niveau/{test}/{key}/questionnaire', [TestEnLigneController::class, 'paperDownload'])->whereNumber('test')->where('key', '[a-f0-9]{24}')->name('tests.paper.download');
+    Route::post('/test-de-niveau/{test}/{key}', [TestEnLigneController::class, 'paperAnswers'])->whereNumber('test')->where('key', '[a-f0-9]{24}')->middleware('throttle:demandes')->name('tests.paper.answers');
+    Route::get('/test-de-niveau/en-ligne/{token}/resultat', [TestEnLigneController::class, 'result'])->where('token', '[A-Za-z0-9]{40}')->name('tests.online.result');
     // Témoignages (vidéo et écrit) ; envoi d'une vidéo par morceaux de 1 Mo (300 Mo au plus).
     Route::get('/temoignages', [TemoignageController::class, 'index'])->name('temoignages.index');
     Route::get('/temoignages/partager', [TemoignageController::class, 'create'])->name('temoignages.create');

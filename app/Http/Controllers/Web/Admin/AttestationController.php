@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\FormationMode;
 use App\Http\Controllers\Controller;
+use App\Models\Groupe;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Services\Attestations\AttestationAssets;
@@ -34,6 +35,10 @@ class AttestationController extends Controller
             'signature' => $this->assets->dataUri($this->assets->signaturePath()),
             'stamp' => $this->assets->dataUri($this->assets->stampPath()),
             'custom' => ['signature' => $this->assets->isCustom('signature'), 'stamp' => $this->assets->isCustom('stamp')],
+            // À délivrer : formations terminées sans attestation (par groupe, et hors groupe) ; groupes en cours.
+            'due' => Inscription::with('groupe')->where('status', 'terminee')->whereNull('attestation_number')->orderBy('name')->get(),
+            'groups' => Groupe::withCount(['members as running' => fn ($q) => $q->where('status', 'en_cours'), 'members as due' => fn ($q) => $q->where('status', 'terminee')->whereNull('attestation_number'), 'members as issued' => fn ($q) => $q->whereNotNull('attestation_number')])
+                ->where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 

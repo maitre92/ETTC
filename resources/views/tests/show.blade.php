@@ -56,6 +56,50 @@
                     </div>
                 </div>
 
+                {{-- Questionnaire en document (PDF, Word…) : déposé par l'équipe, téléchargé par le candidat, réponses renvoyées. --}}
+                @unless ($test->isOnline())
+                    <div class="card">
+                        <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-file me-2'></i>QUESTIONNAIRE (PDF, WORD…)</h6></div>
+                        <div class="card-body">
+                            @if ($test->questionnaire_path)
+                                <p class="mb-2"><i class='bx bx-file'></i> <a href="{{ route('tests.paper-file', [$test, 'questionnaire']) }}">{{ $test->questionnaire_name }}</a></p>
+                                <p class="small mb-2">Lien du candidat (dans sa convocation) : <input class="form-control form-control-sm d-inline-block" style="max-width:100%" value="{{ $test->candidateUrl() }}" readonly onclick="this.select()" aria-label="Lien du questionnaire pour le candidat"></p>
+                                @if ($test->answers_path)
+                                    <p class="mb-2 text-success"><i class='bx bx-check-circle'></i> Réponses reçues le {{ $test->answers_at->format('d/m/Y à H:i') }} : <a href="{{ route('tests.paper-file', [$test, 'reponses']) }}">{{ $test->answers_name }}</a></p>
+                                @else
+                                    <p class="small text-muted mb-2">Réponses du candidat : pas encore reçues.</p>
+                                @endif
+                            @else
+                                <p class="small text-muted">Pour un test au centre (imprimé) ou à distance : déposez votre questionnaire. Le candidat le télécharge depuis sa convocation et renvoie ses réponses (photo, PDF, Word).</p>
+                            @endif
+                            @can('schedule', $test)
+                                <form method="POST" action="{{ route('tests.questionnaire', $test) }}" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-center">
+                                    @csrf
+                                    <input type="file" class="form-control form-control-sm" style="max-width:320px" name="questionnaire" accept=".pdf,.doc,.docx,.odt,.xls,.xlsx,.jpg,.jpeg,.png" required aria-label="Questionnaire">
+                                    <button type="submit" class="btn btn-primary btn-sm">{{ $test->questionnaire_path ? 'Remplacer' : 'Déposer le questionnaire' }}</button>
+                                </form>
+                            @endcan
+                        </div>
+                    </div>
+                @endunless
+
+                @if ($test->isOnline())
+                    @include('tests._online', ['test' => $test, 'recordingUrl' => fn ($id) => route('tests.recording', [$test, $id])])
+                    @can('schedule', $test)
+                        @php $examiners = \App\Models\User::role(\App\Enums\RoleName::Formateur->value)->active()->orderBy('name')->get(); @endphp
+                        @if ($examiners->isNotEmpty())
+                            <form method="POST" action="{{ route('tests.examiner', $test) }}" class="card card-body d-flex flex-row flex-wrap align-items-end gap-2" data-crud-form data-no-guard>
+                                @csrf @method('PUT')
+                                <div class="flex-grow-1"><label class="form-label small fw-semibold" for="ex-online">Confier l'écoute de l'oral et la confirmation du niveau à un formateur</label>
+                                    <select class="form-select form-select-sm" id="ex-online" name="examiner_id"><option value="">— L'équipe du centre —</option>@foreach ($examiners as $examiner)<option value="{{ $examiner->id }}" @selected($test->examiner_id === $examiner->id)>{{ $examiner->name }}</option>@endforeach</select>
+                                    <div class="form-text">Le formateur le retrouve dans son espace ; les frais d'inscription de l'apprenant lui reviendront.</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+                            </form>
+                        @endif
+                    @endcan
+                @endif
+
                 @if ($test->niveau)
                     <div class="card border-success">
                         <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-medal me-2'></i>RÉSULTAT ET ORIENTATION</h6></div>
@@ -105,6 +149,13 @@
                                     <div class="col-md-5"><label class="form-label fw-semibold" for="s-at">Date et heure <span class="text-danger">*</span></label><input type="datetime-local" class="form-control {{ $field('scheduled_at') }}" id="s-at" name="scheduled_at" value="{{ old('scheduled_at', $test->scheduled_at?->format('Y-m-d\TH:i') ?? $suggestedSlot) }}" required><div class="form-text">Proposé : le prochain jour ouvré à 9 h.</div></div>
                                     <div class="col-md-3"><label class="form-label fw-semibold" for="s-mode">Mode</label><select class="form-select" id="s-mode" name="test_mode">@foreach (\App\Enums\TestMode::options() as $value => $label)<option value="{{ $value }}" @selected($test->test_mode->value === $value)>{{ $label }}</option>@endforeach</select></div>
                                     <div class="col-md-4"><label class="form-label fw-semibold" for="s-loc">Lieu ou lien</label><input class="form-control {{ $field('location') }}" id="s-loc" name="location" maxlength="500" value="{{ old('location', $test->location ?? $recentLocations->first()) }}" placeholder="Salle 2 / lien Google Meet" list="recent-locations"><datalist id="recent-locations">@foreach ($recentLocations as $recent)<option value="{{ $recent }}"></option>@endforeach</datalist></div>
+                                    @php $examiners = \App\Models\User::role(\App\Enums\RoleName::Formateur->value)->active()->orderBy('name')->get(); @endphp
+                                    @if ($examiners->isNotEmpty())
+                                        <div class="col-md-6"><label class="form-label fw-semibold" for="s-examiner">Formateur qui fait passer le test</label>
+                                            <select class="form-select" id="s-examiner" name="examiner_id"><option value="">— L'équipe du centre —</option>@foreach ($examiners as $examiner)<option value="{{ $examiner->id }}" @selected($test->examiner_id === $examiner->id)>{{ $examiner->name }}</option>@endforeach</select>
+                                            <div class="form-text">Il le retrouve dans son espace ; s'il fait passer le test, les frais d'inscription de l'apprenant lui reviennent.</div>
+                                        </div>
+                                    @endif
                                     <div class="col-12 d-flex align-items-center gap-2 mt-2">
                                         <button type="submit" class="btn btn-primary btn-sm"><i class='bx bx-calendar-check me-1'></i>{{ $test->scheduled_at ? 'Reporter' : 'Planifier' }}</button>
                                         <span class="small text-muted">{{ $test->email ? 'Une convocation part par e-mail au candidat.' : 'Pas d\'e-mail : prévenez le candidat par téléphone.' }}</span>

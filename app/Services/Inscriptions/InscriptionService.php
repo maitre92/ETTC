@@ -83,6 +83,8 @@ class InscriptionService
                 'ip_address' => $request->ip(),
                 'user_agent' => Str::limit((string) $request->userAgent(), 500, ''),
                 'client_id' => $request->user('client')?->id,
+                // Test de niveau passé récemment avec ce téléphone : lié (frais d'inscription au formateur du test).
+                'test_niveau_id' => $this->recentTest($data['phone'] ?? null)?->id,
             ]);
             $this->countPromotion($inscription);
             $this->logger->log('inscriptions.submitted', 'inscriptions', "Inscription reçue — {$inscription->number} ({$inscription->name}) : {$inscription->summary()}", $inscription);
@@ -198,6 +200,13 @@ class InscriptionService
             'city' => $data['city'] ?? null,
             'message' => $data['message'] ?? null,
         ];
+    }
+
+    private function recentTest(?string $phone): ?TestNiveau
+    {
+        $phone = $phone ? (PhoneNumber::normalize($phone) ?? $phone) : null;
+
+        return $phone ? TestNiveau::where('phone', $phone)->where('status', 'passe')->where('result_at', '>=', now()->subMonths(4))->latest('result_at')->first() : null;
     }
 
     /** Une utilisation de plus pour la promotion appliquée (limite « nombre d'inscriptions »). */

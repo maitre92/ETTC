@@ -34,7 +34,7 @@
                 <div class="card">
                     <div class="card-header card-header-brand d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 text-white"><i class='bx bx-group me-2'></i>{{ mb_strtoupper($groupe->name) }}</h6>
-                        @if ($canManage)<span class="d-flex gap-1"><button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#annonce-groupe"><i class='bx bx-megaphone'></i> Annonce</button><button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#edit-groupe"><i class='bx bx-edit'></i> Modifier</button></span>@endif
+                        @if ($canManage)<span class="d-flex gap-1">@can('inscriptions.attestation')<a href="#attestations" class="btn btn-light btn-sm"><i class='bx bx-award'></i> Attestations</a>@endcan<button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#annonce-groupe"><i class='bx bx-megaphone'></i> Annonce</button><button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#edit-groupe"><i class='bx bx-edit'></i> Modifier</button></span>@endif
                     </div>
                     <div class="card-body">
                         <dl class="nv-dl mb-0">
@@ -93,6 +93,39 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Attestations du groupe en une fois (formations terminées), un seul PDF à imprimer. --}}
+                @can('inscriptions.attestation')
+                    @php
+                        $attestationService = app(\App\Services\Attestations\AttestationService::class);
+                        $finished = $groupe->members->where('status', \App\Enums\InscriptionStatus::Terminee)->whereNull('attestation_number');
+                        $toIssue = $finished->filter(fn ($m) => $attestationService->blockers($m) === [])->count();
+                        $waitingCount = $finished->count() - $toIssue;
+                        $running = $groupe->members->where('status', \App\Enums\InscriptionStatus::EnCours)->count();
+                        $issuedCount = $groupe->members->whereNotNull('attestation_number')->count();
+                    @endphp
+                    @if ($groupe->members->isNotEmpty())
+                        <div class="card nv-target" id="attestations">
+                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>ATTESTATIONS DU GROUPE</h6></div>
+                            <div class="card-body">
+                                @error('attestations')<div class="alert alert-warning small">{{ $message }}</div>@enderror
+                                @if (session('attestations_blocked'))
+                                    <div class="alert alert-info small"><strong>Pas encore délivrées :</strong><ul class="mb-0">@foreach (session('attestations_blocked') as $line)<li>{{ $line }}</li>@endforeach</ul></div>
+                                @endif
+                                <p class="small text-muted mb-2">Conditions : formation terminée, frais payés en totalité, fin prévue atteinte (modifiable sur la fiche de chaque inscription).</p>
+                                <p class="small mb-2">{{ $issuedCount }} déjà délivrée(s) · <strong>{{ $toIssue }} prête(s) à délivrer</strong>@if ($waitingCount) · {{ $waitingCount }} en attente (paiement ou fin prévue)@endif · {{ $running }} formation(s) encore en cours.</p>
+                                <form method="POST" action="{{ route('groupes.attestations', $groupe) }}" target="_blank" data-no-guard data-reload-after>
+                                    @csrf
+                                    @if ($running > 0)
+                                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="att-finish" name="finish" value="1"><label class="form-check-label small" for="att-finish">Terminer d'abord la formation des {{ $running }} apprenant(s) en cours</label></div>
+                                    @endif
+                                    <button type="submit" class="btn btn-success"><i class='bx bx-award me-1'></i>Délivrer les attestations</button>
+                                    <div class="form-text">Un seul PDF, une page par apprenant. Chacun est prévenu par e-mail (formation en ligne : attestation jointe et dans son espace).</div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+                @endcan
 
                 {{-- Séances --}}
                 <div class="card">
@@ -173,33 +206,6 @@
                         @endif
                     </div>
                 </div>
-
-                {{-- Attestations du groupe en une fois (formations terminées), un seul PDF à imprimer. --}}
-                @can('inscriptions.attestation')
-                    @php
-                        $finished = $groupe->members->where('status', \App\Enums\InscriptionStatus::Terminee);
-                        $toIssue = $finished->whereNull('attestation_number')->count();
-                        $running = $groupe->members->where('status', \App\Enums\InscriptionStatus::EnCours)->count();
-                        $issuedCount = $groupe->members->whereNotNull('attestation_number')->count();
-                    @endphp
-                    @if ($groupe->members->isNotEmpty())
-                        <div class="card" id="attestations">
-                            <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>ATTESTATIONS DU GROUPE</h6></div>
-                            <div class="card-body">
-                                @error('attestations')<div class="alert alert-warning small">{{ $message }}</div>@enderror
-                                <p class="small mb-2">{{ $issuedCount }} déjà délivrée(s) · {{ $toIssue }} à délivrer (formation terminée) · {{ $running }} formation(s) encore en cours.</p>
-                                <form method="POST" action="{{ route('groupes.attestations', $groupe) }}" target="_blank" data-no-guard data-reload-after>
-                                    @csrf
-                                    @if ($running > 0)
-                                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="att-finish" name="finish" value="1"><label class="form-check-label small" for="att-finish">Terminer d'abord la formation des {{ $running }} apprenant(s) en cours</label></div>
-                                    @endif
-                                    <button type="submit" class="btn btn-success"><i class='bx bx-award me-1'></i>Délivrer les attestations</button>
-                                    <div class="form-text">Un seul PDF, une page par apprenant. Chacun est prévenu par e-mail (formation en ligne : attestation jointe et dans son espace).</div>
-                                </form>
-                            </div>
-                        </div>
-                    @endif
-                @endcan
 
                 @include('groupes._discussion', [
                     'groupe' => $groupe,

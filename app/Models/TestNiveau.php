@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 #[Fillable([
     'number', 'status', 'source', 'name', 'email', 'phone', 'test_mode', 'preferred_slot', 'message', 'client_id',
-    'scheduled_at', 'location', 'score', 'niveau_id', 'result_notes', 'result_at', 'result_by', 'cancel_reason',
+    'scheduled_at', 'location', 'examiner_id', 'online_token', 'online_questions', 'online_answers', 'online_started_at', 'questionnaire_path', 'questionnaire_name', 'answers_path', 'answers_name', 'answers_at', 'score', 'niveau_id', 'result_notes', 'result_at', 'result_by', 'cancel_reason',
     'consent_at', 'ip_address', 'user_agent', 'notified_at', 'notification_error',
 ])]
 class TestNiveau extends Model
@@ -33,6 +33,7 @@ class TestNiveau extends Model
     protected function casts(): array
     {
         return [
+            'online_questions' => 'array', 'online_answers' => 'array', 'online_started_at' => 'datetime', 'answers_at' => 'datetime',
             'status' => TestStatus::class, 'test_mode' => TestMode::class, 'scheduled_at' => 'datetime',
             'result_at' => 'datetime', 'consent_at' => 'datetime', 'notified_at' => 'datetime',
         ];
@@ -83,5 +84,28 @@ class TestNiveau extends Model
     public function activityLabel(): string
     {
         return "{$this->number} — {$this->name}";
+    }
+
+    /** Formateur qui fait passer le test : les frais d'inscription de l'inscription qui suit lui reviennent. */
+    public function examiner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'examiner_id')->withTrashed();
+    }
+
+    /** Test passé en ligne (correction automatique). */
+    public function isOnline(): bool
+    {
+        return $this->source === 'en_ligne';
+    }
+
+    /** Clé du lien du candidat (questionnaire à télécharger, réponses à renvoyer). */
+    public function candidateKey(): string
+    {
+        return substr(hash_hmac('sha256', 'test|'.$this->id.'|'.$this->number, (string) config('app.key')), 0, 24);
+    }
+
+    public function candidateUrl(): string
+    {
+        return route('site.tests.paper', ['test' => $this->id, 'key' => $this->candidateKey()]);
     }
 }

@@ -34,6 +34,11 @@
                 @if ($kind === 'convocation' && $test->location)<tr><td style="color:#66748a">{{ $test->test_mode === \App\Enums\TestMode::Distance ? 'Connexion' : 'Lieu' }}</td><td>{{ $test->location }}</td></tr>@endif
                 <tr><td style="color:#66748a">Coût</td><td><strong>Gratuit</strong></td></tr>
             </table>
+            @if ($kind === 'convocation' && $test->questionnaire_path)
+                {{-- Questionnaire en document : à télécharger, puis réponses à renvoyer (test à distance). --}}
+                <p style="margin:18px 0 6px">Votre questionnaire est prêt : téléchargez-le, répondez-y, puis envoyez-nous vos réponses (photo, PDF ou Word) sur la même page.</p>
+                <p style="margin:0"><a href="{{ $test->candidateUrl() }}" style="display:inline-block;background:#045eb5;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Mon questionnaire</a></p>
+            @endif
             @if ($kind === 'equipe' && $test->message)
                 <div style="margin-top:12px;padding:14px;background:#f4f8fc;border-radius:8px;font-size:14px;line-height:1.6">{!! nl2br(e($test->message)) !!}</div>
             @endif

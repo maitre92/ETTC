@@ -162,7 +162,7 @@
                 @endif
 
                 {{-- Attestation de fin de formation : délivrée une fois (formation terminée), puis duplicata. --}}
-                @if ($status === InscriptionStatus::Terminee && auth()->user()->can('inscriptions.attestation'))
+                @if (in_array($status, [InscriptionStatus::EnCours, InscriptionStatus::Terminee], true) && auth()->user()->can('inscriptions.attestation'))
                     <div class="card border-success">
                         <div class="card-header card-header-brand"><h6 class="mb-0 text-white"><i class='bx bx-award me-2'></i>ATTESTATION DE FIN DE FORMATION</h6></div>
                         <div class="card-body">
@@ -184,11 +184,34 @@
                                     @endif
                                 </div>
                             @else
-                                @if ($inscription->balance() > 0)
-                                    <p class="alert alert-warning small mb-3"><i class='bx bx-error'></i> Il reste {{ $money($inscription->balance()) }} à payer sur cette formation.</p>
+                                {{-- Conditions : formation terminée, frais payés en totalité, fin prévue atteinte (modifiable). --}}
+                                @php
+                                    $conditions = [
+                                        [$status === InscriptionStatus::Terminee, 'Formation terminée'],
+                                        [$inscription->balance() === 0, $inscription->balance() === 0 ? 'Frais de formation payés en totalité' : 'Frais payés en totalité — reste '.$money($inscription->balance())],
+                                        [! $inscription->plannedEnd()->isAfter(today()), 'Durée prévue atteinte — fin prévue le '.$inscription->plannedEnd()->format('d/m/Y')],
+                                    ];
+                                    $eligible = collect($conditions)->every(fn ($c) => $c[0]);
+                                @endphp
+                                <ul class="list-unstyled mb-3">
+                                    @foreach ($conditions as [$ok, $label])
+                                        <li class="{{ $ok ? 'text-success' : 'text-danger' }}"><i class='bx {{ $ok ? 'bx-check-circle' : 'bx-x-circle' }}'></i> {{ $label }}</li>
+                                    @endforeach
+                                </ul>
+                                @can('organize', $inscription)
+                                    <form method="POST" action="{{ route('inscriptions.planned-end', $inscription) }}" class="d-flex flex-wrap align-items-end gap-2 mb-3" data-crud-form data-no-guard>
+                                        @csrf @method('PUT')
+                                        <div><label class="form-label small mb-0" for="pe-date">Fin prévue (modifiable)</label><input type="date" class="form-control form-control-sm" id="pe-date" name="planned_end_on" value="{{ $inscription->plannedEnd()->format('Y-m-d') }}" required></div>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm">Modifier</button>
+                                    </form>
+                                @endcan
+                                <p class="mb-3">L'attestation s'ouvre prête à imprimer, avec son numéro. {{ $inscription->mode === \App\Enums\FormationMode::EnLigne ? 'Formation en ligne : l\'apprenant la reçoit aussi par e-mail et la retrouve dans son espace.' : 'L\'apprenant est prévenu par e-mail qu\'elle est à retirer au centre.' }}</p>
+                                @if ($eligible)
+                                    <form method="POST" action="{{ route('inscriptions.attestation.issue', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-success btn-lg"><i class='bx bx-award me-1'></i>Délivrer l'attestation</button></form>
+                                @else
+                                    <button type="button" class="btn btn-secondary btn-lg" disabled><i class='bx bx-lock-alt me-1'></i>Délivrer l'attestation</button>
+                                    <div class="form-text">Toutes les conditions doivent être remplies.</div>
                                 @endif
-                                <p class="mb-3">La formation est terminée : délivrez l'attestation. Elle s'ouvre prête à imprimer, avec son numéro. {{ $inscription->mode === \App\Enums\FormationMode::EnLigne ? 'Formation en ligne : l\'apprenant la reçoit aussi par e-mail et la retrouve dans son espace.' : 'L\'apprenant est prévenu par e-mail qu\'elle est à retirer au centre.' }}</p>
-                                <form method="POST" action="{{ route('inscriptions.attestation.issue', $inscription) }}" target="_blank" data-no-guard data-reload-after>@csrf<button type="submit" class="btn btn-success btn-lg"><i class='bx bx-award me-1'></i>Délivrer l'attestation</button></form>
                             @endif
                         </div>
                     </div>

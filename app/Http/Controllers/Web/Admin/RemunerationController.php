@@ -37,7 +37,7 @@ class RemunerationController extends Controller
             'month' => CarbonImmutable::createFromFormat('!Y-m', $period),
             'summary' => $this->service->summary($period),
             'payouts' => FormateurVersement::with(['formateur', 'recorder'])->where('period', $period)->latest('id')->get(),
-            'rates' => ['personnalisee' => $this->service->rateLabel('personnalisee'), 'groupe' => $this->service->rateLabel('groupe')],
+            'rates' => ['personnalisee' => $this->service->rateLabel('personnalisee'), 'groupe' => $this->service->rateLabel('groupe'), 'test' => $this->service->rateLabel('test')],
             'settings' => app(SiteSettings::class),
         ]);
     }
@@ -95,7 +95,7 @@ class RemunerationController extends Controller
         return Pdf::loadView('pdf.remuneration-formateur', [
             'formateur' => $formateur, 'period' => $period, 'month' => CarbonImmutable::createFromFormat('!Y-m', $period),
             'data' => $data, 'payouts' => FormateurVersement::valid()->where('user_id', $formateur->id)->where('period', $period)->get(),
-            'rates' => ['personnalisee' => $this->service->rateLabel('personnalisee'), 'groupe' => $this->service->rateLabel('groupe')],
+            'rates' => ['personnalisee' => $this->service->rateLabel('personnalisee'), 'groupe' => $this->service->rateLabel('groupe'), 'test' => $this->service->rateLabel('test')],
             'site' => $site, 'logo' => ReceiptService::logoDataUri(),
             'signature' => app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->signaturePath()),
             'stamp' => app(AttestationAssets::class)->dataUri(app(AttestationAssets::class)->documentStampPath()),

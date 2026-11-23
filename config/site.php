@@ -74,6 +74,10 @@ return [
         // Rémunération des formateurs (2026-11-22) : formation personnalisée « 1/3 » de la mensualité, en groupe « 20 » %.
         'formateurs.rate_personnalisee' => '1/3',
         'formateurs.rate_groupe' => '20',
+        // Test de niveau en ligne (2026-11-23) : questions tirées au sort, sujets d'expression orale, durée (minutes).
+        'test.online_count' => '20',
+        'test.online_speaking' => '1',
+        'test.online_minutes' => '25',
         // Attestation « Certificate of Training » (modèle fourni par le centre, 2026-11-22), écran Attestations : signataire,
         // lieu ; signature et sceau déposés (fichiers privés) — vides : ceux du modèle.
         'attestation.director_name' => 'Mr. Cheick O. KONATÉ',

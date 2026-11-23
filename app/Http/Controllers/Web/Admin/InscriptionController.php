@@ -310,4 +310,16 @@ class InscriptionController extends Controller
 
         return redirect()->route('inscriptions.show', $inscription)->with('status', $inscription->fresh()->attestation_sent_at ? 'E-mail de l\'attestation envoyé.' : 'L\'e-mail n\'a pas pu partir : vérifiez l\'adresse.');
     }
+
+    /** Fin prévue de la formation (condition de l'attestation), modifiable. */
+    public function plannedEnd(Request $request, Inscription $inscription, ActivityLogger $logger): RedirectResponse
+    {
+        Gate::authorize('organize', $inscription);
+        $date = $request->validate(['planned_end_on' => ['required', 'date']], [], ['planned_end_on' => 'fin prévue'])['planned_end_on'];
+        $old = $inscription->plannedEnd()->toDateString();
+        Inscription::withoutActivityLog(fn () => $inscription->update(['planned_end_on' => $date]));
+        $logger->log('inscriptions.planned_end_changed', 'inscriptions', "Fin prévue — {$inscription->number} ({$inscription->name}) : {$old} → {$date}", $inscription, ['planned_end_on' => $old], ['planned_end_on' => $date], $request->user());
+
+        return redirect()->route('inscriptions.show', $inscription)->with('status', 'Fin prévue modifiée.');
+    }
 }

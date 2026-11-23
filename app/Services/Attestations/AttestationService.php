@@ -4,6 +4,7 @@ namespace App\Services\Attestations;
 
 use App\Enums\InscriptionStatus;
 use App\Mail\AttestationDelivree;
+use App\Models\Formule;
 use App\Models\Inscription;
 use App\Models\User;
 use App\Services\Audit\ActivityLogger;
@@ -51,8 +52,8 @@ class AttestationService
         if ($inscription->attestation_number) {
             throw ValidationException::withMessages(['attestation' => "L'attestation a déjà été délivrée le {$inscription->attestation_issued_at->format('d/m/Y')} : imprimez un duplicata."]);
         }
-        if ($inscription->status !== InscriptionStatus::Terminee) {
-            throw ValidationException::withMessages(['attestation' => 'L\'attestation se délivre quand la formation est terminée (bouton « Terminer la formation »).']);
+        if ($blockers = $this->blockers($inscription)) {
+            throw ValidationException::withMessages(['attestation' => 'Attestation impossible pour le moment : '.implode(' ; ', $blockers).'.']);
         }
 
         $inscription = DB::transaction(function () use ($inscription, $actor) {
@@ -88,6 +89,28 @@ class AttestationService
             Log::error("Attestation {$inscription->attestation_number} non envoyée à {$email} : ".Str::limit($e->getMessage(), 300));
             $this->logger->log('inscriptions.attestation_mail_failed', 'inscriptions', "Envoi de l'attestation impossible — {$inscription->attestation_number}", $inscription, new: ['error' => Str::limit($e->getMessage(), 300)]);
         }
+    }
+
+    /**
+     * Ce qui empêche encore de délivrer l'attestation (demande du centre, 2026-11-23) : formation terminée, frais
+     * PAYÉS EN TOTALITÉ (reste à payer = 0), fin prévue atteinte (date modifiable sur la fiche de l'inscription).
+     *
+     * @return list<string>
+     */
+    public function blockers(Inscription $inscription): array
+    {
+        $blockers = [];
+        if ($inscription->status !== InscriptionStatus::Terminee) {
+            $blockers[] = 'la formation n\'est pas terminée (bouton « Terminer la formation »)';
+        }
+        if ($inscription->balance() > 0) {
+            $blockers[] = 'il reste '.Formule::money($inscription->balance()).' à payer';
+        }
+        if ($inscription->plannedEnd()->isAfter(today())) {
+            $blockers[] = 'la durée prévue n\'est pas atteinte (fin prévue le '.$inscription->plannedEnd()->format('d/m/Y').')';
+        }
+
+        return $blockers;
     }
 
     /** Réimpression : « DUPLICATA », journalisée. */
