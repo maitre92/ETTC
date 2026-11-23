@@ -95,7 +95,7 @@
                                 <label class="ettc-choice form-check">
                                     <input class="form-check-input" type="radio" name="mode" value="{{ $mode->value }}" required data-label="{{ $mode->label() }}" @checked(old('mode', $preset['mode']) === $mode->value)>
                                     <strong><i class='bx {{ $mode === \App\Enums\FormationMode::EnLigne ? 'bx-video' : 'bx-building-house' }}' aria-hidden="true"></i> {{ $mode->label() }}</strong>
-                                    <small>{{ $mode === \App\Enums\FormationMode::EnLigne ? 'Séances en direct avec un formateur sur Google Meet.' : 'Cours au centre, à Ségou.' }}</small>
+                                    <small>{{ $mode === \App\Enums\FormationMode::EnLigne ? 'Séances en direct avec un formateur sur Google Meet.' : 'Cours au centre, à Ségou ou à Bamako.' }}</small>
                                 </label>
                             @endforeach
                         </div>
@@ -123,7 +123,7 @@
                             <div class="col-md-4">@include('site.demandes._field', ['name' => 'phone', 'label' => 'Téléphone', 'type' => 'tel', 'required' => true, 'max' => 30, 'autocomplete' => 'tel', 'placeholder' => '75 22 91 25', 'value' => $me?->phone])</div>
                             <div class="col-md-4">@include('site.demandes._field', ['name' => 'email', 'label' => 'E-mail', 'type' => 'email', 'max' => 190, 'autocomplete' => 'email', 'placeholder' => 'vous@exemple.com', 'value' => $me?->email, 'help' => 'Pour recevoir votre récapitulatif.'])</div>
                             <div class="col-md-8">@include('site.demandes._field', ['name' => 'address', 'label' => 'Adresse de résidence', 'max' => 300, 'autocomplete' => 'street-address', 'value' => $me?->address])</div>
-                            <div class="col-md-4">@include('site.demandes._field', ['name' => 'city', 'label' => 'Ville', 'max' => 100, 'autocomplete' => 'address-level2', 'value' => $me?->city ?? 'Ségou'])</div>
+                            <div class="col-md-4">@include('site.demandes._field', ['name' => 'city', 'label' => 'Ville', 'max' => 100, 'autocomplete' => 'address-level2', 'value' => $me?->city])</div>
                             <div class="col-12">@include('site.demandes._field', ['name' => 'message', 'label' => 'Informations utiles (facultatif)', 'type' => 'textarea', 'max' => 2000, 'rows' => 3, 'placeholder' => 'Vos disponibilités, votre objectif (études, travail, voyage)…'])</div>
                         </div>
                     </fieldset>

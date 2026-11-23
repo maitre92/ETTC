@@ -28,14 +28,14 @@ return [
         'company.name' => 'English Training and Translation Center',
         'company.short_name' => 'ETTC',
         'company.slogan' => 'Formation • Traduction • Activités linguistiques',
-        'company.tagline' => 'Centre de formation en anglais et de traduction professionnelle à Ségou',
+        'company.tagline' => 'Centre de formation en anglais et de traduction professionnelle à Ségou et à Bamako',
 
         // Coordonnées publiques du centre, reprises de la maquette validée (2026-11-17). WhatsApp = même numéro : À VALIDER.
         'contact.phone_1' => '+223 75 22 91 25',
         'contact.phone_2' => '',
         'contact.whatsapp' => '75 22 91 25',
         'contact.email' => 'contact@ettc-mali.org',
-        'contact.city' => 'Ségou, Mali',
+        'contact.city' => 'Ségou et Bamako, Mali',
         'contact.address' => '',
         'contact.hours' => '',
         'contact.map_url' => '',
@@ -116,9 +116,9 @@ return [
 
         // À propos (cahier §1, §2, §3.1) : textes de départ tirés du cahier, à remplacer par les textes officiels du
         // centre dans Pages et paramètres → À propos. Jamais de mention « À compléter » visible du public.
-        'about.presentation' => "English Training and Translation Center (ETTC) est un centre de formation linguistique et de traduction basé à Ségou (Mali). Il propose des formations d'anglais par niveau, en présentiel ou en ligne, des prestations de traduction professionnelle et des activités linguistiques comme l'excursion au Ghana.",
+        'about.presentation' => "English Training and Translation Center (ETTC) est un centre de formation linguistique et de traduction présent à Ségou et à Bamako (Mali). Il propose des formations d'anglais par niveau, en présentiel ou en ligne, des prestations de traduction professionnelle et des activités linguistiques comme l'excursion au Ghana.",
         'about.mission' => 'Rendre l\'anglais accessible à tous ceux qui en ont besoin pour leurs études, leur emploi, leurs affaires et leurs échanges internationaux, grâce à des formations pratiques et encadrées.',
-        'about.vision' => 'Être à Ségou et au-delà une référence de la formation en anglais et de la traduction professionnelle, en présentiel comme à distance.',
+        'about.vision' => 'Être à Ségou, à Bamako et au-delà une référence de la formation en anglais et de la traduction professionnelle, en présentiel comme à distance.',
         'about.values' => "Pédagogie pratique et interactive\nSuivi personnalisé de chaque apprenant\nQualité et rigueur des traductions\nOuverture culturelle",
         'about.method' => "Passer le test de niveau\nChoisir sa formule (niveau, mode, durée)\nSuivre des séances interactives avec un formateur\nPratiquer et progresser",
 
@@ -127,11 +127,11 @@ return [
 
         // Pages légales (Markdown) : à adapter à l'identité juridique du centre.
         // Forme juridique, immatriculation, directeur de la publication et hébergeur : à ajouter dès qu'ils sont connus.
-        'legal.mentions' => "## Éditeur du site\n\nEnglish Training and Translation Center (ETTC), Ségou, Mali. Pour nous joindre : voir la page Contact.\n\n## Conception et réalisation\n\nSite conçu et développé par Computer Service BARRY. Tous droits réservés.\n\n## Propriété intellectuelle\n\nLes contenus de ce site (textes, images, logos) sont protégés. Toute reproduction sans autorisation est interdite.",
+        'legal.mentions' => "## Éditeur du site\n\nEnglish Training and Translation Center (ETTC), Ségou et Bamako, Mali. Pour nous joindre : voir la page Contact.\n\n## Conception et réalisation\n\nSite conçu et développé par Computer Service BARRY. Tous droits réservés.\n\n## Propriété intellectuelle\n\nLes contenus de ce site (textes, images, logos) sont protégés. Toute reproduction sans autorisation est interdite.",
         'legal.privacy' => "## Données collectées\n\nLes formulaires du site collectent uniquement les informations nécessaires pour vous répondre et organiser votre formation : nom, coordonnées, message et, le cas échéant, le document que vous envoyez.\n\n## Utilisation\n\nCes données servent exclusivement à traiter votre demande ou votre inscription et à vous recontacter. Elles ne sont ni vendues ni cédées à des tiers. Les documents transmis pour traduction restent confidentiels.\n\n## Conservation\n\nVos données sont conservées le temps nécessaire au traitement de votre demande et au suivi de votre formation.\n\n## Vos droits\n\nVous pouvez demander l'accès, la rectification ou la suppression de vos données en écrivant à l'adresse e-mail indiquée sur la page Contact.",
 
         // Référencement
-        'seo.default_description' => 'English Training and Translation Center (ETTC), Ségou : formations d\'anglais par niveau en présentiel ou en ligne, test de niveau, traduction professionnelle et excursion au Ghana.',
+        'seo.default_description' => 'English Training and Translation Center (ETTC), Ségou et Bamako : formations d\'anglais par niveau en présentiel ou en ligne, test de niveau, traduction professionnelle et excursion au Ghana.',
         'seo.google_site_verification' => '',
 
         // Anti-spam des formulaires (App\Support\SpamGuard) : un domaine ou une expression par ligne.

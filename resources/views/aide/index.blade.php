@@ -17,112 +17,132 @@
     <hr />
 
     @php
-        // Chapitres : une tâche courante de l'administration par chapitre (cahier §15.1 « Transfert »). Chaque étape est
-        // une phrase courte. Chaque module ajoute son chapitre.
-        $chapters = [
-            ['bx bx-log-in', 'Se connecter et se déplacer', [
-                'L\'administration s\'ouvre à l\'adresse du site suivie de /'.config('site.admin_path').'. Connectez-vous avec votre numéro de téléphone et votre mot de passe. À la première connexion, choisissez un nouveau mot de passe (8 caractères au moins, lettres et chiffres).',
-                'Le menu de gauche ne montre que les écrans auxquels votre rôle donne accès. Une pastille orange signale ce qui attend votre action.',
-                'Le tableau de bord résume la situation ; le bouton « Voir le site » ouvre le site public dans un nouvel onglet.',
-                'Votre profil (en haut à droite) permet de changer votre nom, votre numéro et votre mot de passe.',
+        // Guide d'utilisation (cahier §15.1 « Transfert ») : un chapitre par tâche ; chacun ne voit QUE les chapitres de ce
+        // qu'il peut faire (droits de son rôle et ceux ajoutés) — demande du centre, 2026-11-23. Chapitre :
+        // [icône, titre, droits (un seul suffit ; [] = tout le monde), étapes].
+        $all = [
+            ['bx bx-log-in', 'Se connecter et se déplacer', [], [
+                'Connectez-vous avec votre numéro de téléphone et votre mot de passe. À la première connexion, choisissez un nouveau mot de passe.',
+                'Le menu de gauche ne montre que les écrans de votre rôle ; une pastille orange signale ce qui attend votre action, la cloche (en haut) aussi.',
+                'Votre profil (en haut à droite) : nom, numéro, mot de passe, « Installer l\'application » sur le téléphone.',
             ]],
-            ['bx bx-envelope', 'Traiter les demandes', [
-                'Chaque formulaire du site (contact, demande avec pièce jointe) crée une demande « Nouvelle » et envoie un e-mail à l\'équipe. Une pastille dans le menu et la cloche signalent les nouvelles demandes.',
-                'Demandes → bouton « œil » : la fiche montre le demandeur, son message, le contenu concerné et la pièce jointe éventuelle (à télécharger).',
-                'Faites évoluer le statut : En cours (prise en charge, la demande vous est attribuée), Proposition envoyée, Acceptée, ou Perdue / clôturée avec un motif.',
-                'Les notes internes (échanges, relances) ne sont visibles que par l\'équipe. « Répondre par e-mail » et « Appeler » ouvrent directement votre messagerie ou votre téléphone.',
-                'Si l\'e-mail de notification n\'a pas pu partir, la fiche l\'indique avec un bouton « Réessayer » : la demande, elle, n\'est jamais perdue.',
-                '« Exporter (Excel) » télécharge les demandes filtrées (type, statut, période) dans un fichier qui s\'ouvre dans Excel.',
+            ['bx bx-chalkboard', 'Mon espace formateur', ['formateurs.space'], [
+                'À la connexion, vous arrivez sur « Mes groupes » : vos séances du jour (bouton « Ouvrir Google Meet »), vos groupes, vos formations personnalisées, votre rémunération.',
+                'Sur chaque groupe : « Déposer un support de cours » (fichier PDF, Word, audio, vidéo — 20 Mo — ou lien YouTube / Drive), « Écrire au groupe » (vos apprenants peuvent être prévenus par e-mail), « Séance » (ajouter une séance).',
+                'Les messages de vos apprenants arrivent dans la discussion du groupe ; une pastille rouge les signale.',
+                'Tests de niveau qui vous sont confiés : faites passer le test (ou écoutez l\'oral d\'un test en ligne), puis choisissez le niveau et « Enregistrer le résultat ». Les frais d\'inscription de l\'apprenant vous reviennent.',
+                'Ma rémunération : formation personnalisée 1/3 de la mensualité, en groupe 20 %, test de niveau les frais d\'inscription ; sur ce que vos apprenants ont payé.',
             ]],
-            ['bx bx-purchase-tag', 'Modifier les formations et les tarifs', [
-                'Formations → Formules et tarifs : chaque formule (2 mois, 3 mois…) a un tarif en ligne et un tarif en présentiel, par mois ou en paiement unique. Bouton crayon : changez un montant puis « Enregistrer » ; il est en ligne aussitôt sur l\'accueil et la page Nos formations, sans recharger l\'écran.',
-                'Laissez un tarif vide si le mode n\'est pas proposé (par exemple une formule seulement au centre). Les montants se saisissent librement : « 100 000 », « 100000 » ou « 100 000 FCFA ».',
-                'Formations → Niveaux : nom, résumé, objectifs, compétences visées et prérequis (un élément par ligne). Chaque niveau publié a sa fiche sur le site.',
-                'Chaque changement de tarif est enregistré dans le journal avec l\'ancien et le nouveau montant.',
+            ['bx bx-user-plus', 'Inscrire un apprenant au centre', ['inscriptions.create'], [
+                'Tableau de bord → « Inscrire un apprenant » (ou Inscriptions → Ajouter) : tapez d\'abord le téléphone — une personne déjà connue est remplie toute seule.',
+                'Choisissez le niveau, la formule et le mode : le total s\'affiche (frais de formation, promotion, frais d\'inscription). Un code promo ? Saisissez-le, ou cliquez sur « Appliquer » si une promotion est proposée.',
+                '« Sans frais d\'inscription » : pour un ancien apprenant qui se réinscrit.',
+                'S\'il paie tout de suite : laissez « L\'apprenant paie maintenant », indiquez le montant et le moyen (espèces, mobile money, banque) ; le reçu est créé.',
             ]],
-            ['bx bx-target-lock', 'Suivre les tests de niveau', [
-                'Les candidats réservent leur test sur la page « Test de niveau » du site ; ils arrivent « À planifier » (pastille du menu, cloche, e-mail). Un candidat venu au centre ou qui a appelé : Tests de niveau → « Inscrire un candidat ».',
-                'Bouton « œil » : la fiche du candidat. « Planifier » fixe la date, le mode (au centre ou à distance) et le lieu ou le lien ; une convocation part par e-mail si le candidat en a laissé un. « Reporter » change la date.',
-                'Le test de niveau est gratuit : seule l\'inscription à une formation est payante.',
-                'Après le test : niveau attribué, score et appréciation, puis « Enregistrer le résultat ». La fiche propose les formules du niveau et le lien de sa fiche à transmettre au candidat, qui retrouve aussi son résultat dans son espace.',
-                'La présentation du test sur le site (format, durée, déroulement) se modifie en bas de la liste des tests.',
+            ['bx bx-id-card', 'Suivre une inscription', ['inscriptions.view'], [
+                'Inscriptions → œil : la fiche montre le tarif détaillé, les paiements, le groupe et « Que faire maintenant ? » (une seule action conseillée).',
+                'Formation personnalisée : choisissez son formateur sur la fiche.',
+                'Fin de formation : « Terminer la formation ». La fin prévue (début + durée) se modifie sur la fiche si besoin.',
             ]],
-            ['bx bx-id-card', 'Gérer les inscriptions', [
-                'Un apprenant s\'inscrit sur le site (« S\'inscrire maintenant ») : niveau, formule, en ligne ou en présentiel, coordonnées. L\'inscription arrive « À valider » (pastille du menu, cloche, e-mail) avec son numéro INS-….',
-                'Le prix est figé au moment de l\'inscription : si vous changez un tarif ensuite, les inscriptions déjà faites gardent le prix accepté par l\'apprenant.',
-                'Un apprenant venu au centre : Inscriptions → « Nouvelle inscription ». Après un test de niveau passé, la fiche du candidat propose « Inscrire à une formation » (nom, téléphone et niveau repris).',
-                'Sur la fiche : « Valider le dossier » (en attente de paiement), puis « Démarrer la formation » et « Terminer la formation ». La session (ex. Janvier 2027) et les notes internes se règlent dans la fiche.',
-                'Annuler demande un motif. Chaque étape est inscrite dans l\'historique de la fiche ; l\'apprenant suit son inscription dans son espace (« Mes inscriptions »).',
+            ['bx bx-money', 'Encaisser un paiement', ['paiements.record'], [
+                'Paiements → « Impayés » (ou la fiche de l\'inscription) → « Encaisser » : « Prochaine échéance » ou « Tout le reste » remplissent le montant.',
+                'Choisissez le moyen : espèces, mobile money (Orange Money, Wave, Moov) ou banque ; une référence est demandée hors espèces.',
+                'Le reçu (A5 ou ticket) s\'imprime aussitôt ; l\'apprenant le reçoit aussi par e-mail et dans son espace.',
+                'Un paiement déjà déclaré en ligne n\'est jamais encaissé une seconde fois : seul le reliquat est proposé.',
             ]],
-            ['bx bx-home-circle', 'Les gros boutons de l\'accueil', [
-                'Sur le tableau de bord, les gestes de tous les jours ont chacun leur gros bouton : « Inscrire un apprenant », « Encaisser un paiement », « Inscrire au test de niveau », « Séances du jour ». Un clic ouvre directement la bonne fenêtre.',
-                'En dessous, « À traiter maintenant » compte ce qui attend : inscriptions à valider, paiements à vérifier, impayés, tests à planifier… Cliquez sur une carte pour voir la liste.',
+            ['bx bx-check-shield', 'Vérifier un paiement déclaré en ligne', ['paiements.verify'], [
+                'Un apprenant qui paie par mobile money (code marchand, QR ou numéro) donne la référence du SMS : le paiement arrive « À vérifier » (pastille, cloche, e-mail).',
+                'Retrouvez la référence sur le compte marchand du centre, puis « Confirmer » (reçu envoyé, inscription confirmée) ou « Rejeter » avec un motif.',
             ]],
-            ['bx bx-wallet', 'Encaisser les paiements et délivrer les reçus', [
-                'Formation en présentiel : l\'apprenant paie au centre, ou en ligne par mobile money s\'il le préfère (les numéros et QR lui sont montrés aussi). Dans la liste des inscriptions (ou sur sa fiche), cliquez sur le bouton vert « Encaisser » : vérifiez le montant (une mensualité est proposée), choisissez « Espèces » ou le mobile money (la référence du SMS est alors demandée), puis « Encaisser et créer le reçu ». L\'inscription est validée toute seule.',
-                'Chaque fiche d\'inscription commence par « Que faire maintenant ? » : un seul bouton, celui de l\'étape suivante. Les actions plus rares (session, notes, annulation, valider sans paiement) sont rangées sous « Autres actions ».',
-                'Reçus : bouton « A5 » (feuille, avec cachet et signature) ou « Ticket » (imprimante thermique 80 mm). Chaque reçu porte un QR code : scanné, il affiche la page « Reçu authentique » du site.',
-                'Formation en ligne : l\'apprenant paie par mobile money (Orange Money, Wave, Moov Money) puis déclare la référence de la transaction dans son espace. Le paiement arrive « À vérifier » (pastille du menu, cloche, e-mail). Retrouvez la transaction sur le compte marchand, puis cliquez « Confirmer » directement dans la liste (une question vous est posée) ; sinon ouvrez-le et « Rejeter » avec un motif que l\'apprenant verra. Quand le paiement automatique est activé (voir l\'écran Paiements), plus rien n\'est à vérifier : l\'opérateur confirme et le reçu part tout seul.',
-                'Les numéros marchands, les QR marchands à scanner (photo ou capture du QR fourni par Orange Money, Wave ou Moov Money) et les consignes se règlent sur l\'écran Paiements, bouton « Moyens de paiement » en haut du tableau (l\'aperçu du QR s\'affiche dès que vous choisissez l\'image). Sans numéro ni QR, un moyen n\'est pas proposé aux apprenants ; « Retirer » enlève un QR.',
-                'Un paiement confirmé valide l\'inscription automatiquement : elle passe « Confirmée ». Le tableau « Impayés » liste les inscriptions qui ont encore un reste à payer.',
-                'Un paiement ne se supprime jamais : « Annuler » s\'il a été saisi par erreur, « Rembourser » si l\'argent a été rendu (motif obligatoire). Le reçu reste consultable avec son statut. Bouton « Imprimer / PDF » sur chaque reçu.',
+            ['bx bx-undo', 'Annuler ou rembourser un paiement', ['paiements.refund'], [
+                'Fiche du paiement → « Annuler (erreur) » si aucun argent n\'a été reçu, « Rembourser » si l\'argent a été rendu ; un motif est obligatoire.',
+                'Les demandes de la secrétaire arrivent en haut de Paiements (et dans la cloche) : « Valider la demande » ou « Refuser ».',
             ]],
-            ['bx bx-line-chart', 'Suivre les finances et la commission', [
-                'Finances et commission : choisissez la période (ce mois, mois dernier, cette année, depuis le début, ou des dates). Vous voyez les frais de formation encaissés, la part du centre, la commission du développeur, ce qui est déjà versé et ce qui reste à payer.',
-                'La commission (20 % par défaut) est calculée sur chaque paiement de formation confirmé et reste fixée même si le taux change ensuite. Un paiement remboursé ou annulé ne compte plus. Le test de niveau est gratuit : il n\'entre pas dans le calcul.',
-                'Quand la commission d\'un mois est versée, bouton « Verser » sur la ligne du mois : le montant restant est proposé. Rapport PDF et fichier Excel en un clic, pour la période choisie.',
+            ['bx bx-undo', 'Demander l\'annulation d\'un paiement', ['paiements.request_cancel'], [
+                'Fiche du paiement → « Demander une annulation » : annulation (erreur) ou remboursement, avec le motif.',
+                'L\'administrateur valide ou refuse ; la fiche indique « En attente de la validation de l\'administrateur ».',
             ]],
-            ['bx bx-transfer-alt', 'Traductions, formations personnalisées et excursion', [
-                'Les pages Traduction, Formation personnalisée et Excursion au Ghana du site ont chacune leur formulaire ; les demandes arrivent dans Demandes (filtre « Tous les types » pour les retrouver). Leurs textes se modifient dans Pages et paramètres.',
-                'Sur la demande, carte « Proposition » : le montant et ce qu\'il comprend, puis « Envoyer la proposition ». Le demandeur la reçoit par e-mail (sinon, bouton « Envoyer le lien par WhatsApp ») et l\'accepte d\'un clic ; vous êtes prévenu et la demande passe « Acceptée ».',
-                'Formation personnalisée acceptée : bouton « Inscrire » (choisir présentiel ou en ligne) ; l\'inscription est créée au tarif accepté et s\'encaisse comme les autres.',
+            ['bx bx-mobile-alt', 'Moyens de paiement en ligne', ['paiements.configure'], [
+                'Paiements → « Moyens de paiement » : pour chaque opérateur, le code marchand (ex. #144#8*754830*code secret#), le numéro et le QR à scanner.',
+                'Le code marchand est expliqué pas à pas aux apprenants (diaporama) ; « Qui reçoit les paiements à vérifier » : l\'adresse de la personne qui contrôle.',
             ]],
-            ['bx bx-calendar', 'Organiser les groupes et les séances', [
-                'Séances et groupes → « Nouveau groupe » : un nom, en ligne ou au centre, le lien Google Meet (un lien collé sans son début est complété tout seul) ou la salle, le niveau et le formateur.',
-                'Sur la fiche du groupe, « Que faire maintenant ? » indique l\'étape suivante. « Ajouter des apprenants » propose les inscrits qui correspondent (même mode, même niveau, sans groupe), déjà cochés.',
-                '« Programmer les séances » crée toutes les séances d\'un coup : cochez les jours (ex. lundi et mercredi), l\'heure, la durée et la période. Chaque apprenant reçoit son calendrier par e-mail ; relancer la même série ne crée pas de doublon.',
-                'Annuler une séance : bouton « Annuler » puis le motif, envoyé aux apprenants. Supports : un fichier (PDF, Word, audio… 20 Mo au plus) ou un lien (YouTube, Drive) ; visibles seulement par les apprenants du groupe.',
-                'L\'apprenant voit « Mon calendrier » dans son espace : prochaine séance, bouton « Rejoindre » actif 15 minutes avant, supports à télécharger.',
+            ['bx bx-transfer', 'La caisse', ['caisse.view'], [
+                'Finances → Caisse : soldes du jour (espèces, mobile money, banque) et journal ; les paiements des apprenants y entrent tout seuls.',
+                '« Revenu » (traduction, vente…), « Dépense » (loyer, électricité… avec la photo de la facture), « Transfert » (ex. dépôt des espèces à la banque).',
+                'Première utilisation : enregistrez un revenu « Solde d\'ouverture » pour l\'argent déjà en caisse.',
             ]],
-            ['bx bx-file', 'Modifier les pages et les coordonnées', [
-                'Pages et paramètres → onglets Accueil, À propos, Pages légales : textes du site. Les textes longs utilisent le Markdown : ## Titre, **gras**, - liste.',
-                'Les onglets Entreprise, Coordonnées, Réseaux sociaux et Référencement sont réservés à l\'administrateur : téléphones, WhatsApp, e-mail, adresse, horaires, liens sociaux.',
-                'Un champ vidé disparaît du site (par exemple un second téléphone). Chaque modification est enregistrée dans le journal.',
+            ['bx bx-x-circle', 'Annuler un mouvement de caisse, rapports', ['caisse.cancel', 'caisse.export'], [
+                'Un mouvement ne se supprime jamais : bouton « × » et un motif (il reste visible, barré).',
+                'PDF et Excel : choisissez la période puis « PDF » ou « Excel ».',
             ]],
-            ['bx bx-images', 'Ajouter des images', [
-                'Médias → « Téléverser » : images JPEG, PNG ou WebP de 5 Mo au plus. Elles sont redimensionnées automatiquement et leurs données de localisation retirées.',
-                'Renseignez le texte alternatif (description de l\'image) : il sert aux personnes malvoyantes et au référencement. La pastille « Sans texte alternatif » les retrouve.',
-                'Dans les fiches (formation ou service, article, témoignage), choisissez une image de la bibliothèque ou envoyez-en une nouvelle directement. Une image utilisée ne peut pas être supprimée.',
+            ['bx bx-target-lock', 'Les tests de niveau', ['tests.view'], [
+                'Tests de niveau : les demandes du site arrivent « À planifier ». Ouvrez-en une, fixez la date, le mode (au centre ou à distance) et, si besoin, le formateur qui fait passer le test (les frais d\'inscription lui reviendront).',
+                'Questionnaire en document (PDF, Word) : déposez-le sur la fiche ; le candidat le télécharge depuis sa convocation et renvoie ses réponses (photo, PDF).',
+                'Tests passés EN LIGNE : le score et le niveau provisoire sont déjà là ; écoutez l\'oral (ou confiez-le à un formateur) puis confirmez le niveau.',
+                'Après le test : « Inscrire à une formation » reprend l\'identité et le niveau.',
             ]],
-            ['bx bx-news', 'Rédiger une actualité', [
-                'Actualités → « Rédiger » : titre, catégorie, texte en Markdown (onglet « Aperçu » pour voir la mise en forme), image de couverture.',
-                'Laissez la date de publication vide pour publier tout de suite, ou choisissez une date future pour programmer l\'article.',
-                'Le bouton « œil » de la liste montre l\'article tel qu\'il apparaîtra sur le site, même s\'il n\'est pas publié.',
+            ['bx bx-list-check', 'Le test en ligne et ses questions', ['tests.configure'], [
+                'Tests de niveau → Questions : saisissez une question (réponses une par ligne, « * » devant la bonne) ou un sujet oral (partie « speaking »).',
+                'Importer un questionnaire : « Saisie en lot / import » (Excel, CSV, modèle fourni) ou un fichier Word (1. question, A) réponses, * devant la bonne, « Speaking: » sujet oral).',
+                'Réglages : nombre de questions, de sujets oraux et durée. Score minimal de chaque niveau : Formations → Niveaux.',
             ]],
-            ['bx bx-search-alt', 'Soigner le référencement', [
-                'Chaque fiche a un bloc « Référencement » : titre (60 caractères), méta-description (160 caractères) et image de partage (aperçu WhatsApp, Facebook). Vides, des valeurs sont déduites du contenu.',
-                'Changer l\'adresse d\'une fiche crée automatiquement une redirection : les anciens liens continuent de fonctionner.',
-                'Le plan du site (sitemap.xml) se met à jour seul ; déclarez-le dans Google Search Console (code de vérification dans Pages et paramètres → Référencement).',
+            ['bx bx-group', 'Groupes et séances', ['seances.view'], [
+                'Séances et groupes : « Répartir automatiquement » place les apprenants sans groupe (par niveau et mode, capacité au choix).',
+                'Fiche d\'un groupe : formateur, lien Google Meet, capacité, apprenants, séances (une ou une série), supports, discussion, annonces.',
             ]],
-            ['bx bx-list-plus', 'Saisir plusieurs éléments d\'un coup', [
-                'Dans les listes (services, témoignages, catégories, apprenants), « Saisie en lot / import » ouvre une grille : « Ajouter une ligne » pour en saisir plusieurs, ou collez des lignes copiées depuis Excel.',
-                '« Modèle Excel » télécharge un fichier prêt à remplir (listes déroulantes, mode d\'emploi) ; « Importer un fichier » l\'envoie. Tout ou rien : la moindre erreur est signalée ligne par ligne et rien n\'est enregistré.',
+            ['bx bx-award', 'Délivrer les attestations', ['inscriptions.attestation'], [
+                'Conditions : formation terminée, payée en totalité, fin prévue atteinte (la fiche les montre cochées ou non).',
+                'Un apprenant : fiche de l\'inscription → « Délivrer l\'attestation ». Tout un groupe : fiche du groupe → « Attestations » (un seul PDF).',
+                'Formation en ligne : l\'apprenant la reçoit par e-mail et dans son espace ; en présentiel : « à retirer au centre ». Une réimpression porte « DUPLICATE ».',
             ]],
-            ['bx bx-video', 'Témoignages en vidéo', [
-                'Témoignages → « Ajouter » : nom, fonction, organisation, note, texte, photo, et une vidéo (envoyée depuis votre ordinateur ou téléphone, 300 Mo au plus) ou un lien YouTube / Facebook / TikTok.',
-                'La vidéo envoyée est convertie en quelques minutes (format lisible sur tous les téléphones, image d\'aperçu, durée) : « Préparation… » s\'affiche en attendant.',
-                'Vos clients peuvent envoyer eux-mêmes leur témoignage depuis la page « Partager mon expérience » du site : il arrive « À modérer » (pastille, cloche, e-mail, WhatsApp). Regardez-le, puis cliquez sur le bouton vert « Valider » (au téléphone : sous le nom de l\'auteur) : il est publié aussitôt. La pastille « À modérer » n\'affiche que ceux qui attendent. Leur téléphone ou e-mail n\'est jamais publié.',
-                '« Mis en avant » place un témoignage en premier sur le site et l\'accueil.',
+            ['bx bx-pen', 'Régler l\'attestation', ['attestations.configure'], [
+                'Formations → Attestations : signataire, coordonnées de l\'en-tête, signature (tracée à l\'écran ou déposée) et sceau (photo du cachet, traité pour être lisible).',
+                'Regardez l\'aperçu avant « Enregistrer » ; signature et sceau servent aussi sur les reçus et les fiches de rémunération.',
             ]],
-            ['bx bx-support', 'Espace apprenant', [
-                'Les apprenants créent leur compte sur le site (« Mon espace » en haut à droite) ; vous pouvez aussi les créer depuis Clients (une invitation leur est envoyée) et déposer des documents dans leur espace.',
+            ['bx bx-purchase-tag', 'Formules, tarifs et promotions', ['formations.update', 'formations.create'], [
+                'Formations → Formules et tarifs : tarif en ligne et en présentiel, par mois ou unique ; frais d\'inscription (bloc du bas).',
+                'Formations → Promotions : réduction en % ou en montant, formule, dates, places, code (généré si vide), affiche facultative ; elle défile sur le site.',
+                'Formations → Niveaux : présentation et score minimal au test en ligne.',
             ]],
-            ['bx bx-user-circle', 'Gérer les comptes', [
-                'Paramètres → Utilisateurs → « Ajouter » : nom, numéro de téléphone et rôle (Administrateur, Secrétaire, Gestionnaire de contenu).',
-                'Sans mot de passe saisi, un mot de passe temporaire est généré et affiché une seule fois : transmettez-le à la personne, elle le changera à sa première connexion.',
-                'Un compte qui n\'est plus utilisé se désactive (accès coupé immédiatement) ; un mot de passe oublié se réinitialise depuis la liste.',
+            ['bx bx-envelope', 'Traiter les demandes', ['demandes.view'], [
+                'Demandes : messages et demandes du site (contact, traduction, formation personnalisée, excursion). Une pastille signale les nouvelles.',
+                'Statuts : En cours, Proposition envoyée (montant + détail : le visiteur l\'accepte d\'un clic), Acceptée, Perdue. Notes internes invisibles du visiteur.',
+                'Formation personnalisée acceptée : « Inscrire » crée l\'inscription au prix accepté.',
+            ]],
+            ['bx bx-user', 'Comptes apprenants', ['clients.view'], [
+                'Comptes apprenants : créez un compte (une invitation part par e-mail), déposez des documents dans l\'espace de l\'apprenant.',
+            ]],
+            ['bx bx-message-square-dots', 'Témoignages', ['temoignages.view'], [
+                'Les témoignages envoyés par les apprenants arrivent « À modérer » : regardez-les puis « Valider » ; « Mis en avant » les place en premier.',
+            ]],
+            ['bx bx-news', 'Actualités et pages du site', ['articles.view', 'pages.update'], [
+                'Actualités : rédigez, prévisualisez, publiez (ou programmez la date).',
+                'Pages et paramètres : textes de l\'accueil, à propos, services, pages légales, coordonnées, logo.',
+            ]],
+            ['bx bx-line-chart', 'Finances et commission', ['finances.view'], [
+                'Finances et commission : recettes par période, part du centre, commission du développeur, versements ; rapport PDF et Excel.',
+            ]],
+            ['bx bx-user-voice', 'Rémunération des formateurs', ['remunerations.view'], [
+                'Finances → Rémunération des formateurs : choisissez le mois ; pour chaque formateur, le dû (détail par paiement), le versé, le reste.',
+                '« Payer » enregistre le versement (il sort de la caisse) ; « Fiche » donne le PDF à signer. Paiements sans formateur : attribuez-le.',
+            ]],
+            ['bx bx-bar-chart-alt-2', 'Statistiques du site', ['statistiques.view'], [
+                'Statistiques du site : visites, pages vues, provenance, appareils, comptes créés et conversion.',
+            ]],
+            ['bx bx-user-circle', 'Gérer les comptes de l\'équipe', ['users.view'], [
+                'Utilisateurs → « Ajouter » : nom, téléphone et rôle (Secrétaire, Gestionnaire, Formateur…). Un mot de passe temporaire s\'affiche une fois : transmettez-le.',
+                'Un compte inutilisé se désactive ; un mot de passe oublié se réinitialise depuis la liste.',
+            ]],
+            ['bx bx-key', 'Donner des droits à son équipe', ['equipe.permissions'], [
+                'Administration → Permissions de l\'équipe : choisissez la personne et cochez les droits à ajouter (parmi les vôtres) ; ceux de son rôle sont grisés.',
+            ]],
+            ['bx bx-history', 'Surveiller l\'activité', ['activite.view', 'connexions.view'], [
+                'Journal d\'activité : chaque action de votre équipe (qui, quand, quoi).',
+                'Qui est en ligne : l\'équipe et les apprenants connectés, la date et l\'heure de connexion, la dernière activité.',
             ]],
         ];
+        $user = auth()->user();
+        $chapters = array_values(array_filter($all, fn ($c) => $c[2] === [] || collect($c[2])->contains(fn ($p) => $user->can($p))));
     @endphp
 
     <div class="card">
@@ -130,9 +150,9 @@
             <h6 class="mb-0 text-white"><i class='bx bx-help-circle me-2'></i>GUIDE D'UTILISATION DE L'ADMINISTRATION</h6>
         </div>
         <div class="card-body">
-            <p class="text-muted">Ce guide reprend les tâches courantes de l'administration du site, dans l'ordre où on les découvre.</p>
+            <p class="text-muted">Ce guide ne montre que ce que vous pouvez faire avec votre rôle ({{ auth()->user()->roleName()?->label() }}) : {{ count($chapters) }} chapitre(s).</p>
             <div class="accordion" id="aide">
-                @foreach ($chapters as $n => [$icon, $title, $steps])
+                @foreach ($chapters as $n => [$icon, $title, $rights, $steps])
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="aide-h{{ $n }}">
                             <button class="accordion-button {{ $n ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#aide-c{{ $n }}" aria-expanded="{{ $n ? 'false' : 'true' }}" aria-controls="aide-c{{ $n }}">

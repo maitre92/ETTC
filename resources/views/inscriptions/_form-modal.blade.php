@@ -37,7 +37,7 @@
                                         <div class="col-md-3"><label class="form-label small" for="{{ $modalId }}-gender">Sexe</label><select class="form-select" id="{{ $modalId }}-gender" name="gender"><option value="">—</option>@foreach (\App\Enums\Gender::options() as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div>
                                         <div class="col-md-3"><label class="form-label small" for="{{ $modalId }}-birth">Naissance</label><input type="date" class="form-control" id="{{ $modalId }}-birth" name="birth_date"></div>
                                         <div class="col-md-8"><label class="form-label small" for="{{ $modalId }}-address">Adresse</label><input class="form-control" id="{{ $modalId }}-address" name="address" maxlength="300"></div>
-                                        <div class="col-md-4"><label class="form-label small" for="{{ $modalId }}-city">Ville</label><input class="form-control" id="{{ $modalId }}-city" name="city" maxlength="100" value="Ségou"></div>
+                                        <div class="col-md-4"><label class="form-label small" for="{{ $modalId }}-city">Ville</label><input class="form-control" id="{{ $modalId }}-city" name="city" maxlength="100" placeholder="Ségou, Bamako…"></div>
                                     </div>
                                 </details>
                             </div>

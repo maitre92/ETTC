@@ -40,7 +40,7 @@ class SiteSettings
             'contact.phone_2' => ['Second téléphone', 'tel', 30],
             'contact.whatsapp' => ['Numéro WhatsApp', 'tel', 30, 'Numéro ouvert par le bouton WhatsApp du site (indicatif +223 ajouté aux numéros à 8 chiffres).'],
             'contact.email' => ['E-mail de contact', 'email', 150],
-            'contact.city' => ['Ville affichée', 'text', 100, 'Affichée dans la barre du haut et le pied de page (ex. « Ségou, Mali »).'],
+            'contact.city' => ['Ville affichée', 'text', 100, 'Affichée dans la barre du haut et le pied de page (ex. « Ségou et Bamako, Mali »).'],
             'contact.address' => ['Adresse publique', 'textarea', 300, 'Laissée vide, elle n\'apparaît pas sur le site.'],
             'contact.hours' => ['Horaires', 'textarea', 300, 'Une ligne par plage, ex. « Lundi – vendredi : 8 h – 18 h ».'],
             'contact.map_url' => ['Lien de localisation', 'url', 500, 'Lien (Google Maps, OpenStreetMap…) ouvert dans un nouvel onglet ; aucune carte n\'est chargée dans la page.'],

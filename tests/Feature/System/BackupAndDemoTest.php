@@ -52,8 +52,10 @@ class BackupAndDemoTest extends TestCase
     {
         $page = $this->actingAs(User::factory()->commercial()->create())->get('/admin/aide')->assertOk()->assertSee('GUIDE D\'UTILISATION', false);
 
-        foreach (['Se connecter', 'Traiter les demandes', 'Modifier les pages', 'Ajouter des images', 'Rédiger une actualité', 'Soigner le référencement', 'Gérer les comptes'] as $topic) {
+        // La secrétaire voit les tâches de son rôle (le guide est filtré par droits : AideTest).
+        foreach (['Se connecter', 'Traiter les demandes', 'Inscrire un apprenant au centre', 'Encaisser un paiement', 'Les tests de niveau'] as $topic) {
             $page->assertSee($topic);
         }
+        $page->assertDontSee('Gérer les comptes de l&#039;équipe', false);
     }
 }
